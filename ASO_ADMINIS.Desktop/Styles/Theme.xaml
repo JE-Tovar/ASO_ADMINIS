@@ -1,0 +1,1050 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:ASO_ADMINIS.Desktop.Models"
+                    xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls">
+
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="Tokens.xaml" />
+    <ResourceDictionary Source="Colors.xaml" />
+    <ResourceDictionary Source="Controles.xaml" />
+    <ResourceDictionary Source="Componentes.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+  <!-- ======================== Botones: cuatro intenciones ========================
+
+       El boton primario NO existia como estilo. Estaba escrito a mano 27 veces en 19 archivos,
+       siempre la misma tripleta de seis atributos (Padding="14,7" Cursor="Hand" FontSize="12"
+       BorderThickness="0" Background=PrimaryBrush Foreground=White), y en cada copia podia
+       divergir, y divergia: el de CrudEditorWindow llevaba Padding="14,8" y el de Login "8,10".
+
+       Los cuatro heredan del estilo implicito de Button (Controles.xaml), que es quien pone el
+       velo del hover, el anillo de foco y el atenuado al deshabilitarse. Aqui solo va la
+       intencion: que pinta cada uno y cuanto pesa. -->
+
+  <!-- La accion principal de la pantalla. Una por pantalla; si hay dos, una de las dos no lo es.
+
+       Foreground y borde van a OnAccentBrush/AccentBlueBrush, no a White/sin-borde como antes:
+       el relleno de marca (ámbar) es CLARO, así que un texto blanco encima daría 1,86:1 (antes,
+       con el teal oscuro, White sí bastaba). El borde existe porque el relleno solo, sin él, da
+       1,58:1 de silueta contra la superficie clara — por debajo del 3:1 que pide un elemento de
+       interfaz; con el borde sube a 4,07:1. Ver Colors.xaml para el detalle de contraste. -->
+  <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+    <Setter Property="Padding" Value="{StaticResource TkBotonPrimario}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource PrimaryButtonBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBlueBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+  </Style>
+
+  <!-- Todo lo demas de la barra de herramientas: Editar, Eliminar, Actualizar. -->
+  <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Padding" Value="{StaticResource TkBoton}" />
+    <Setter Property="Margin" Value="8,0,0,0" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <!-- Sin borde: acciones de apoyo que no deben competir con nada (cerrar, cancelar, volver). -->
+  <Style x:Key="GhostButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Padding" Value="{StaticResource TkBoton}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+
+  <!-- Destructivo e irreversible: anular, eliminar. -->
+  <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+    <Setter Property="Padding" Value="{StaticResource TkBotonPrimario}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="{DynamicResource DangerButtonBrush}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- Nombre anterior de SecondaryButtonStyle. Sigue vivo porque lo citan 61 sitios; las vistas
+       lo van soltando conforme se rehacen, y entonces desaparece. -->
+  <Style x:Key="BarraBotonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}" />
+
+  <!-- ==================== Superficies: cuatro cosas, no una ====================
+
+       CardStyle se usaba 64 veces para cuatro cosas distintas (contenedor de datos, barra de
+       herramientas, indicador y destino de navegacion), y por eso no habia jerarquia visual:
+       todo era la misma caja blanca flotando sobre el fondo. Estos tres nombres dicen cual es
+       cual, y la barra de herramientas deja de ser una tarjeta. -->
+
+  <!-- Contenedor de datos: la tabla, el panel de detalle, un grupo de campos.
+
+       Sin sombra, y sigue sin llevarla: una tarjeta no flota, esta pegada a la pagina. En una
+       interfaz densa el borde de 1 px separa mejor, cuesta menos de pintar y respeta el tema.
+       La sombra existe (ElevacionColor) pero solo para lo que se abre POR ENCIMA de la pagina y
+       hay que poder ignorar: desplegable, calendario, tooltip, menu. -->
+  <Style x:Key="SectionCardStyle" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{StaticResource BdFino}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadMd}" />
+    <Setter Property="Padding" Value="{StaticResource TkTarjeta}" />
+  </Style>
+
+  <!-- Barra de acciones. No es una tarjeta: no contiene datos, solo los filtra.
+
+       Que el buscador, los filtros y los botones vinieran dentro de una caja blanca con borde,
+       identica a la de la tabla, es lo que dejaba una pantalla de listado con dos cajas del mismo
+       peso donde solo una tiene datos. Sin caja, la unica tarjeta con borde de la pantalla es la
+       que importa. -->
+  <Style x:Key="ToolbarStyle" TargetType="Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="{StaticResource TkBarra}" />
+  </Style>
+
+  <!-- Tira de pestanas: la linea que corre por debajo de todas. SegmentedTabStyle solo pinta el
+       subrayado del activo, asi que esta linea se copiaba a mano en las diez pantallas con
+       pestanas — y con dos valores distintos segun quien la escribiera. -->
+  <Style x:Key="TabStripStyle" TargetType="Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+
+  <!-- Forma comun de los chips de estado: fondo tenido + texto fuerte del mismo tono.
+
+       Antes era fondo saturado + texto blanco, y ese patron fallaba contraste en cinco de los seis
+       colores: blanco sobre ambar daba 2,15:1 en el tema claro y 1,67:1 en el oscuro, con la letra
+       a 11 px. Ademas pesaba de mas: media docena de pastillas saturadas en una tabla competian
+       con los propios datos.
+
+       El color de la letra va por TextElement.Foreground en el Border, que hereda al TextBlock de
+       dentro. Por eso los TextBlock de los chips NO deben traer Foreground propio: un valor local
+       gana sobre el heredado y volveria a dejar el texto blanco.
+
+       Cada chip concreto solo aporta sus DataTrigger, que es lo unico en lo que se diferencian. -->
+  <Style x:Key="ChipBaseStyle" TargetType="Border">
+    <!-- Radio de control (RadSm), no pastilla. Con RadPill los chips eran la unica forma
+         completamente redonda de la aplicacion: al lado de tarjetas, botones y celdas —todos de
+         esquina suave— una pastilla se lee como un adorno pegado encima y no como parte del
+         sistema. Es la forma que ya tenia el chip de contexto de la barra superior, y ahora la
+         comparten todos los chips de estado. -->
+    <Setter Property="CornerRadius" Value="{StaticResource RadSm}" />
+    <Setter Property="Padding" Value="{StaticResource TkChip}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="BorderThickness" Value="{StaticResource BdFino}" />
+    <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
+  </Style>
+
+  <!-- Chip de contexto de la barra superior (la organización activa): sobre qué se está
+       escribiendo. Misma forma que los chips de estado —hereda de la base— y solo cambia el
+       color y su sitio en la barra. -->
+  <Style x:Key="ChipContextoStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+  </Style>
+
+  <!-- Chip Activo/Inactivo: lo comparten los maestros simples (proveedores, y cualquier
+       catálogo nuevo que use el mismo flag Activo) -->
+  <Style x:Key="ChipActivoStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Activo}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Chip de estado de una petición de cambio -->
+  <Style x:Key="ChipEstadoPeticionStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding EstadoTexto}" Value="Pendiente">
+        <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource WarningTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding EstadoTexto}" Value="Aprobada">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding EstadoTexto}" Value="Rechazada">
+        <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DangerBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource DangerTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Chip de estado de una factura de proveedor. El disparador de vencida va al final:
+       gana sobre el de Pendiente cuando ya pasó el plazo. -->
+  <Style x:Key="ChipEstadoFacturaProveedorStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoFacturaProveedor.Pendiente}">
+        <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoFacturaProveedor.Pagada}">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoFacturaProveedor.Anulada}">
+        <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding EstaVencida}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DangerBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource DangerTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Chip de estado de un movimiento de banco. "Conciliado" es el estado bueno —el banco ya lo
+       confirmó—, así que se lleva el verde; "Registrado" queda en azul de información, que es lo
+       que es: anotado y todavía sin cuadrar contra el extracto. -->
+  <Style x:Key="ChipEstadoMovimientoBancoStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoMovimientoBanco.Registrado}">
+        <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoMovimientoBanco.Conciliado}">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoMovimientoBanco.Anulado}">
+        <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+
+  <!-- Chip Activa/Cerrada de una cuenta. No reutiliza ChipActivoStyle porque aquel se enlaza a
+       "Activo" y la cuenta dice "Activa"; renombrar la propiedad del modelo por un estilo habría
+       sido la cola meneando al perro. -->
+  <Style x:Key="ChipCuentaActivaStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Activa}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Chip de existencia de un artículo. Se enlaza al texto y no al enum porque el estado del
+       almacén no es un campo guardado: sale de comparar la existencia calculada con el mínimo. -->
+  <Style x:Key="ChipExistenciaStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding EstadoTexto}" Value="Disponible">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding EstadoTexto}" Value="Bajo mínimo">
+        <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource WarningTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding EstadoTexto}" Value="Sin existencia">
+        <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DangerBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource DangerTextBrush}" />
+      </DataTrigger>
+      <!-- "Inactivo" se queda con el neutro de ChipBaseStyle: no es un aviso, es que no cuenta. -->
+    </Style.Triggers>
+  </Style>
+
+  <!-- Chip de estado de una entrada y de un boleto de salida. Solo hay dos estados: en pie o
+       deshecho, así que el azul de información basta y lo anulado se apaga al neutro de la base. -->
+  <Style x:Key="ChipEstadoEntradaStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoEntrada.Registrada}">
+        <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoEntrada.Anulada}">
+        <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style x:Key="ChipEstadoSalidaStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoSalida.Registrada}">
+        <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoSalida.Anulada}">
+        <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Nombre anterior de SectionCardStyle. Sigue vivo porque lo citan 64 sitios, para cuatro
+       cosas distintas; las vistas lo van cambiando por el nombre que corresponda conforme se
+       rehacen, y entonces desaparece. -->
+  <Style x:Key="CardStyle" TargetType="Border" BasedOn="{StaticResource SectionCardStyle}" />
+
+  <!-- Título de sección en tarjeta -->
+  <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsTitle}" />
+    <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <!-- Formularios: etiqueta + controles de captura. Solo setters, sin ControlTemplate,
+       para heredar el comportamiento nativo de cada control. -->
+  <Style x:Key="FormLabelStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsCaption}" />
+    <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="Margin" Value="0,12,0,4" />
+  </Style>
+
+  <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Padding" Value="{StaticResource TkControl}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <!-- Igual que el TextBox de formulario. Existe porque el PasswordBox sin estilo se pinta
+       con los colores del sistema: sobre el tema oscuro saldria una caja blanca. -->
+  <Style x:Key="FormPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Padding" Value="{StaticResource TkControl}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Padding" Value="{StaticResource TkControl}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style x:Key="FormDatePickerStyle" TargetType="DatePicker" BasedOn="{StaticResource {x:Type DatePicker}}">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <!-- Controles dentro de una grilla de líneas de un documento (entrada, boleto de salida).
+       Mismo aspecto que los de formulario con menos aire: en una grilla el alto de la fila se
+       multiplica por cada renglón, y con el padding de formulario cabrían tres líneas en el modal. -->
+  <Style x:Key="LineaTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource FormTextBoxStyle}">
+    <Setter Property="Padding" Value="6,4" />
+    <Setter Property="Margin" Value="2" />
+  </Style>
+
+  <Style x:Key="LineaComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource FormComboBoxStyle}">
+    <Setter Property="Padding" Value="6,4" />
+    <Setter Property="Margin" Value="2" />
+  </Style>
+
+  <!-- Botón "quitar esta línea" de una grilla editable (Entradas, Salidas). Mismos ajustes de
+       renderizado de glifo que NavIconStyle (Display/ClearType/LayoutRounding): sin ellos el
+       aspa de Phosphor salía recortada dentro de un botón tan chico. -->
+  <Style x:Key="LineaBotonQuitarStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+    <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+    <Setter Property="Margin" Value="2" />
+    <Setter Property="Padding" Value="6,4" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+    <Setter Property="UseLayoutRounding" Value="True" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <!-- Valor calculado de solo lectura dentro de un formulario (p. ej. el peso neto). -->
+  <Style x:Key="FormValorCalculadoStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsSubtitle}" />
+    <Setter Property="FontWeight" Value="{StaticResource FwBold}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- Icono de la navegación lateral (glifo Phosphor, ver Controls/Iconos.cs).
+       FontWeight fijo en Normal: la fuente no tiene cara bold y WPF la sintetiza,
+       ensuciando el glifo justo en el estado seleccionado. -->
+  <Style x:Key="NavIconStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+    <Setter Property="UseLayoutRounding" Value="True" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <!-- Chevron de plegar/desplegar un módulo. Va anidado dentro del botón de módulo:
+       WPF marca el clic como manejado, así que pliega sin disparar la navegación. -->
+  <Style x:Key="NavChevronStyle" TargetType="Button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="{StaticResource RadSm}"
+                  SnapsToDevicePixels="True">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource NavPressedBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource NavPressedBrush}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Ítem de navegación lateral: módulo (primer nivel).
+       El orden de la plantilla importa: la barra se dibuja DESPUÉS del fondo,
+       si no el hover la tapa. -->
+  <Style x:Key="NavItemStyle" TargetType="Button">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="20,9,12,9" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="UseLayoutRounding" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid SnapsToDevicePixels="True">
+            <!-- La pastilla va METIDA hacia dentro (Margin) en vez de ocupar de borde a borde:
+                 el relleno de borde a borde convierte el menu en una sucesion de bandas y hace
+                 que el sidebar pese mas que el contenido. -->
+            <Border x:Name="Seleccion" Margin="8,1" Opacity="0"
+                    CornerRadius="{StaticResource RadSm}"
+                    Background="{DynamicResource NavSelectedBrush}" />
+            <Border x:Name="Velo" Margin="8,1" Opacity="0"
+                    CornerRadius="{StaticResource RadSm}"
+                    Background="{DynamicResource NavHoverBrush}" />
+            <Border x:Name="FocusRing" Margin="8,1" BorderThickness="0"
+                    CornerRadius="{StaticResource RadSm}" SnapsToDevicePixels="True"
+                    BorderBrush="{DynamicResource FocusRingBrush}" />
+            <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Trigger.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Velo"
+                                     Storyboard.TargetProperty="Opacity" To="1"
+                                     Duration="{StaticResource DurRapida}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.EnterActions>
+              <Trigger.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Velo"
+                                     Storyboard.TargetProperty="Opacity" To="0"
+                                     Duration="{StaticResource DurRapida}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.ExitActions>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Velo" Property="Background" Value="{DynamicResource NavPressedBrush}" />
+              <Setter TargetName="Velo" Property="Opacity" Value="1" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="FocusRing" Property="BorderThickness" Value="{StaticResource BdFino}" />
+            </Trigger>
+            <!-- La pastilla es la UNICA senal de elegido, junto con el color del rotulo. Antes
+                 eran tres a la vez: relleno de borde a borde, barra de 3 px a la izquierda y
+                 color. Con tres senales para un solo hecho, ninguna manda. -->
+            <DataTrigger Binding="{Binding EstaSeleccionado}" Value="True">
+              <Setter TargetName="Seleccion" Property="Opacity" Value="1" />
+            </DataTrigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <!-- Módulo abierto pero mostrando un submódulo: sólo color, sin fondo ni barra,
+           para que nunca haya dos ítems marcados con barra a la vez. -->
+      <MultiDataTrigger>
+        <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding EstaActivo}" Value="True" />
+          <Condition Binding="{Binding EstaSeleccionado}" Value="False" />
+        </MultiDataTrigger.Conditions>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+      </MultiDataTrigger>
+      <DataTrigger Binding="{Binding EstaSeleccionado}" Value="True">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Ítem de navegación lateral: submódulo (segundo nivel).
+       Misma plantilla que el módulo; sólo cambian tamaño, color base y sangría. -->
+  <Style x:Key="NavSubItemStyle" TargetType="Button">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsCaption}" />
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSecondaryBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="46,7,12,7" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="UseLayoutRounding" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid SnapsToDevicePixels="True">
+            <!-- La pastilla va METIDA hacia dentro (Margin) en vez de ocupar de borde a borde:
+                 el relleno de borde a borde convierte el menu en una sucesion de bandas y hace
+                 que el sidebar pese mas que el contenido. -->
+            <Border x:Name="Seleccion" Margin="36,1,8,1" Opacity="0"
+                    CornerRadius="{StaticResource RadSm}"
+                    Background="{DynamicResource NavSelectedBrush}" />
+            <Border x:Name="Velo" Margin="36,1,8,1" Opacity="0"
+                    CornerRadius="{StaticResource RadSm}"
+                    Background="{DynamicResource NavHoverBrush}" />
+            <Border x:Name="FocusRing" Margin="36,1,8,1" BorderThickness="0"
+                    CornerRadius="{StaticResource RadSm}" SnapsToDevicePixels="True"
+                    BorderBrush="{DynamicResource FocusRingBrush}" />
+            <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Trigger.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Velo"
+                                     Storyboard.TargetProperty="Opacity" To="1"
+                                     Duration="{StaticResource DurRapida}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.EnterActions>
+              <Trigger.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Velo"
+                                     Storyboard.TargetProperty="Opacity" To="0"
+                                     Duration="{StaticResource DurRapida}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.ExitActions>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Velo" Property="Background" Value="{DynamicResource NavPressedBrush}" />
+              <Setter TargetName="Velo" Property="Opacity" Value="1" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="FocusRing" Property="BorderThickness" Value="{StaticResource BdFino}" />
+            </Trigger>
+            <!-- La pastilla es la UNICA senal de elegido, junto con el color del rotulo. Antes
+                 eran tres a la vez: relleno de borde a borde, barra de 3 px a la izquierda y
+                 color. Con tres senales para un solo hecho, ninguna manda. -->
+            <DataTrigger Binding="{Binding EstaSeleccionado}" Value="True">
+              <Setter TargetName="Seleccion" Property="Opacity" Value="1" />
+            </DataTrigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding EstaSeleccionado}" Value="True">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Tarjeta pulsable (módulo en Inicio, submódulo en el dashboard).
+
+       Al senalarla se funde un borde MAS MARCADO encima del suyo, en vez de ponerse verde: el
+       verde deberia significar algo, y una tarjeta bajo el raton no significa nada todavia. El
+       borde superpuesto va aparte porque lo que se anima es su opacidad; el BorderBrush del
+       Border de abajo es un brush de la paleta y no se puede animar. -->
+  <Style x:Key="CardButtonStyle" TargetType="Button">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{StaticResource BdFino}" />
+    <Setter Property="Padding" Value="{StaticResource TkTarjeta}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid>
+            <Border x:Name="Root" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{StaticResource RadMd}" Padding="{TemplateBinding Padding}">
+              <ContentPresenter />
+            </Border>
+            <Border x:Name="Realce" Opacity="0" IsHitTestVisible="False"
+                    Background="{DynamicResource HoverOverlayBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}"
+                    BorderThickness="{StaticResource BdFino}"
+                    CornerRadius="{StaticResource RadMd}" />
+            <Border x:Name="Foco" Opacity="0" IsHitTestVisible="False"
+                    BorderBrush="{DynamicResource FocusRingBrush}"
+                    BorderThickness="{StaticResource BdFoco}"
+                    CornerRadius="{StaticResource RadMd}" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Trigger.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Realce"
+                                     Storyboard.TargetProperty="Opacity" To="1"
+                                     Duration="{StaticResource DurNormal}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.EnterActions>
+              <Trigger.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Realce"
+                                     Storyboard.TargetProperty="Opacity" To="0"
+                                     Duration="{StaticResource DurNormal}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.ExitActions>
+            </Trigger>
+            <!-- Con el teclado no hay raton que senale: sin esto, tabular por el lanzador de
+                 Inicio no mostraba en que tarjeta estabas. -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Foco" Property="Opacity" Value="1" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Toggle de rango temporal -->
+  <!-- ================= Pestanas y filtros: dos cosas, no una =================
+
+       RangeToggleStyle se usaba 85 veces para dos trabajos que no se parecen: filtrar un listado
+       (Pendientes / Resueltas / Todas) y hacer de pestana de seccion en Configuracion,
+       Administracion y Peticiones. Como pastilla azul rellena, una pestana pesa lo mismo que el
+       boton primario de la pantalla y compite con el.
+
+       Se parten. La pestana se marca con una linea inferior, que es como se marca una pestana; el
+       filtro se queda con el chip tenido, que es como se marca un filtro. -->
+
+  <!-- Pestana de seccion. Sin relleno: la subraya. -->
+  <Style x:Key="SegmentedTabStyle" TargetType="RadioButton">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsSubtitle}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="2,6" />
+    <Setter Property="Margin" Value="0,0,20,0" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <Grid SnapsToDevicePixels="True">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ContentPresenter Grid.Row="0" Margin="{TemplateBinding Padding}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Border x:Name="Subrayado" Grid.Row="1" Height="2" Opacity="0"
+                    Background="{DynamicResource NavIndicatorBrush}"
+                    CornerRadius="{StaticResource RadPill}" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+              <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+              <Trigger.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Subrayado"
+                                     Storyboard.TargetProperty="Opacity" To="1"
+                                     Duration="{StaticResource DurNormal}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.EnterActions>
+              <Trigger.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Subrayado"
+                                     Storyboard.TargetProperty="Opacity" To="0"
+                                     Duration="{StaticResource DurRapida}"
+                                     EasingFunction="{StaticResource CurvaSalida}" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.ExitActions>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Subrayado" Property="Opacity" Value="1" />
+              <Setter TargetName="Subrayado" Property="Background" Value="{DynamicResource FocusRingBrush}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Filtro de listado. Chip tenido, no relleno de azul: en una barra con cinco filtros y un
+       boton primario, cinco chips azules dejan de senalar nada. Esquina RadSm, igual que el resto
+       de los botones del sistema: RadPill (pastilla) lo hacia destacar de mas frente a ellos. -->
+  <Style x:Key="FilterChipStyle" TargetType="ToggleButton">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsCaption}" />
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{StaticResource BdFino}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{StaticResource RadSm}"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource InfoTextBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource InfoTextBrush}" />
+              <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ToggleHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Filtro de listado colapsado en una caja desplegable. Reemplaza a FilterChipStyle en las
+       pantallas de listado: con cinco o seis estados la fila de chips se rompia en dos lineas
+       en ventanas angostas. Reusa la plantilla de ComboBox de Controles.xaml (FiltroDropdown
+       hereda de ComboBox y no redefine su DefaultStyleKey), solo mas compacta. -->
+  <Style x:Key="FiltroDropdownStyle" TargetType="{x:Type controls:FiltroDropdown}"
+         BasedOn="{StaticResource {x:Type ComboBox}}">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsCaption}" />
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="MinWidth" Value="140" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <!-- Interruptor de un ajuste. Una casilla de verificacion dice "esto forma parte de lo que voy a
+       guardar"; un interruptor dice "esto ya esta puesto". En Configuracion los ajustes se aplican
+       al instante, asi que es lo segundo. -->
+  <Style x:Key="ToggleSwitchStyle" TargetType="CheckBox">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Border x:Name="Riel" Width="34" Height="18" VerticalAlignment="Center"
+                    CornerRadius="{StaticResource RadPill}"
+                    BorderThickness="{StaticResource BdFino}"
+                    Background="{DynamicResource NeutralSoftBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}">
+              <Border x:Name="Perilla" Width="12" Height="12" Margin="2,0,0,0"
+                      HorizontalAlignment="Left" VerticalAlignment="Center"
+                      CornerRadius="{StaticResource RadPill}"
+                      Background="{DynamicResource TextMutedBrush}" />
+            </Border>
+            <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"
+                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <!-- La perilla usa OnAccentBrush y no White literal: el riel marcado es el ámbar de
+                 marca (claro en las dos paletas), y una perilla blanca encima se perdería. -->
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Riel" Property="Background" Value="{DynamicResource PrimaryButtonBrush}" />
+              <Setter TargetName="Riel" Property="BorderBrush" Value="{DynamicResource PrimaryButtonBrush}" />
+              <Setter TargetName="Perilla" Property="HorizontalAlignment" Value="Right" />
+              <Setter TargetName="Perilla" Property="Margin" Value="0,0,2,0" />
+              <Setter TargetName="Perilla" Property="Background" Value="{DynamicResource OnAccentBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Riel" Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
+              <Setter TargetName="Riel" Property="BorderThickness" Value="{StaticResource BdFoco}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="RangeToggleStyle" TargetType="ToggleButton">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsCaption}" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{StaticResource RadSm}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <!-- Marcado, el relleno es PrimaryButtonBrush (el ámbar de marca), no PrimaryBrush:
+                 este lleva OnAccentBrush encima, y PrimaryBrush es solo texto en la paleta clara
+                 (ver Colors.xaml). -->
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PrimaryButtonBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryButtonBrush}" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ToggleHoverBrush}" />
+            </Trigger>
+            <MultiTrigger>
+              <MultiTrigger.Conditions>
+                <Condition Property="IsChecked" Value="True" />
+                <Condition Property="IsMouseOver" Value="True" />
+              </MultiTrigger.Conditions>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PrimaryLightBrush}" />
+            </MultiTrigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Celda de la matriz de paletizado (Catálogo · Tipos de Botella): un rectángulo que
+       intercambia ancho/alto según la orientación de la caja, en vez de rotar un transform —
+       más simple y evita animar un brush (regla 3 del sistema visual). Marcada = vertical. -->
+  <Style x:Key="CeldaOrientacionEditableStyle" TargetType="ToggleButton">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Margin" Value="2" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="{StaticResource RadSm}" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Background" Value="{DynamicResource PrimaryButtonBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryButtonBrush}" />
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource ToggleHoverBrush}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Botella a granel dentro del panal (Catálogo · Tipos de Botella): un círculo neutro, igual
+       en el editor y en "Ver detalle" — no hay estado que marcar, es solo la disposición. -->
+  <Style x:Key="PanalCirculoStyle" TargetType="Ellipse">
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
+    <Setter Property="Fill" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Stroke" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="StrokeThickness" Value="1" />
+  </Style>
+
+  <!-- Misma celda, de solo lectura para "Ver detalle": el DataContext de cada celda es
+       directamente el bool "EsVertical", no un ViewModel con propiedad. -->
+  <Style x:Key="CeldaOrientacionStyle" TargetType="Border">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Margin" Value="2" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadSm}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding}" Value="True">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Background" Value="{DynamicResource PrimaryButtonBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryButtonBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Alerta de proceso -->
+  <Style x:Key="AlertBoxStyle" TargetType="Border">
+    <Setter Property="CornerRadius" Value="{StaticResource RadMd}" />
+    <Setter Property="Padding" Value="{StaticResource TkTarjetaCompacta}" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+    <Setter Property="BorderThickness" Value="{StaticResource BdFino}" />
+    <!-- Fondo y borde por defecto. Sin ellos el Border salia transparente y con el borde a nulo,
+         asi que el aviso del dashboard de modulo era texto rojo suelto donde el nombre del estilo
+         promete una caja. Quien quiera otro color (peligro, aviso) lo sobrescribe. -->
+    <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+
+  <!-- Pantalla que ocupa el alto disponible en vez de crecer hacia abajo.
+
+       La fila "*" de una pantalla de listado solo mide algo si alguien acota el alto, y el
+       ScrollViewer del shell (MainWindow.xaml) mide con alto INFINITO: sin esto, la fila "*"
+       degenera en Auto, la tabla pide el alto de todas sus filas y quien se desplaza es la
+       pagina entera, llevandose de vista los filtros y la cabecera de columnas.
+
+       Acotado el alto, la fila "*" reparte de verdad y el DataGrid activa su propia barra
+       dentro del recuadro. Es la via compatible con 5f5eb36, que quito el MaxHeight fijo de
+       las tablas justamente para que el alto lo decidiera el contenedor y no un numero.
+
+       Va SOLO en las pantallas de listado, no en el shell: las vistas que son formularios
+       largos siguen necesitando crecer y desplazarse con la barra del shell. -->
+  <Style x:Key="PantallaPlenaStyle" TargetType="Grid">
+    <Setter Property="MaxHeight"
+            Value="{Binding ViewportHeight,
+                            RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
+  </Style>
+
+  <!-- DataGrid -->
+  <Style x:Key="DataGridStyle" TargetType="DataGrid">
+    <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+    <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <!-- El desplazamiento de la tabla es SUYO, no de la pagina: la pantalla se acota con
+         PantallaPlenaStyle y lo que no cabe se resuelve aqui dentro. Horizontal en Auto: con
+         columnas "N*" el DataGrid reparte el ancho y no desborda; solo aparece si la suma de
+         los MinWidth no entra (ventana en su minimo a escala 125 %). -->
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+    <!-- La tabla va dentro de una tarjeta con Padding="0", pegada al marco. Un Border de WPF no
+         recorta a sus hijos, asi que la cabecera —que pinta un rectangulo solido— tapaba las
+         esquinas redondeadas y la tarjeta se veia cuadrada. 5 = radio de la tarjeta (RadMd, 6)
+         menos su borde (1). Aqui y no en cada vista: lo comparten las veinte pantallas. -->
+    <Setter Property="controls:RecorteRedondeado.Radio" Value="5" />
+    <!-- Solo la rejilla horizontal, y sin cebra.
+
+         Antes iban las dos cosas a la vez: rejilla completa MAS filas alternas tenidas. Son dos
+         mecanismos para lo mismo —separar registros— sumados uno encima del otro, y el resultado
+         es que los datos se leian dentro de una cuadricula de hoja de calculo en vez de en una
+         tabla. Queda un solo separador de registro, la linea horizontal.
+
+         La vertical se defendia porque en una tabla de nueve columnas la vista salta de una
+         columna a la de al lado. Ese trabajo lo hacen ahora el relleno de celda (10 px por lado,
+         era 8) y la alineacion: los rotulos a la izquierda, las cifras a la derecha con digitos
+         tabulares (ver Controls/ColumnaNumero.cs). Separar con aire en vez de con lineas es lo
+         que distingue una tabla de un formulario impreso. -->
+    <Setter Property="GridLinesVisibility" Value="Horizontal" />
+    <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="HeadersVisibility" Value="Column" />
+    <Setter Property="AutoGenerateColumns" Value="False" />
+    <Setter Property="IsReadOnly" Value="True" />
+    <Setter Property="CanUserAddRows" Value="False" />
+    <Setter Property="CanUserDeleteRows" Value="False" />
+    <!-- La tabla no se recoloca. WPF trae los tres en True por omision, asi que cualquiera podia
+         arrastrar una columna a otro sitio o cambiarle el ancho, y la disposicion dejaba de ser
+         la misma en dos maquinas: al explicar por telefono "el numero va en la tercera columna"
+         ya no valia. Ademas no se guarda en ningun lado, asi que el cambio se perdia al salir.
+         El orden y el ancho los decide la vista, que es donde se penso el reparto. -->
+    <Setter Property="CanUserReorderColumns" Value="False" />
+    <Setter Property="CanUserResizeColumns" Value="False" />
+    <Setter Property="CanUserResizeRows" Value="False" />
+    <Setter Property="SelectionMode" Value="Single" />
+    <Setter Property="RowBackground" Value="Transparent" />
+  </Style>
+
+</ResourceDictionary>

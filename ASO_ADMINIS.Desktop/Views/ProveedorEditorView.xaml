@@ -1,0 +1,53 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.ProveedorEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="380">
+
+  <StackPanel>
+    <controls:FormField Etiqueta="Nombre o razón social">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="RIF">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding Rif, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Teléfono">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding Telefono, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <controls:FormField Etiqueta="Notas">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               AcceptsReturn="True" MinLines="2" TextWrapping="Wrap"
+               VerticalContentAlignment="Top"
+               Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <CheckBox Content="Activo" Margin="0,16,0,0" Cursor="Hand"
+              Foreground="{DynamicResource TextPrimaryBrush}"
+              IsChecked="{Binding Activo}" />
+
+    <TextBlock Text="Un proveedor inactivo se conserva para el histórico, pero no se ofrece al registrar facturas nuevas."
+               FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextMutedBrush}" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

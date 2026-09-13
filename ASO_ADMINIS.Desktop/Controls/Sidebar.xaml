@@ -1,0 +1,218 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Controls.Sidebar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="240"
+             Background="{DynamicResource SidebarBrush}">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- Marca. PLACEHOLDER: este scaffold no trae logo propio (ver Assets/Logo/, vacío a
+         propósito) — solo un monograma de texto para no arrastrar el arte de ningún cliente.
+         Al adoptar este scaffold para un negocio real, reemplazar este bloque por el logo real
+         (mismo patrón que tenía ASO_RTR: Image a pack://application:,,,/Assets/Logo/..., mapa de
+         bits porque no hay lector de SVG en el proyecto) y el nombre de abajo. -->
+    <Border Grid.Row="0" Padding="16,16,16,12"
+            BorderBrush="{DynamicResource SidebarBorderBrush}" BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal">
+        <Border Width="36" Height="36" CornerRadius="{StaticResource RadMd}"
+                Background="{DynamicResource PrimaryButtonBrush}">
+          <TextBlock Text="A" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     FontSize="{StaticResource FsTitle}"
+                     FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource OnAccentBrush}" />
+        </Border>
+
+        <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="ASO Adminis"
+                     FontSize="{StaticResource FsSubtitle}"
+                     FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Navegacion de dos niveles, agrupada.
+
+         Los grupos existen porque antes eran ocho entradas planas seguidas: Administracion
+         quedaba intercalada entre Inicio/Peticiones y los cinco modulos del negocio sin ningun
+         separador, y nada decia que las tres primeras son de otra naturaleza que las cinco
+         siguientes. -->
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding Grupos}" Margin="0,4,0,16">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="0,8,0,0"
+                        Visibility="{Binding TieneItems, Converter={StaticResource BoolToVis}}">
+
+              <TextBlock Text="{Binding Titulo}" Margin="24,0,16,4"
+                         FontSize="{StaticResource FsMicro}"
+                         FontWeight="{StaticResource FwMedium}"
+                         Foreground="{DynamicResource TextMutedBrush}" />
+
+              <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel>
+
+                      <Button Style="{StaticResource NavItemStyle}"
+                              AutomationProperties.Name="{Binding Nombre}"
+                              ToolTip="{Binding Descripcion}"
+                              Command="{Binding DataContext.SeleccionarModuloCommand,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+
+                          <TextBlock Grid.Column="0" Text="{Binding Icono}"
+                                     Style="{StaticResource NavIconStyle}"
+                                     FontSize="{StaticResource FsTitle}" Width="20"
+                                     TextAlignment="Center" Margin="0,0,8,0" />
+
+                          <TextBlock Grid.Column="1" Text="{Binding Nombre}"
+                                     VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis" />
+
+                          <!-- Cuantas cosas esperan aqui. Hoy solo Peticiones: la bandeja no
+                               decia cuantas solicitudes tenia sin resolver, asi que habia que
+                               entrar para saber si habia trabajo. -->
+                          <Border Grid.Column="2" Margin="8,0,4,0" Padding="8,1"
+                                  VerticalAlignment="Center"
+                                  CornerRadius="{StaticResource RadPill}"
+                                  Background="{DynamicResource WarningSoftBrush}"
+                                  Visibility="{Binding TieneContador, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding Contador}"
+                                       FontSize="{StaticResource FsMicro}"
+                                       FontWeight="{StaticResource FwMedium}"
+                                       Foreground="{DynamicResource WarningTextBrush}" />
+                          </Border>
+
+                          <Button Grid.Column="3" Style="{StaticResource NavChevronStyle}"
+                                  AutomationProperties.Name="{Binding TextoChevron}"
+                                  ToolTip="{Binding TextoChevron}"
+                                  Command="{Binding DataContext.AlternarExpansionCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding}"
+                                  Visibility="{Binding TieneSubmodulos, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding GlifoChevron}"
+                                       Style="{StaticResource NavIconStyle}"
+                                       FontSize="{StaticResource FsMicro}" />
+                          </Button>
+                        </Grid>
+                      </Button>
+
+                      <!-- Submodulos, con un rail que los ata a su modulo. Antes la jerarquia la
+                           comunicaba solo la sangria del Padding, y con dos niveles del mismo
+                           color eso no se lee como "estos cuelgan de aquel". -->
+                      <Grid x:Name="Rama"
+                            Visibility="{Binding EstaExpandido, Converter={StaticResource BoolToVis}}">
+                        <Grid.RenderTransform>
+                          <TranslateTransform x:Name="Deslizar" Y="0" />
+                        </Grid.RenderTransform>
+
+                        <Border Width="1" HorizontalAlignment="Left" Margin="29,4,0,4"
+                                Background="{DynamicResource SidebarBorderBrush}" />
+
+                        <ItemsControl ItemsSource="{Binding Submodulos}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Button Style="{StaticResource NavSubItemStyle}"
+                                      AutomationProperties.Name="{Binding Nombre}"
+                                      ToolTip="{Binding Descripcion}"
+                                      Command="{Binding DataContext.SeleccionarSubmoduloCommand,
+                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      CommandParameter="{Binding}">
+                                <TextBlock Text="{Binding Nombre}" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                              </Button>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Grid>
+
+                    </StackPanel>
+
+                    <DataTemplate.Triggers>
+                      <!-- Al desplegarse la rama entra deslizando y apareciendo. Se anima el
+                           TranslateTransform y la opacidad, no el alto: el alto depende de
+                           cuantos submodulos tenga el modulo y animarlo obligaria a medirlo.
+
+                           Al plegarse se va igual de rapido pero SIN deslizar: la rama desaparece
+                           del arbol en cuanto el estado cambia, asi que un deslizamiento de
+                           salida no se llegaria a ver entero y solo se notaria como un tiron. -->
+                      <DataTrigger Binding="{Binding EstaExpandido}" Value="True">
+                        <DataTrigger.EnterActions>
+                          <BeginStoryboard>
+                            <Storyboard>
+                              <DoubleAnimation Storyboard.TargetName="Deslizar"
+                                               Storyboard.TargetProperty="Y"
+                                               From="-6" To="0"
+                                               Duration="{StaticResource DurNormal}"
+                                               EasingFunction="{StaticResource CurvaSalida}" />
+                              <DoubleAnimation Storyboard.TargetName="Rama"
+                                               Storyboard.TargetProperty="Opacity"
+                                               From="0" To="1"
+                                               Duration="{StaticResource DurNormal}" />
+                            </Storyboard>
+                          </BeginStoryboard>
+                        </DataTrigger.EnterActions>
+                        <DataTrigger.ExitActions>
+                          <BeginStoryboard>
+                            <Storyboard>
+                              <DoubleAnimation Storyboard.TargetName="Rama"
+                                               Storyboard.TargetProperty="Opacity"
+                                               To="0" Duration="{StaticResource DurRapida}" />
+                            </Storyboard>
+                          </BeginStoryboard>
+                        </DataTrigger.ExitActions>
+                      </DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <!-- Configuración, anclada al pie y fuera del ScrollViewer: no se va con el scroll de los
+         módulos porque no es trabajo del día, es donde se va cuando hace falta ajustar algo.
+         El DataContext es su ModuloNavItem: NavItemStyle marca lo seleccionado con
+         DataTriggers sobre EstaSeleccionado y EstaActivo, y sin ellos no pintaría nada. -->
+    <Border Grid.Row="2" BorderBrush="{DynamicResource SidebarBorderBrush}" BorderThickness="0,1,0,0"
+            Padding="0,8" DataContext="{Binding Configuracion}"
+            Visibility="{Binding DataContext.VeConfiguracion,
+                                 RelativeSource={RelativeSource AncestorType=UserControl},
+                                 Converter={StaticResource BoolToVis}}">
+      <Button Style="{StaticResource NavItemStyle}"
+              AutomationProperties.Name="{Binding Nombre}"
+              ToolTip="{Binding Modulo.Descripcion}"
+              Command="{Binding DataContext.SeleccionarConfiguracionCommand,
+                                RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="0" Text="{Binding Icono}" Style="{StaticResource NavIconStyle}"
+                     FontSize="{StaticResource FsTitle}" Width="20"
+                     TextAlignment="Center" Margin="0,0,8,0" />
+          <TextBlock Grid.Column="1" Text="{Binding Nombre}" VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+    </Border>
+  </Grid>
+</UserControl>

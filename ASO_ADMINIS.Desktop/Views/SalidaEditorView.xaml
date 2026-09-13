@@ -1,0 +1,175 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.SalidaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="900">
+
+  <UserControl.Resources>
+    <!-- Las columnas del DataGrid no heredan DataContext; ver Controls/PuenteDeDatos.cs -->
+    <controls:PuenteDeDatos x:Key="Puente" Datos="{Binding}" />
+  </UserControl.Resources>
+
+  <StackPanel>
+
+    <TextBlock Text="El número del boleto se asigna al emitirlo."
+               FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextMutedBrush}" />
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Fecha">
+          <DatePicker Style="{StaticResource FormDatePickerStyle}"
+                      SelectedDate="{Binding Fecha}" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Destino">
+          <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                    ItemsSource="{Binding Areas}"
+                    DisplayMemberPath="Texto"
+                    SelectedItem="{Binding AreaSeleccionada}" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="4">
+        <controls:FormField Etiqueta="Motivo">
+          <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                    ItemsSource="{Binding Motivos}"
+                    DisplayMemberPath="Texto"
+                    SelectedItem="{Binding MotivoSeleccionado}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <controls:FormField Etiqueta="¿A dónde va?"
+                        Visibility="{Binding MuestraDetalleDestino, Converter={StaticResource BoolToVis}}">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding DestinoDetalle, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Retira">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding RetiradoPor, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="Persona que se lleva el material" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Autoriza"
+                            Ayuda="Queda a nombre de quien tiene la sesión abierta.">
+          <TextBox Style="{StaticResource FormTextBoxStyle}" IsReadOnly="True" Focusable="False"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Text="{Binding AutorizadoPorNombre, Mode=OneWay}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <!-- Artículos que salen -->
+    <TextBlock Text="Artículos que salen" Style="{StaticResource CardTitleStyle}" Margin="0,20,0,8" />
+
+    <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+      <DataGrid Style="{StaticResource DataGridStyle}"
+                ItemsSource="{Binding Lineas}"
+                IsReadOnly="True"
+                MaxHeight="260"
+                HeadersVisibility="Column"
+                CanUserSortColumns="False">
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Header="Artículo" Width="40*" MinWidth="220">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <ComboBox Style="{StaticResource LineaComboBoxStyle}"
+                          ItemsSource="{Binding Articulos}"
+                          DisplayMemberPath="Etiqueta"
+                          SelectedItem="{Binding ArticuloSeleccionado, UpdateSourceTrigger=PropertyChanged}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+
+          <controls:ColumnaTexto Header="Unidad" Binding="{Binding UnidadTexto}" Width="10*" MinWidth="66" />
+          <controls:ColumnaNumero Header="Disponible" Binding="{Binding DisponibleTexto}" Width="14*" MinWidth="96" />
+
+          <DataGridTemplateColumn Header="Cantidad" Width="14*" MinWidth="100">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBox TextAlignment="Right"
+                         Text="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}">
+                  <TextBox.Style>
+                    <!-- Aviso inmediato de que se pide más de lo que hay. Quien decide de verdad
+                         es SalidasInventarioService.Validar al emitir el boleto. -->
+                    <Style TargetType="TextBox" BasedOn="{StaticResource LineaTextBoxStyle}">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding SePasa}" Value="True">
+                          <Setter Property="BorderBrush" Value="{DynamicResource DangerTextBrush}" />
+                          <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+                          <Setter Property="ToolTip" Value="No hay tanta existencia de este artículo." />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBox.Style>
+                </TextBox>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+
+          <DataGridTemplateColumn Width="56">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Button Content="{x:Static controls:Iconos.Limpiar}"
+                        Style="{StaticResource LineaBotonQuitarStyle}"
+                        ToolTip="Quitar esta línea"
+                        Command="{Binding Datos.QuitarLineaCommand, Source={StaticResource Puente}}"
+                        CommandParameter="{Binding}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Border>
+
+    <Grid Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <Button Grid.Column="0" Content="Agregar línea" Margin="0"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Command="{Binding AgregarLineaCommand}" />
+
+      <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBlock Text="Unidades" VerticalAlignment="Center" Margin="0,0,12,0"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+        <TextBlock Text="{Binding TotalUnidadesTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+      </StackPanel>
+    </Grid>
+
+    <controls:FormField Etiqueta="Observaciones">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               AcceptsReturn="True" MinLines="2" TextWrapping="Wrap"
+               VerticalContentAlignment="Top"
+               Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+  </StackPanel>
+</UserControl>

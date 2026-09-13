@@ -1,0 +1,29 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.SubmoduloView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="960">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Submodulo.Nombre}"
+                         Descripcion="{Binding Submodulo.Descripcion}" />
+
+    <!-- El hueco de un submodulo sin construir (hoy Flota - Telemetria) y el de uno al que se
+         llega sin permiso. Los dos son estados vacios, asi que usan el componente en vez de
+         volver a dibujar el mismo centrado a mano. -->
+    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}">
+      <controls:EmptyState Icono="{Binding Submodulo.Icono}"
+                           Titulo="{Binding Titulo}"
+                           Detalle="{Binding Detalle}" />
+    </Border>
+  </Grid>
+</UserControl>

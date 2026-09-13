@@ -1,0 +1,80 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.InicioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="960">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0" Titulo="Inicio"
+                         Descripcion="Elige un módulo para ver su resumen y entrar a sus submódulos." />
+
+    <!-- WrapPanel y no UniformGrid Columns="3": eran tres columnas fijas para cinco modulos,
+         asi que salia una fila de tres y otra de dos con un hueco, y en la ventana minima las
+         tarjetas se estrechaban en vez de bajar de fila. -->
+    <ItemsControl Grid.Row="1" ItemsSource="{Binding Modulos}" VerticalAlignment="Top">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Button Style="{StaticResource CardButtonStyle}" Margin="{StaticResource TkEntreTarjetas}"
+                  Width="280" VerticalAlignment="Top"
+                  AutomationProperties.Name="{Binding Nombre}"
+                  ToolTip="{Binding Descripcion}"
+                  Command="{Binding DataContext.AbrirModuloCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                  CommandParameter="{Binding}">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Icono}" FontFamily="{StaticResource IconFont}"
+                           FontSize="{StaticResource FsTitle}"
+                           Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Nombre}"
+                           FontSize="{StaticResource FsSubtitle}"
+                           FontWeight="{StaticResource FwMedium}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" Margin="8,0,0,0" />
+              </StackPanel>
+
+              <TextBlock Text="{Binding Descripcion}"
+                         FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                         LineHeight="16" LineStackingStrategy="BlockLineHeight"
+                         Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,8,0,0" />
+
+              <!-- Los submodulos, en fila y separados por punto medio. Antes iban uno por linea,
+                   lo que hacia la tarjeta el doble de alta para decir lo mismo. -->
+              <ItemsControl ItemsSource="{Binding Submodulos}" Margin="0,8,0,0">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Margin="0,0,4,4" Padding="{StaticResource TkChip}"
+                            CornerRadius="{StaticResource RadPill}"
+                            Background="{DynamicResource NeutralSoftBrush}">
+                      <TextBlock Text="{Binding Nombre}"
+                                 FontSize="{StaticResource FsMicro}"
+                                 Foreground="{DynamicResource NeutralTextBrush}" />
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Button>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </Grid>
+</UserControl>

@@ -1,0 +1,142 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.SalidasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             xmlns:models="clr-namespace:ASO_ADMINIS.Desktop.Models"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="1100">
+
+  <UserControl.Resources>
+    <!-- El boleto entero como ToolTip de fila, igual que en Entradas. -->
+    <DataTemplate DataType="{x:Type models:SalidaInventario}">
+      <StackPanel Grid.IsSharedSizeScope="True" MaxWidth="420">
+        <TextBlock Text="{Binding Numero}" FontWeight="{StaticResource FwMedium}" Margin="0,0,0,4" />
+        <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8" TextWrapping="Wrap"
+                   Text="{Binding AutorizadoPorNombre, StringFormat='Autoriza: {0}'}" />
+        <Grid Margin="0,0,0,4">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" SharedSizeGroup="ColArticuloSalida" />
+            <ColumnDefinition Width="Auto" SharedSizeGroup="ColCantidadSalida" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="0" Text="Artículo" FontWeight="{StaticResource FwMedium}" Margin="0,0,16,0" />
+          <TextBlock Grid.Column="1" Text="Cantidad" FontWeight="{StaticResource FwMedium}" HorizontalAlignment="Right" />
+        </Grid>
+        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,4" />
+        <ItemsControl ItemsSource="{Binding Lineas}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid Margin="0,4,0,4">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" SharedSizeGroup="ColArticuloSalida" />
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColCantidadSalida" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding ArticuloTexto}" Margin="0,0,16,0" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1" Text="{Binding CantidadTexto}" HorizontalAlignment="Right" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <Grid Style="{StaticResource PantallaPlenaStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Submodulo.Nombre}"
+                         Descripcion="{Binding Submodulo.Descripcion}" />
+
+    <Grid Grid.Row="1" Margin="0,16,0,0">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <WrapPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+            <controls:SearchBox Width="280" Margin="0,0,12,0" VerticalAlignment="Center"
+                                Texto="{Binding TextoBusqueda, Mode=TwoWay}" />
+
+            <controls:FiltroDropdown Style="{StaticResource FiltroDropdownStyle}" SelectedIndex="0"
+                                     Margin="0,0,12,0" VerticalAlignment="Center"
+                                     Command="{Binding CambiarFiltroCommand}">
+              <ComboBoxItem Content="Todos" />
+              <ComboBoxItem Content="Consumo" />
+              <ComboBoxItem Content="Merma" />
+              <ComboBoxItem Content="Devolución" />
+              <ComboBoxItem Content="Traslado" />
+              <ComboBoxItem Content="Anulados" />
+            </controls:FiltroDropdown>
+          </WrapPanel>
+
+          <TextBlock Grid.Row="0" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                     Text="{Binding Resumen}" FontSize="{StaticResource FsBody}"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+
+          <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
+                      Margin="0,12,0,0">
+            <Button Content="Registrar salida" Style="{StaticResource PrimaryButtonStyle}"
+                    Command="{Binding AgregarCommand}" />
+            <Button Content="Anular" Style="{StaticResource SecondaryButtonStyle}"
+                    Foreground="{DynamicResource DangerTextBrush}"
+                    Command="{Binding AnularCommand}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+        <Grid>
+          <DataGrid x:Name="TablaSalidas" Style="{StaticResource DataGridStyle}"
+                    ItemsSource="{Binding ItemsView}"
+                    SelectedItem="{Binding SelectedItem}">
+            <DataGrid.RowStyle>
+              <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                <Setter Property="ToolTip" Value="{Binding}" />
+                <Setter Property="ToolTipService.InitialShowDelay" Value="300" />
+              </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Nº" Binding="{Binding Numero}" Width="12*" MinWidth="86" />
+              <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="10*" MinWidth="78" />
+              <controls:ColumnaTexto Header="Destino" Binding="{Binding DestinoTexto}" Width="19*" MinWidth="120" />
+              <controls:ColumnaTexto Header="Motivo" Binding="{Binding MotivoTexto}" Width="12*" MinWidth="90" />
+              <controls:ColumnaTexto Header="Retira" Binding="{Binding RetiradoPor}" Width="17*" MinWidth="110" />
+              <controls:ColumnaTexto Header="Autoriza" Binding="{Binding AutorizadoPorNombre}" Width="17*" MinWidth="110" />
+              <controls:ColumnaNumero Header="Líneas" Binding="{Binding CantidadLineas}" Width="8*" MinWidth="58" />
+              <DataGridTemplateColumn Header="Estado" Width="96">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Border Style="{StaticResource ChipEstadoSalidaStyle}">
+                      <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+                    </Border>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <controls:EmptyState Icono="{x:Static controls:Iconos.Salidas}"
+                               Titulo="No hay boletos de salida"
+                               Detalle="Emite el primer boleto cuando alguien retire material del almacén."
+                               Visibility="{Binding HasItems, ElementName=TablaSalidas, Converter={StaticResource SinItemsAVis}}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

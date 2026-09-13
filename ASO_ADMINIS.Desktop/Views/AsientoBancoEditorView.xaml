@@ -1,0 +1,61 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.AsientoBancoEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="400">
+
+  <StackPanel>
+    <TextBlock Text="{Binding Descripcion}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+    <!-- El monto va grande y de solo lectura: es lo que dice el documento y aquí no se discute.
+         Lo que se pregunta es de qué cuenta sale o a cuál entra. -->
+    <TextBlock Text="{Binding MontoTexto}" FontSize="{StaticResource FsTitle}"
+               FontWeight="{StaticResource FwMedium}" Margin="0,8,0,0"
+               Foreground="{DynamicResource TextPrimaryBrush}" />
+
+    <TextBlock Text="{Binding AvisoSinCuentas}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Margin="0,12,0,0"
+               Foreground="{DynamicResource DangerTextBrush}"
+               Visibility="{Binding NoHayCuentas, Converter={StaticResource BoolToVis}}" />
+
+    <StackPanel Visibility="{Binding HayCuentas, Converter={StaticResource BoolToVis}}">
+      <controls:FormField Etiqueta="Cuenta">
+        <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                  ItemsSource="{Binding Cuentas}"
+                  DisplayMemberPath="NombreConMoneda"
+                  SelectedItem="{Binding CuentaSeleccionada}" />
+      </controls:FormField>
+
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0">
+          <controls:FormField Etiqueta="Fecha valor">
+            <DatePicker Style="{StaticResource FormDatePickerStyle}"
+                        SelectedDate="{Binding Fecha}" />
+          </controls:FormField>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2">
+          <controls:FormField Etiqueta="Referencia">
+            <TextBox Style="{StaticResource FormTextBoxStyle}"
+                     Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Nº de transferencia, cheque o depósito" />
+          </controls:FormField>
+        </StackPanel>
+      </Grid>
+
+      <TextBlock TextWrapping="Wrap" FontSize="{StaticResource FsCaption}" Margin="0,8,0,0"
+                 Foreground="{DynamicResource TextMutedBrush}"
+                 Text="La fecha valor es el día en que el dinero se movió, que no siempre es hoy. El movimiento queda en Finanzas · Banco y desde ahí se concilia contra el extracto." />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

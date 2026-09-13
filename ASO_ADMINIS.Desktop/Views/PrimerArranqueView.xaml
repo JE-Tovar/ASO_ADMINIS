@@ -1,0 +1,57 @@
+<Window x:Class="ASO_ADMINIS.Desktop.Views.PrimerArranqueView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="Configuración inicial — ASO Adminis"
+        Height="560" Width="420"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        Background="{DynamicResource BackgroundBrush}"
+        FontFamily="{StaticResource AppFont}">
+
+  <Grid Margin="24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Margin="0,0,0,16">
+      <TextBlock Text="Configuración inicial" FontSize="{StaticResource FsDisplay}" FontWeight="{StaticResource FwBold}"
+                 Foreground="{DynamicResource PrimaryBrush}" />
+      <TextBlock TextWrapping="Wrap" FontSize="{StaticResource FsBody}" Margin="0,4,0,0"
+                 Foreground="{DynamicResource TextSecondaryBrush}"
+                 Text="{Binding Explicacion}" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Style="{StaticResource CardStyle}" VerticalAlignment="Top">
+      <StackPanel>
+        <TextBlock Text="Código de la organización (uso interno)" Style="{StaticResource FormLabelStyle}" />
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding CodigoOrganizacion, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Text="Nombre de la organización" Style="{StaticResource FormLabelStyle}" />
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding NombreOrganizacion, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Text="Usuario desarrollador" Style="{StaticResource FormLabelStyle}" />
+        <TextBox x:Name="UsuarioBox" Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding NombreUsuario, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Text="Nombre completo" Style="{StaticResource FormLabelStyle}" />
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding NombreCompleto, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Text="Contraseña" Style="{StaticResource FormLabelStyle}" />
+        <PasswordBox x:Name="PasswordBox" Padding="8,8" />
+
+        <TextBlock Text="{Binding MensajeError}" Foreground="{DynamicResource DangerBrush}"
+                   FontSize="{StaticResource FsBody}" TextWrapping="Wrap" Margin="0,8,0,0" />
+
+        <Button Content="Crear y continuar" Style="{StaticResource PrimaryButtonStyle}" Margin="0,16,0,0" Click="OnCrear" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

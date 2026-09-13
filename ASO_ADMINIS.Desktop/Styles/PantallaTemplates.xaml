@@ -1,0 +1,66 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:ASO_ADMINIS.Desktop.ViewModels"
+                    xmlns:views="clr-namespace:ASO_ADMINIS.Desktop.Views">
+
+  <!-- Que pantalla dibuja cada ViewModel. MainWindow asigna el ViewModel al ContentControl y
+       WPF resuelve la vista por aqui, igual que CrudEditorWindow hace con los editores en
+       EditorTemplates.xaml. Una pantalla nueva se registra en dos sitios: la tabla Pantallas
+       de MainWindow.xaml.cs y esta lista. Si falta la plantilla se nota al instante: el area
+       de contenido muestra el nombre del tipo del ViewModel en vez de la pantalla. -->
+
+  <!-- Plantilla de ejemplo (Finanzas · Cuentas por Pagar y Banco) -->
+
+  <DataTemplate DataType="{x:Type vm:BancoViewModel}">
+    <views:BancoView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:CuentasPorPagarViewModel}">
+    <views:CuentasPorPagarView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:ProveedoresViewModel}">
+    <views:ProveedoresView />
+  </DataTemplate>
+
+  <!-- Inventario · Almacén, Entradas y Salidas -->
+
+  <DataTemplate DataType="{x:Type vm:AlmacenViewModel}">
+    <views:AlmacenView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:EntradasViewModel}">
+    <views:EntradasView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:SalidasViewModel}">
+    <views:SalidasView />
+  </DataTemplate>
+
+  <!-- Armazón -->
+
+  <DataTemplate DataType="{x:Type vm:AdministracionViewModel}">
+    <views:AdministracionView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:PeticionesViewModel}">
+    <views:PeticionesView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:ConfiguracionViewModel}">
+    <views:ConfiguracionView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:SubmoduloViewModel}">
+    <views:SubmoduloView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:InicioViewModel}">
+    <views:InicioView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:ModuloDashboardViewModel}">
+    <views:ModuloDashboardView />
+  </DataTemplate>
+
+</ResourceDictionary>

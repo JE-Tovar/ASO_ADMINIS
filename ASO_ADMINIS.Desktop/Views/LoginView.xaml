@@ -1,0 +1,76 @@
+<Window x:Class="ASO_ADMINIS.Desktop.Views.LoginView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+        mc:Ignorable="d"
+        Title="Iniciar sesión — ASO Adminis"
+        Width="420" MinHeight="380" MaxHeight="720"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        Background="{DynamicResource BackgroundBrush}"
+        FontFamily="{StaticResource AppFont}">
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid Margin="32">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <!-- Marca. PLACEHOLDER (ver Controls/Sidebar.xaml): monograma de texto, sin logo propio. -->
+      <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource TkBloque}">
+        <Border Width="56" Height="56" CornerRadius="{StaticResource RadMd}"
+                Background="{DynamicResource PrimaryButtonBrush}">
+          <TextBlock Text="A" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     FontSize="{StaticResource FsDisplay}"
+                     FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource OnAccentBrush}" />
+        </Border>
+        <TextBlock Text="ASO Adminis" Margin="10,0,0,0"
+                   FontSize="{StaticResource FsDisplay}"
+                   FontWeight="{StaticResource FwBold}"
+                   Foreground="{DynamicResource PrimaryBrush}"
+                   VerticalAlignment="Center" />
+      </StackPanel>
+
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}">
+        <StackPanel>
+          <!-- Los dos campos venian estilados de forma distinta: el usuario era un TextBox crudo
+               con Padding="8,8" y la contrasena si llevaba estilo de formulario, siendo hermanos
+               en el mismo formulario. Ahora los dos son el mismo componente. -->
+          <controls:FormField Etiqueta="Usuario" Requerido="True">
+            <TextBox x:Name="UsuarioBox" Style="{StaticResource FormTextBoxStyle}"
+                     Text="{Binding NombreUsuario, UpdateSourceTrigger=PropertyChanged}" />
+          </controls:FormField>
+
+          <controls:FormField Etiqueta="Contraseña" Requerido="True"
+                              Error="{Binding MensajeError}">
+            <PasswordBox x:Name="PasswordBox" Style="{StaticResource FormPasswordBoxStyle}" />
+          </controls:FormField>
+
+          <!-- Se podia activar, pero solo desde Configuracion, que esta detras del inicio de
+               sesion: para llegar a la casilla habia que entrar antes. -->
+          <CheckBox Style="{StaticResource ToggleSwitchStyle}" Margin="0,4,0,0"
+                    Content="Recordar mi usuario"
+                    ToolTip="Se recuerda el nombre, nunca la contraseña"
+                    IsChecked="{Binding RecordarUsuario}" />
+
+          <Button Content="Iniciar sesión" Style="{StaticResource PrimaryButtonStyle}"
+                  Margin="0,24,0,0" IsDefault="True" Click="OnIniciarSesion" />
+        </StackPanel>
+      </Border>
+
+      <!-- A que base se esta conectando. Sin esto no habia forma de saber, antes de entrar, si
+           la aplicacion apunta a la base local o a una compartida. -->
+      <TextBlock Grid.Row="2" Text="{Binding OrigenDatos}" Margin="0,16,0,0"
+                 TextAlignment="Center" TextWrapping="Wrap"
+                 FontSize="{StaticResource FsMicro}"
+                 Foreground="{DynamicResource TextMutedBrush}" />
+    </Grid>
+  </ScrollViewer>
+</Window>

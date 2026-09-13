@@ -1,0 +1,282 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.BancoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="1100">
+
+  <Grid Style="{StaticResource PantallaPlenaStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Submodulo.Nombre}"
+                         Descripcion="{Binding Submodulo.Descripcion}" />
+
+    <!-- Conmutador: el libro y el catálogo de cuentas donde se apunta. Mismo patrón que
+         Cuentas por Pagar. -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
+      <RadioButton Content="Movimientos" GroupName="VistaBanco"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   IsChecked="{Binding EsMovimientos, Mode=TwoWay}" />
+      <RadioButton Content="Cuentas" GroupName="VistaBanco"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   IsChecked="{Binding EsCuentas, Mode=TwoWay}" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Style="{StaticResource TabStripStyle}" VerticalAlignment="Bottom" />
+
+    <!-- ===================== Movimientos: el extracto ===================== -->
+    <Grid Grid.Row="2" Margin="0,16,0,0"
+          Visibility="{Binding MostrarMovimientos, Converter={StaticResource BoolToVis}}">
+      <!-- DataContext en un Grid interno: compartir elemento con Visibility haría que esa
+           binding se resuelva contra el sub-VM (sin MostrarMovimientos) y no contra este VM. -->
+      <Grid DataContext="{Binding Movimientos}">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- La cuenta se elige EN LA PANTALLA, no en cada diálogo: se trabaja una cuenta
+                 seguida, y además es lo que hace que el saldo de al lado signifique algo. -->
+            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
+                        VerticalAlignment="Center">
+              <TextBlock Text="Cuenta" VerticalAlignment="Center" Margin="0,0,8,0"
+                         FontSize="{StaticResource FsBody}"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <ComboBox Width="240" VerticalAlignment="Center"
+                        Style="{StaticResource FormComboBoxStyle}"
+                        ItemsSource="{Binding Cuentas}"
+                        DisplayMemberPath="NombreConMoneda"
+                        SelectedItem="{Binding CuentaSeleccionada}" />
+            </StackPanel>
+
+            <!-- Los tres saldos juntos: lo que dice el libro, lo que el banco confirmó y lo que
+                 falta por cuadrar. La diferencia es el dato que se busca al conciliar. -->
+            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                        VerticalAlignment="Center" Margin="12,0,0,0">
+              <StackPanel Margin="0,0,24,0">
+                <TextBlock Text="Saldo de libro" FontSize="{StaticResource FsCaption}"
+                           Foreground="{DynamicResource TextMutedBrush}" />
+                <TextBlock Text="{Binding SaldoLibroTexto}" FontWeight="{StaticResource FwMedium}"
+                           FontSize="{StaticResource FsSubtitle}"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+              </StackPanel>
+              <StackPanel Margin="0,0,24,0">
+                <TextBlock Text="Conciliado" FontSize="{StaticResource FsCaption}"
+                           Foreground="{DynamicResource TextMutedBrush}" />
+                <TextBlock Text="{Binding SaldoConciliadoTexto}" FontWeight="{StaticResource FwMedium}"
+                           FontSize="{StaticResource FsSubtitle}"
+                           Foreground="{DynamicResource SuccessTextBrush}" />
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Text="Sin cuadrar" FontSize="{StaticResource FsCaption}"
+                           Foreground="{DynamicResource TextMutedBrush}" />
+                <TextBlock Text="{Binding DiferenciaTexto}" FontWeight="{StaticResource FwMedium}"
+                           FontSize="{StaticResource FsSubtitle}"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+            </StackPanel>
+
+            <WrapPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,12,0,0"
+                       VerticalAlignment="Center">
+              <controls:SearchBox Width="280" Margin="0,0,12,0" VerticalAlignment="Center"
+                                  Texto="{Binding TextoBusqueda, Mode=TwoWay}" />
+
+              <controls:FiltroDropdown Style="{StaticResource FiltroDropdownStyle}" SelectedIndex="0"
+                                       Margin="0,0,12,0" VerticalAlignment="Center"
+                                       Command="{Binding CambiarFiltroEstadoCommand}">
+                <ComboBoxItem Content="Todos" />
+                <ComboBoxItem Content="Registrados" />
+                <ComboBoxItem Content="Conciliados" />
+                <ComboBoxItem Content="Entradas" />
+                <ComboBoxItem Content="Salidas" />
+                <ComboBoxItem Content="Anulados" />
+              </controls:FiltroDropdown>
+
+              <!-- Período: vacío = sin límite por ese lado, que es como arranca. -->
+              <TextBlock Text="Desde" VerticalAlignment="Center" Margin="12,0,8,0"
+                         FontSize="{StaticResource FsCaption}"
+                         Foreground="{DynamicResource TextMutedBrush}" />
+              <DatePicker Width="130" VerticalAlignment="Center"
+                          Style="{StaticResource FormDatePickerStyle}"
+                          SelectedDate="{Binding Desde}" />
+              <TextBlock Text="hasta" VerticalAlignment="Center" Margin="8,0,8,0"
+                         FontSize="{StaticResource FsCaption}"
+                         Foreground="{DynamicResource TextMutedBrush}" />
+              <DatePicker Width="130" VerticalAlignment="Center"
+                          Style="{StaticResource FormDatePickerStyle}"
+                          SelectedDate="{Binding Hasta}" />
+            </WrapPanel>
+
+            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
+                        Margin="0,12,0,0">
+              <Button Content="Nuevo movimiento" Style="{StaticResource PrimaryButtonStyle}"
+                      Command="{Binding AgregarCommand}" />
+              <Button Content="Transferir" Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding TransferirCommand}" />
+              <Button Content="Editar" Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding EditarCommand}" />
+              <Button Content="Conciliar" Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding ConciliarCommand}" />
+              <Button Content="Desconciliar" Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding DesconciliarCommand}" />
+              <Button Content="Anular" Style="{StaticResource SecondaryButtonStyle}"
+                      Foreground="{DynamicResource DangerTextBrush}"
+                      Command="{Binding AnularCommand}" />
+              <Button Content="Eliminar" Style="{StaticResource SecondaryButtonStyle}"
+                      Foreground="{DynamicResource DangerTextBrush}"
+                      Command="{Binding EliminarCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+          <Grid>
+            <DataGrid x:Name="TablaMovimientos" Style="{StaticResource DataGridStyle}"
+                      ItemsSource="{Binding ItemsView}"
+                      SelectedItem="{Binding SelectedItem}">
+              <DataGrid.Columns>
+                <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="9*" MinWidth="76" />
+                <controls:ColumnaTexto Header="Concepto" Binding="{Binding Concepto}" Width="26*" MinWidth="150" />
+                <controls:ColumnaTexto Header="Categoría" Binding="{Binding CategoriaTexto}" Width="13*" MinWidth="100" />
+                <controls:ColumnaTexto Header="Documento" Binding="{Binding DocumentoTexto}" Width="12*" MinWidth="90" />
+                <controls:ColumnaTexto Header="Referencia" Binding="{Binding Referencia}" Width="10*" MinWidth="80" />
+                <controls:ColumnaNumero Header="Entrada" Binding="{Binding EntradaTexto}" Width="10*" MinWidth="80">
+                  <controls:ColumnaNumero.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+                      <Setter Property="Foreground" Value="{DynamicResource SuccessTextBrush}" />
+                    </Style>
+                  </controls:ColumnaNumero.ElementStyle>
+                </controls:ColumnaNumero>
+                <controls:ColumnaNumero Header="Salida" Binding="{Binding SalidaTexto}" Width="10*" MinWidth="80">
+                  <controls:ColumnaNumero.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+                      <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+                    </Style>
+                  </controls:ColumnaNumero.ElementStyle>
+                </controls:ColumnaNumero>
+                <controls:ColumnaNumero Header="Saldo" Binding="{Binding SaldoCorridoTexto}" Width="11*" MinWidth="86" />
+                <DataGridTemplateColumn Header="Estado" Width="104">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <Border Style="{StaticResource ChipEstadoMovimientoBancoStyle}">
+                        <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+                      </Border>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <controls:EmptyState Icono="{x:Static controls:Iconos.Banco}"
+                                 Titulo="{Binding TituloVacio}"
+                                 Detalle="{Binding DetalleVacio}"
+                                 Visibility="{Binding HasItems, ElementName=TablaMovimientos, Converter={StaticResource SinItemsAVis}}" />
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- ===================== Catálogo de cuentas ===================== -->
+    <Grid Grid.Row="2" Margin="0,16,0,0"
+          Visibility="{Binding MostrarCuentas, Converter={StaticResource BoolToVis}}">
+      <Grid DataContext="{Binding Cuentas}">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <WrapPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+              <controls:SearchBox Width="280" Margin="0,0,12,0" VerticalAlignment="Center"
+                                  Texto="{Binding TextoBusqueda, Mode=TwoWay}" />
+            </WrapPanel>
+
+            <TextBlock Grid.Row="0" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                       Text="{Binding ResumenDisponible}" FontSize="{StaticResource FsBody}"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
+                        Margin="0,12,0,0">
+              <Button Content="Nueva cuenta" Style="{StaticResource PrimaryButtonStyle}"
+                      Command="{Binding AgregarCommand}" />
+              <Button Content="Editar" Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding EditarCommand}" />
+              <Button Content="Eliminar" Style="{StaticResource SecondaryButtonStyle}"
+                      Foreground="{DynamicResource DangerTextBrush}"
+                      Command="{Binding EliminarCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+          <Grid>
+            <DataGrid x:Name="TablaCuentas" Style="{StaticResource DataGridStyle}"
+                      ItemsSource="{Binding ItemsView}"
+                      SelectedItem="{Binding SelectedItem}">
+              <DataGrid.Columns>
+                <controls:ColumnaTexto Header="Cuenta" Binding="{Binding Nombre}" Width="26*" MinWidth="150" />
+                <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoTexto}" Width="12*" MinWidth="86" />
+                <controls:ColumnaTexto Header="Banco / Nº" Binding="{Binding DetalleTexto}" Width="26*" MinWidth="140" />
+                <controls:ColumnaTexto Header="Moneda" Binding="{Binding Moneda}" Width="10*" MinWidth="70" />
+                <controls:ColumnaTexto Header="Apertura" Binding="{Binding AperturaTexto}" Width="12*" MinWidth="82" />
+                <controls:ColumnaNumero Header="Saldo inicial" Binding="{Binding SaldoInicialTexto}" Width="12*" MinWidth="88" />
+                <controls:ColumnaNumero Header="Saldo actual" Binding="{Binding SaldoActualTexto}" Width="13*" MinWidth="92">
+                  <controls:ColumnaNumero.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+                    </Style>
+                  </controls:ColumnaNumero.ElementStyle>
+                </controls:ColumnaNumero>
+                <DataGridTemplateColumn Header="Estado" Width="96">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <Border Style="{StaticResource ChipCuentaActivaStyle}">
+                        <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+                      </Border>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <controls:EmptyState Icono="{x:Static controls:Iconos.Cuenta}"
+                                 Titulo="No hay cuentas"
+                                 Detalle="Cree la primera cuenta —el banco, la caja chica— con el saldo que tiene hoy, y el libro empieza a contar desde ahí."
+                                 Visibility="{Binding HasItems, ElementName=TablaCuentas, Converter={StaticResource SinItemsAVis}}" />
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>

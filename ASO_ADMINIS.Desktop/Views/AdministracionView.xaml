@@ -1,0 +1,210 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.AdministracionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="1100">
+
+  <Grid Style="{StaticResource PantallaPlenaStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0" Titulo="Administración"
+                         Descripcion="Los usuarios con sus permisos, y los datos de la propia organización." />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
+      <RadioButton Content="Usuarios" GroupName="AdminAcceso"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   IsChecked="{Binding EsUsuarios, Mode=TwoWay}" />
+      <RadioButton Content="Organización" GroupName="AdminAcceso"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   IsChecked="{Binding EsOrganizacion, Mode=TwoWay}" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Style="{StaticResource TabStripStyle}" VerticalAlignment="Bottom" />
+
+    <!-- Ficha de la organización instalada: no es un padron, es la unica fila -->
+    <Grid Grid.Row="2" Margin="0,24,0,0" Visibility="{Binding MostrarOrganizacion, Converter={StaticResource BoolToVis}}">
+      <Border DataContext="{Binding Organizacion}" Style="{StaticResource CardStyle}"
+              VerticalAlignment="Top" HorizontalAlignment="Left" Width="460">
+        <StackPanel>
+          <TextBlock Text="Datos de la organización" FontSize="{StaticResource FsTitle}" FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Text="Una instalación atiende a una sola organización."
+                     FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,8" />
+
+          <TextBlock Text="Nombre" Style="{StaticResource FormLabelStyle}" />
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   IsEnabled="{Binding PuedeEditar}"
+                   Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" />
+
+          <TextBlock Text="Código interno" Style="{StaticResource FormLabelStyle}" />
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   IsEnabled="{Binding PuedeEditar}"
+                   Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}" />
+
+          <Button Content="Guardar" Style="{StaticResource PrimaryButtonStyle}" Margin="0,16,0,0" HorizontalAlignment="Left" Command="{Binding GuardarCommand}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Usuarios y sus permisos: maestro-detalle, se ve a quien se esta editando todo el tiempo -->
+    <Grid Grid.Row="2" Margin="0,24,0,0" Visibility="{Binding MostrarUsuarios, Converter={StaticResource BoolToVis}}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="380" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Padron de usuarios -->
+      <Grid Grid.Column="0" DataContext="{Binding Usuarios}">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <WrapPanel Grid.Row="0" VerticalAlignment="Center">
+              <controls:SearchBox Width="280" Margin="0,0,12,0" VerticalAlignment="Center"
+                                  Texto="{Binding TextoBusqueda, Mode=TwoWay}" />
+            </WrapPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
+              <Button Content="Nuevo" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding AgregarCommand}" />
+              <Button Content="Editar" Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding EditarCommand}" />
+              <Button Content="Eliminar" Style="{StaticResource SecondaryButtonStyle}"
+                      Foreground="{DynamicResource DangerTextBrush}"
+                      Command="{Binding EliminarCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+          <Grid>
+            <DataGrid x:Name="Tabla" Style="{StaticResource DataGridStyle}"
+                      ItemsSource="{Binding ItemsView}"
+                      SelectedItem="{Binding SelectedItem}">
+              <DataGrid.Columns>
+                <controls:ColumnaTexto Header="Usuario" Binding="{Binding NombreUsuario}" Width="30*" MinWidth="160" />
+                <controls:ColumnaTexto Header="Rol" Binding="{Binding RolTexto}" Width="14*" MinWidth="100" />
+                <controls:ColumnaTexto Header="Estado" Binding="{Binding EstadoTexto}" Width="90" />
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <controls:EmptyState Icono="{x:Static controls:Iconos.Usuarios}"
+                                 Titulo="No hay usuarios que mostrar"
+                                 Detalle="Cambia la búsqueda, o crea el primer usuario de la organización."
+                                 Visibility="{Binding HasItems, ElementName=Tabla, Converter={StaticResource SinItemsAVis}}" />
+          </Grid>
+        </Border>
+      </Grid>
+
+      <!-- Permisos del usuario seleccionado -->
+      <Border Grid.Column="2" Style="{StaticResource CardStyle}"
+              DataContext="{Binding PermisosDeUsuario}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <!-- Sin usuario seleccionado no hay nada que mostrar -->
+          <TextBlock Grid.Row="0" Grid.RowSpan="3"
+                     Text="Selecciona un usuario para ver y ajustar sus permisos."
+                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextMutedBrush}" FontSize="{StaticResource FsSubtitle}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HayUsuario}" Value="False">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
+          <StackPanel Grid.Row="0" Margin="0,0,0,8"
+                      Visibility="{Binding HayUsuario, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding Encabezado}" FontSize="{StaticResource FsTitle}" FontWeight="{StaticResource FwBold}"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="Marcado = lo puede hacer. Lo que se aparta de su rol queda señalado como concedido o revocado."
+                       FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+            <TextBlock Text="{Binding NotaBloqueo}" FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                       Foreground="{DynamicResource DangerBrush}" Margin="0,4,0,0"
+                       Visibility="{Binding HayBloqueo, Converter={StaticResource BoolToVis}}" />
+          </StackPanel>
+
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                        Visibility="{Binding HayUsuario, Converter={StaticResource BoolToVis}}">
+            <ItemsControl ItemsSource="{Binding FilasView}">
+              <ItemsControl.GroupStyle>
+                <GroupStyle>
+                  <GroupStyle.HeaderTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Name}" FontSize="{StaticResource FsBody}" FontWeight="{StaticResource FwBold}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}"
+                                 Margin="0,12,0,4" />
+                    </DataTemplate>
+                  </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+              </ItemsControl.GroupStyle>
+
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid Margin="8,4,0,4">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox Grid.Column="0" Cursor="Hand"
+                              Content="{Binding Etiqueta}"
+                              IsChecked="{Binding Concedido}"
+                              IsEnabled="{Binding Editable}"
+                              Foreground="{DynamicResource TextPrimaryBrush}">
+                      <CheckBox.ToolTip>
+                        <TextBlock>
+                          <Run Text="{Binding Permiso, Mode=OneWay}" />
+                          <LineBreak />
+                          <Run Text="{Binding MotivoBloqueo, Mode=OneWay}" />
+                        </TextBlock>
+                      </CheckBox.ToolTip>
+                    </CheckBox>
+
+                    <TextBlock Grid.Column="1" Text="{Binding OrigenTexto}" FontSize="{StaticResource FsMicro}"
+                               VerticalAlignment="Center" Margin="8,0,4,0"
+                               Foreground="{DynamicResource TextMutedBrush}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <StackPanel Grid.Row="2" Margin="0,12,0,0"
+                      Visibility="{Binding HayUsuario, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding NotaVigencia}" FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8" />
+            <Button Content="Guardar permisos" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Left" Command="{Binding GuardarCommand}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

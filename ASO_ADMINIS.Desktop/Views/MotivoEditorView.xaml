@@ -1,0 +1,24 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.MotivoEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="380">
+
+  <StackPanel>
+    <TextBlock Text="{Binding Descripcion}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+    <controls:FormField Etiqueta="{Binding EtiquetaMotivo}">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               AcceptsReturn="True" MinLines="3" TextWrapping="Wrap"
+               VerticalContentAlignment="Top"
+               Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <TextBlock Text="Queda registrado junto con la decisión."
+               FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

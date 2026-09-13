@@ -1,0 +1,84 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.TransferenciaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="460">
+
+  <StackPanel>
+    <TextBlock Text="{Binding AvisoCuentasInsuficientes}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Foreground="{DynamicResource DangerTextBrush}" Margin="0,0,0,8"
+               Visibility="{Binding NoHayDondeTransferir, Converter={StaticResource BoolToVis}}" />
+
+    <StackPanel Visibility="{Binding HayDondeTransferir, Converter={StaticResource BoolToVis}}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0">
+          <controls:FormField Etiqueta="Desde">
+            <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                      ItemsSource="{Binding Cuentas}"
+                      DisplayMemberPath="NombreConMoneda"
+                      SelectedItem="{Binding CuentaOrigen}" />
+          </controls:FormField>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2">
+          <controls:FormField Etiqueta="Hacia">
+            <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                      ItemsSource="{Binding Cuentas}"
+                      DisplayMemberPath="NombreConMoneda"
+                      SelectedItem="{Binding CuentaDestino}" />
+          </controls:FormField>
+        </StackPanel>
+      </Grid>
+
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0">
+          <controls:FormField Etiqueta="Monto">
+            <TextBox Style="{StaticResource FormTextBoxStyle}"
+                     Text="{Binding Monto, UpdateSourceTrigger=PropertyChanged}" />
+          </controls:FormField>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2">
+          <controls:FormField Etiqueta="Fecha valor">
+            <DatePicker Style="{StaticResource FormDatePickerStyle}"
+                        SelectedDate="{Binding Fecha}" />
+          </controls:FormField>
+        </StackPanel>
+
+        <StackPanel Grid.Column="4">
+          <controls:FormField Etiqueta="Referencia">
+            <TextBox Style="{StaticResource FormTextBoxStyle}"
+                     Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged}" />
+          </controls:FormField>
+        </StackPanel>
+      </Grid>
+
+      <controls:FormField Etiqueta="Concepto">
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Opcional: si se deja vacío se escribe «Transferencia origen → destino»" />
+      </controls:FormField>
+
+      <TextBlock TextWrapping="Wrap" FontSize="{StaticResource FsCaption}" Margin="0,8,0,0"
+                 Foreground="{DynamicResource TextMutedBrush}"
+                 Text="Se escriben dos movimientos enlazados, una salida y una entrada: el disponible total del centro no cambia. Anular uno anula el otro." />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

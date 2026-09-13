@@ -1,0 +1,158 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.EntradasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             xmlns:models="clr-namespace:ASO_ADMINIS.Desktop.Models"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="1100">
+
+  <UserControl.Resources>
+    <!-- Detalle de la entrada como ToolTip de fila, mismo patrón que Cuentas por Pagar: se
+         bindea el objeto entero (no un string) para que WPF resuelva este DataTemplate por tipo
+         en cada fila, en vez de compartir una sola instancia de UIElement entre todas. -->
+    <DataTemplate DataType="{x:Type models:EntradaInventario}">
+      <StackPanel Grid.IsSharedSizeScope="True" MaxWidth="460">
+        <Grid Margin="0,0,0,4">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" SharedSizeGroup="ColArticuloEntrada" />
+            <ColumnDefinition Width="Auto" SharedSizeGroup="ColCantidadEntrada" />
+            <ColumnDefinition Width="Auto" SharedSizeGroup="ColPrecioEntrada" />
+            <ColumnDefinition Width="Auto" SharedSizeGroup="ColSubtotalEntrada" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="0" Text="Artículo" FontWeight="{StaticResource FwMedium}" Margin="0,0,16,0" />
+          <TextBlock Grid.Column="1" Text="Cantidad" FontWeight="{StaticResource FwMedium}" Margin="0,0,16,0" HorizontalAlignment="Right" />
+          <TextBlock Grid.Column="2" Text="Precio" FontWeight="{StaticResource FwMedium}" Margin="0,0,16,0" HorizontalAlignment="Right" />
+          <TextBlock Grid.Column="3" Text="Subtotal" FontWeight="{StaticResource FwMedium}" HorizontalAlignment="Right" />
+        </Grid>
+        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,4" />
+        <ItemsControl ItemsSource="{Binding Lineas}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid Margin="0,4,0,4">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" SharedSizeGroup="ColArticuloEntrada" />
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColCantidadEntrada" />
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColPrecioEntrada" />
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="ColSubtotalEntrada" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding ArticuloTexto}" Margin="0,0,16,0" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1" Text="{Binding CantidadTexto}" Margin="0,0,16,0" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="2" Text="{Binding PrecioUnitarioTexto}" Margin="0,0,16,0" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="3" Text="{Binding SubtotalTexto}" HorizontalAlignment="Right" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,4,0,4" />
+        <TextBlock HorizontalAlignment="Right" FontWeight="{StaticResource FwMedium}"
+                   Text="{Binding TotalTexto, StringFormat='Total: {0}'}" />
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <Grid Style="{StaticResource PantallaPlenaStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Submodulo.Nombre}"
+                         Descripcion="{Binding Submodulo.Descripcion}" />
+
+    <Grid Grid.Row="1" Margin="0,16,0,0">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <WrapPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+            <controls:SearchBox Width="280" Margin="0,0,12,0" VerticalAlignment="Center"
+                                Texto="{Binding TextoBusqueda, Mode=TwoWay}" />
+
+            <controls:FiltroDropdown Style="{StaticResource FiltroDropdownStyle}" SelectedIndex="0"
+                                     Margin="0,0,12,0" VerticalAlignment="Center"
+                                     Command="{Binding CambiarFiltroCommand}">
+              <ComboBoxItem Content="Todas" />
+              <ComboBoxItem Content="Compras a proveedor" />
+              <ComboBoxItem Content="Compras externas" />
+              <ComboBoxItem Content="Ajustes" />
+              <ComboBoxItem Content="Anuladas" />
+            </controls:FiltroDropdown>
+          </WrapPanel>
+
+          <TextBlock Grid.Row="0" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                     Text="{Binding Resumen}" FontSize="{StaticResource FsBody}"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+
+          <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
+                      Margin="0,12,0,0">
+            <Button Content="Registrar entrada" Style="{StaticResource PrimaryButtonStyle}"
+                    Command="{Binding AgregarCommand}" />
+            <Button Content="Anular" Style="{StaticResource SecondaryButtonStyle}"
+                    Foreground="{DynamicResource DangerTextBrush}"
+                    Command="{Binding AnularCommand}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+        <Grid>
+          <DataGrid x:Name="TablaEntradas" Style="{StaticResource DataGridStyle}"
+                    ItemsSource="{Binding ItemsView}"
+                    SelectedItem="{Binding SelectedItem}">
+            <DataGrid.RowStyle>
+              <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                <Setter Property="ToolTip" Value="{Binding}" />
+                <Setter Property="ToolTipService.InitialShowDelay" Value="300" />
+              </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Nº" Binding="{Binding Numero}" Width="11*" MinWidth="86" />
+              <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="9*" MinWidth="78" />
+              <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoTexto}" Width="14*" MinWidth="100" />
+              <controls:ColumnaTexto Header="Origen" Binding="{Binding OrigenTexto}" Width="22*" MinWidth="120" />
+              <controls:ColumnaTexto Header="Documento" Binding="{Binding NumeroDocumento}" Width="11*" MinWidth="80" />
+              <controls:ColumnaNumero Header="Líneas" Binding="{Binding CantidadLineas}" Width="7*" MinWidth="58" />
+              <controls:ColumnaNumero Header="Total" Binding="{Binding TotalTexto}" Width="11*" MinWidth="80">
+                <controls:ColumnaNumero.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+                  </Style>
+                </controls:ColumnaNumero.ElementStyle>
+              </controls:ColumnaNumero>
+              <controls:ColumnaTexto Header="Cuenta por pagar" Binding="{Binding CuentaPorPagarTexto}" Width="13*" MinWidth="100" />
+              <DataGridTemplateColumn Header="Estado" Width="96">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Border Style="{StaticResource ChipEstadoEntradaStyle}">
+                      <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+                    </Border>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <controls:EmptyState Icono="{x:Static controls:Iconos.Entradas}"
+                               Titulo="No hay entradas registradas"
+                               Detalle="Registra la primera entrada; si es una compra, su cuenta por pagar aparecerá sola en Finanzas."
+                               Visibility="{Binding HasItems, ElementName=TablaEntradas, Converter={StaticResource SinItemsAVis}}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

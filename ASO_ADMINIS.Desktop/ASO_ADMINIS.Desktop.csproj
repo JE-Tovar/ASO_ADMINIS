@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ASO_ADMINIS.Desktop</RootNamespace>
+    <AssemblyName>ASO_ADMINIS.Desktop</AssemblyName>
+    <ApplicationTitle>ASO Adminis</ApplicationTitle>
+    <Product>ASO Adminis</Product>
+    <Company>ASO Adminis</Company>
+    <Description>Aplicación de gestión — venta de artículos</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.28" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.28">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+  </ItemGroup>
+
+  <!-- La fuente de iconos viaja con el proyecto. Antes se usaba Segoe MDL2 Assets, que solo
+       existe en Windows 10/11 y no se puede fijar a una version. -->
+  <ItemGroup>
+    <Resource Include="Assets\Fonts\Phosphor.ttf" />
+  </ItemGroup>
+
+  <!-- Tipografia de la aplicacion (Satoshi, empotrada igual que Phosphor): asi no depende de que
+       este instalada en la maquina. Los tres cortes comparten nombre de familia, asi que WPF
+       elige el que toca por FontWeight y AppFont sigue siendo una sola clave. -->
+  <ItemGroup>
+    <Resource Include="Assets\Fonts\Satoshi-Regular.ttf" />
+    <Resource Include="Assets\Fonts\Satoshi-Medium.ttf" />
+    <Resource Include="Assets\Fonts\Satoshi-Bold.ttf" />
+  </ItemGroup>
+
+  <!-- Assets/Logo/ vacío a propósito: este scaffold no trae logo de ningún cliente (ver
+       Controls/Sidebar.xaml). Al adoptar el scaffold, poner el logo real ahí y volver a declarar
+       ApplicationIcon + los Resource + Icon= de cada Window (ver CLAUDE.md "Logo"). -->
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.local.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

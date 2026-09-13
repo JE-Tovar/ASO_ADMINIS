@@ -1,0 +1,101 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.ModuloDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="960">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Modulo.Nombre}"
+                         Descripcion="{Binding Modulo.Descripcion}" />
+
+    <!-- Indicadores.
+
+         WrapPanel y no UniformGrid Rows="1": con cuatro tarjetas forzadas a una sola fila, en la
+         ventana minima cada una se quedaba en poco mas de 180 px y los valores largos (un monto
+         en pesos) se cortaban. Aqui bajan de fila cuando no caben. -->
+    <ItemsControl Grid.Row="1" ItemsSource="{Binding Indicadores}"
+                  Margin="{StaticResource TkBloque}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <controls:KpiTile Margin="0,0,12,12" MinWidth="180"
+                            Etiqueta="{Binding Etiqueta}"
+                            Valor="{Binding Valor}"
+                            Nota="{Binding Nota}"
+                            Estado="{Binding Estado}"
+                            Cargando="{Binding DataContext.Cargando,
+                                               RelativeSource={RelativeSource AncestorType=UserControl}}" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <!-- Un resumen que no carga tiene que decirlo: en blanco se confunde con un modulo sin
+         actividad, que es justo lo contrario. -->
+    <Border Grid.Row="2" Style="{StaticResource AlertBoxStyle}"
+            Margin="{StaticResource TkSeccion}"
+            Visibility="{Binding HayError, Converter={StaticResource BoolToVis}}">
+      <TextBlock Text="{Binding ErrorCarga}" TextWrapping="Wrap"
+                 FontSize="{StaticResource FsBody}"
+                 Foreground="{DynamicResource DangerTextBrush}" />
+    </Border>
+
+    <TextBlock Grid.Row="3" Text="Submódulos"
+               FontSize="{StaticResource FsTitle}"
+               FontWeight="{StaticResource FwMedium}"
+               Foreground="{DynamicResource TextPrimaryBrush}"
+               Margin="{StaticResource TkEtiqueta}" />
+
+    <ItemsControl Grid.Row="4" ItemsSource="{Binding Submodulos}" VerticalAlignment="Top"
+                  Margin="0,8,0,0">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Button Style="{StaticResource CardButtonStyle}" Margin="{StaticResource TkEntreTarjetas}"
+                  Width="280" VerticalAlignment="Top"
+                  AutomationProperties.Name="{Binding Nombre}"
+                  ToolTip="{Binding Descripcion}"
+                  Command="{Binding DataContext.AbrirSubmoduloCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                  CommandParameter="{Binding}">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Icono}" FontFamily="{StaticResource IconFont}"
+                           FontSize="{StaticResource FsTitle}"
+                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Nombre}"
+                           FontSize="{StaticResource FsSubtitle}"
+                           FontWeight="{StaticResource FwMedium}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" />
+              </StackPanel>
+              <TextBlock Text="{Binding Descripcion}"
+                         FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                         LineHeight="16" LineStackingStrategy="BlockLineHeight"
+                         Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,8,0,0" />
+            </StackPanel>
+          </Button>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </Grid>
+</UserControl>

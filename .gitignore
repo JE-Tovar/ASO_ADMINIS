@@ -1,0 +1,34 @@
+# Build artifacts
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Claude Code (local machine settings)
+.claude/settings.local.json
+
+# Configuracion por maquina (cadena de conexion, etc.) - no se sube al repo
+appsettings.local.json
+
+# Base de datos LocalDB de cada maquina (archivo .mdf/.ldf) - cada quien tiene la suya
+ASO_ADMINIS.Desktop/App_Data/
+
+# Documentacion interna del equipo. El repositorio es PUBLICO: estos documentos son de uso
+# interno y no se publican.
+docs/

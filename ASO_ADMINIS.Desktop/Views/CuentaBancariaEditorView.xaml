@@ -1,0 +1,106 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.CuentaBancariaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="460">
+
+  <StackPanel>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="2*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Nombre">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="Como la llaman en el centro: Banco Mercantil, Caja chica" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Tipo">
+          <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                    ItemsSource="{Binding Tipos}"
+                    SelectedItem="{Binding TipoSeleccionado}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Banco">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding Banco, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="Vacío si es una caja: no hay banco detrás" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Nº de cuenta">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding NumeroCuenta, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Moneda">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding Moneda, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Saldo inicial">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   IsEnabled="{Binding PuedeEditarSaldoInicial}"
+                   Text="{Binding SaldoInicial, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="Lo que hay en la cuenta el día de apertura" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="4">
+        <controls:FormField Etiqueta="Apertura">
+          <DatePicker Style="{StaticResource FormDatePickerStyle}"
+                      SelectedDate="{Binding FechaApertura}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <controls:FormField Etiqueta="Notas">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               AcceptsReturn="True" MinLines="2" TextWrapping="Wrap"
+               VerticalContentAlignment="Top"
+               Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <CheckBox Content="Activa" Margin="0,8,0,0"
+              IsChecked="{Binding Activa}"
+              ToolTip="Una cuenta cerrada deja de ofrecerse al registrar, pero conserva su historial" />
+
+    <TextBlock TextWrapping="Wrap" FontSize="{StaticResource FsCaption}" Margin="0,8,0,0"
+               Foreground="{DynamicResource TextMutedBrush}"
+               Text="El saldo inicial absorbe todo lo anterior a la fecha de apertura y solo se fija al crear la cuenta: cambiarlo después movería de un plumazo todos los saldos calculados, sin ningún asiento que lo explicara. Para corregirlo, registre un movimiento de ajuste." />
+  </StackPanel>
+</UserControl>

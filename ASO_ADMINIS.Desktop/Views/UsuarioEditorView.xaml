@@ -1,0 +1,39 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.UsuarioEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="380">
+
+  <StackPanel>
+    <controls:FormField Etiqueta="Nombre de usuario">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding NombreUsuario, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <controls:FormField Etiqueta="Nombre completo">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding NombreCompleto, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <controls:FormField Etiqueta="Rol">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                ItemsSource="{Binding RolesDisponibles}"
+                SelectedItem="{Binding RolSeleccionado}"
+                DisplayMemberPath="Texto" />
+    </controls:FormField>
+
+    <controls:FormField Etiqueta="{Binding EtiquetaPassword}">
+      <PasswordBox x:Name="PasswordBox" Padding="8,8" PasswordChanged="OnPasswordChanged" />
+    </controls:FormField>
+
+    <CheckBox Content="Activo" Margin="0,16,0,0" Cursor="Hand"
+              IsChecked="{Binding Activo}" />
+
+    <TextBlock Text="El usuario queda en la organización activa y solo verá los datos de esa organización. La contraseña se guarda cifrada; no se puede consultar después, solo reemplazar."
+               FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextMutedBrush}" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

@@ -1,0 +1,74 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.FacturaProveedorEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="460">
+
+  <StackPanel>
+    <controls:FormField Etiqueta="Proveedor">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                ItemsSource="{Binding Proveedores}"
+                DisplayMemberPath="Etiqueta"
+                SelectedItem="{Binding ProveedorSeleccionado}" />
+    </controls:FormField>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Nº de documento">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding NumeroDocumento, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="El número que trae la factura del proveedor" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Monto">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding Monto, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <controls:FormField Etiqueta="Descripción">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               AcceptsReturn="True" MinLines="2" TextWrapping="Wrap"
+               VerticalContentAlignment="Top"
+               Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Fecha de emisión">
+          <DatePicker Style="{StaticResource FormDatePickerStyle}"
+                      SelectedDate="{Binding FechaEmision}" />
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Vencimiento">
+          <DatePicker Style="{StaticResource FormDatePickerStyle}"
+                      SelectedDate="{Binding FechaVencimiento}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <TextBlock Text="Pasado el vencimiento, la factura aparece como vencida en el listado y en el resumen del módulo."
+               FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextMutedBrush}" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

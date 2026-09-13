@@ -1,0 +1,60 @@
+<Window x:Class="ASO_ADMINIS.Desktop.Views.CrudEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="{Binding Titulo}"
+        Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        Background="{DynamicResource BackgroundBrush}"
+        FontFamily="{StaticResource AppFont}">
+
+  <Grid Margin="24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="{Binding Titulo}"
+               FontSize="{StaticResource FsTitle}"
+               FontWeight="{StaticResource FwMedium}"
+               Foreground="{DynamicResource TextPrimaryBrush}"
+               TextWrapping="Wrap" Margin="{StaticResource TkSeccion}" />
+
+    <!-- La fila es "*" y no "Auto": con SizeToContent="Height" la ventana igual se encoge al
+         tamaño del contenido cuando entra entero, pero en cuanto MaxHeight (fijado en
+         ServicioDialogo según el work area de la pantalla) la recorta, esta fila es la que cede
+         el espacio sobrante y dispara el scroll — con "Auto" el ScrollViewer nunca se activaba y
+         la ventana simplemente se salía de la pantalla. -->
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <!-- El UserControl del formulario concreto se resuelve por DataTemplate implícito -->
+      <ContentControl Content="{Binding}" VerticalAlignment="Top" />
+    </ScrollViewer>
+
+    <!-- El error de validacion, en su propia caja. Antes era un TextBlock rojo suelto que
+         aparecia y desaparecia moviendo los botones de sitio. -->
+    <Border Grid.Row="2" Style="{StaticResource AlertBoxStyle}" Margin="0,12,0,0"
+            Visibility="{Binding ErrorValidacion, Converter={StaticResource TextoAVis}}">
+      <TextBlock Text="{Binding ErrorValidacion}" TextWrapping="Wrap"
+                 FontSize="{StaticResource FsBody}"
+                 Foreground="{DynamicResource DangerTextBrush}" />
+    </Border>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <!-- IsCancel/IsDefault: hasta ahora ni Esc ni Enter hacian nada en ninguna ventana de la
+           aplicacion (cero usos de las dos propiedades en todo el proyecto). -->
+      <Button Content="Cancelar" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"
+              IsCancel="True" Command="{Binding CancelarCommand}"
+              Visibility="{Binding MuestraCancelar, Converter={StaticResource BoolToVis}}" />
+      <!-- El texto lo pone el editor: la misma ventana sirve para guardar una ficha y para
+           anular una remesa, y "Guardar" describe mal lo segundo. -->
+      <Button Content="{Binding TextoAccion}" Style="{StaticResource PrimaryButtonStyle}"
+              IsDefault="True" Command="{Binding GuardarCommand}" />
+    </StackPanel>
+  </Grid>
+</Window>
