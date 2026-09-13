@@ -158,6 +158,11 @@ public partial class MainWindow : Window
         {
             ["Catalogo.Modelos"] = (m, s) => new ModelosViewModel(m, s),
 
+            ["Ventas.Registro"] = (m, s) => new VentasViewModel(m, s),
+
+            ["Reportes.Ventas"] = (m, s) => new ReporteVentasViewModel(m, s),
+            ["Reportes.Gastos"] = (m, s) => new ReporteGastosViewModel(m, s),
+
             ["Finanzas.CuentasPorPagar"] = (m, s) => new CuentasPorPagarViewModel(m, s),
             ["Finanzas.Banco"] = (m, s) => new BancoViewModel(m, s),
             ["Finanzas.Proveedores"] = (m, s) => new ProveedoresViewModel(m, s),

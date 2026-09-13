@@ -22,6 +22,10 @@
     <views:ModeloEditorView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:VentaEditorViewModel}">
+    <views:VentaEditorView />
+  </DataTemplate>
+
   <!-- Finanzas · Cuentas por Pagar y Banco -->
 
   <DataTemplate DataType="{x:Type vm:ProveedorEditorViewModel}">

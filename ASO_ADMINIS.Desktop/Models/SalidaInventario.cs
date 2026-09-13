@@ -17,7 +17,8 @@ public enum AreaDestino
     Etiquetado,
     Mantenimiento,
     Administracion,
-    Otro
+    Otro,
+    Venta
 }
 
 /// <summary>Por qué sale. Se persiste como ORDINAL: miembros nuevos al final.</summary>
@@ -26,7 +27,8 @@ public enum MotivoSalida
     Consumo,
     Merma,
     Devolucion,
-    Traslado
+    Traslado,
+    Venta
 }
 
 /// <summary>Estados de una salida. Se persiste como ORDINAL: miembros nuevos al final.</summary>
@@ -77,6 +79,13 @@ public class SalidaInventario : IEntidad<int>, IDeOrganizacion
 
     public string Observaciones { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Venta que generó este boleto, si nació de una (ver <see cref="Services.VentasService"/>).
+    /// Nulo en los boletos que se emiten a mano desde esta pantalla — mismo patrón que
+    /// <see cref="Articulo.ModeloId"/>.
+    /// </summary>
+    public int? VentaId { get; set; }
+
     /// <summary>Lo que se llevaron, artículo por artículo.</summary>
     public List<SalidaInventarioLinea> Lineas { get; set; } = [];
 
@@ -101,6 +110,7 @@ public class SalidaInventario : IEntidad<int>, IDeOrganizacion
             AreaDestino.Etiquetado => "Etiquetado",
             AreaDestino.Mantenimiento => "Mantenimiento",
             AreaDestino.Administracion => "Administración",
+            AreaDestino.Venta => "Venta",
             _ => "Otro"
         };
 
@@ -109,7 +119,8 @@ public class SalidaInventario : IEntidad<int>, IDeOrganizacion
         MotivoSalida.Consumo => "Consumo",
         MotivoSalida.Merma => "Merma",
         MotivoSalida.Devolucion => "Devolución",
-        _ => "Traslado"
+        MotivoSalida.Traslado => "Traslado",
+        _ => "Venta"
     };
 
     public string EstadoTexto => Estado == EstadoSalida.Registrada ? "Registrada" : "Anulada";

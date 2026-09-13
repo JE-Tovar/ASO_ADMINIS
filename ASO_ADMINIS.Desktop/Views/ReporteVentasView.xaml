@@ -1,0 +1,90 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.ReporteVentasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             xmlns:oxy="http://oxyplot.org/wpf"
+             mc:Ignorable="d"
+             d:DesignHeight="760" d:DesignWidth="1100">
+
+  <Grid Style="{StaticResource PantallaPlenaStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Submodulo.Nombre}"
+                         Descripcion="{Binding Submodulo.Descripcion}" />
+
+    <Border Grid.Row="1" Style="{StaticResource ToolbarStyle}" Margin="0,16,0,0">
+      <WrapPanel VerticalAlignment="Center">
+        <TextBlock Text="Desde" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+        <DatePicker Width="130" VerticalAlignment="Center" Style="{StaticResource FormDatePickerStyle}"
+                    SelectedDate="{Binding Desde}" />
+        <TextBlock Text="hasta" VerticalAlignment="Center" Margin="8,0,8,0"
+                   FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+        <DatePicker Width="130" VerticalAlignment="Center" Style="{StaticResource FormDatePickerStyle}"
+                    SelectedDate="{Binding Hasta}" />
+
+        <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="Total US$" VerticalAlignment="Center" Margin="0,0,8,0"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Text="{Binding TotalUsdTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="Total Bs" VerticalAlignment="Center" Margin="0,0,8,0"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Text="{Binding TotalBsTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="Unidades" VerticalAlignment="Center" Margin="0,0,8,0"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Text="{Binding TotalUnidadesTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+        </StackPanel>
+      </WrapPanel>
+    </Border>
+
+    <Grid Grid.Row="2" Margin="0,16,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="16" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}">
+        <oxy:PlotView Model="{Binding GraficoPorDia}" Height="260" Background="Transparent" />
+      </Border>
+
+      <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}">
+        <oxy:PlotView Model="{Binding GraficoPorCategoria}" Height="260" Background="Transparent" />
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="3" Style="{StaticResource SectionCardStyle}" Padding="0" Margin="0,16,0,0">
+      <Grid>
+        <DataGrid x:Name="TablaVentas" Style="{StaticResource DataGridStyle}"
+                  ItemsSource="{Binding Items}" IsReadOnly="True">
+          <DataGrid.Columns>
+            <controls:ColumnaTexto Header="Nº" Binding="{Binding Numero}" Width="12*" MinWidth="86" />
+            <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="10*" MinWidth="78" />
+            <controls:ColumnaTexto Header="Modelo" Binding="{Binding ModeloTexto}" Width="26*" MinWidth="150" />
+            <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteNombre}" Width="18*" MinWidth="110" />
+            <controls:ColumnaNumero Header="Cant." Binding="{Binding CantidadTexto}" Width="8*" MinWidth="56" />
+            <controls:ColumnaNumero Header="Total US$" Binding="{Binding TotalUsdTexto}" Width="13*" MinWidth="86" />
+            <controls:ColumnaNumero Header="Total Bs" Binding="{Binding TotalBsTexto}" Width="13*" MinWidth="86" />
+          </DataGrid.Columns>
+        </DataGrid>
+
+        <controls:EmptyState Icono="{x:Static controls:Iconos.Reportes}"
+                             Titulo="Sin ventas en este período"
+                             Detalle="Ajusta el rango de fechas o registra una venta en Ventas · Registro."
+                             Visibility="{Binding HasItems, ElementName=TablaVentas, Converter={StaticResource SinItemsAVis}}" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

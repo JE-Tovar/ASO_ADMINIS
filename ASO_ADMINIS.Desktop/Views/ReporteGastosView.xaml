@@ -1,0 +1,78 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.ReporteGastosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             xmlns:oxy="http://oxyplot.org/wpf"
+             mc:Ignorable="d"
+             d:DesignHeight="760" d:DesignWidth="1100">
+
+  <Grid Style="{StaticResource PantallaPlenaStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Submodulo.Nombre}"
+                         Descripcion="{Binding Submodulo.Descripcion}" />
+
+    <Border Grid.Row="1" Style="{StaticResource ToolbarStyle}" Margin="0,16,0,0">
+      <WrapPanel VerticalAlignment="Center">
+        <TextBlock Text="Desde" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+        <DatePicker Width="130" VerticalAlignment="Center" Style="{StaticResource FormDatePickerStyle}"
+                    SelectedDate="{Binding Desde}" />
+        <TextBlock Text="hasta" VerticalAlignment="Center" Margin="8,0,8,0"
+                   FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+        <DatePicker Width="130" VerticalAlignment="Center" Style="{StaticResource FormDatePickerStyle}"
+                    SelectedDate="{Binding Hasta}" />
+
+        <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="Total pagado" VerticalAlignment="Center" Margin="0,0,8,0"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Text="{Binding TotalTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+        </StackPanel>
+      </WrapPanel>
+    </Border>
+
+    <Grid Grid.Row="2" Margin="0,16,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="16" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}">
+        <oxy:PlotView Model="{Binding GraficoPorMes}" Height="260" Background="Transparent" />
+      </Border>
+
+      <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}">
+        <oxy:PlotView Model="{Binding GraficoPorProveedor}" Height="260" Background="Transparent" />
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="3" Style="{StaticResource SectionCardStyle}" Padding="0" Margin="0,16,0,0">
+      <Grid>
+        <DataGrid x:Name="TablaGastos" Style="{StaticResource DataGridStyle}"
+                  ItemsSource="{Binding Items}" IsReadOnly="True">
+          <DataGrid.Columns>
+            <controls:ColumnaTexto Header="Fecha de pago" Binding="{Binding FechaPago, StringFormat=dd/MM/yyyy}" Width="14*" MinWidth="100" />
+            <controls:ColumnaTexto Header="Proveedor" Binding="{Binding ProveedorNombre}" Width="26*" MinWidth="150" />
+            <controls:ColumnaTexto Header="Documento" Binding="{Binding NumeroDocumento}" Width="16*" MinWidth="100" />
+            <controls:ColumnaTexto Header="Descripción" Binding="{Binding Descripcion}" Width="24*" MinWidth="140" />
+            <controls:ColumnaNumero Header="Monto" Binding="{Binding MontoTexto}" Width="12*" MinWidth="86" />
+          </DataGrid.Columns>
+        </DataGrid>
+
+        <controls:EmptyState Icono="{x:Static controls:Iconos.Reportes}"
+                             Titulo="Sin gastos en este período"
+                             Detalle="Ajusta el rango de fechas o registra el pago de una factura en Finanzas · Cuentas por Pagar."
+                             Visibility="{Binding HasItems, ElementName=TablaGastos, Converter={StaticResource SinItemsAVis}}" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

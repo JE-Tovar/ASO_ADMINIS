@@ -15,6 +15,22 @@
     <views:ModelosView />
   </DataTemplate>
 
+  <!-- Ventas -->
+
+  <DataTemplate DataType="{x:Type vm:VentasViewModel}">
+    <views:VentasView />
+  </DataTemplate>
+
+  <!-- Reportes -->
+
+  <DataTemplate DataType="{x:Type vm:ReporteVentasViewModel}">
+    <views:ReporteVentasView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:ReporteGastosViewModel}">
+    <views:ReporteGastosView />
+  </DataTemplate>
+
   <!-- Plantilla de ejemplo (Finanzas · Cuentas por Pagar y Banco) -->
 
   <DataTemplate DataType="{x:Type vm:BancoViewModel}">

@@ -84,6 +84,7 @@ public sealed class SalidasViewModel : PantallaCrudViewModel<SalidaInventario, i
         "Merma" => item.Motivo == MotivoSalida.Merma,
         "Devolución" => item.Motivo == MotivoSalida.Devolucion,
         "Traslado" => item.Motivo == MotivoSalida.Traslado,
+        "Venta" => item.Motivo == MotivoSalida.Venta,
         "Anulados" => item.Estado == EstadoSalida.Anulada,
         _ => true
     };

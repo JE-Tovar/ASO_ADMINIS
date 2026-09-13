@@ -35,6 +35,9 @@ public static class Iconos
     public const string Marca =            ""; // tag U+E478
     public const string Modelo =           ""; // sneaker U+E80C
 
+    public const string Ventas =            ""; // receipt U+E3EC
+    public const string Reportes =          ""; // chart-bar U+E150
+
     public const string Finanzas =         "";     // currency-circle-dollar U+E54C
     public const string CuentasPorPagar =  "";     // invoice U+EE42
     public const string Banco =            "";     // bank U+E0B4

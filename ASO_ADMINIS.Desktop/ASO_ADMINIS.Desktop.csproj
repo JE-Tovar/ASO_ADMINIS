@@ -21,6 +21,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+
+    <!-- Reportes · Ventas y Gastos: gráficos de barras y torta. Primera librería de terceros
+         del proyecto fuera de EF Core - pura administrada, sin binarios nativos. -->
+    <PackageReference Include="OxyPlot.Wpf" Version="2.2.0" />
   </ItemGroup>
 
   <!-- La fuente de iconos viaja con el proyecto. Antes se usaba Segoe MDL2 Assets, que solo

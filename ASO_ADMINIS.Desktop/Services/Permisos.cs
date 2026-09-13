@@ -97,6 +97,16 @@ public static class Permisos
     }
 
     /// <summary>
+    /// Ventas registradas (Ventas · Registro). No hay "Editar" ni "Eliminar": es un documento,
+    /// no se corrige ni se borra, se anula.
+    /// </summary>
+    public static class Ventas
+    {
+        public const string Crear = "Ventas.Crear";
+        public const string Anular = "Ventas.Anular";
+    }
+
+    /// <summary>
     /// Entradas al almacén. No hay "Editar" ni "Eliminar": una entrada es un documento, y un
     /// documento no se corrige ni se borra, se anula (ver <c>EntradasInventarioService</c>).
     /// </summary>

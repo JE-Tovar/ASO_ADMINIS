@@ -81,6 +81,7 @@
               <ComboBoxItem Content="Merma" />
               <ComboBoxItem Content="Devolución" />
               <ComboBoxItem Content="Traslado" />
+              <ComboBoxItem Content="Venta" />
               <ComboBoxItem Content="Anulados" />
             </controls:FiltroDropdown>
           </WrapPanel>

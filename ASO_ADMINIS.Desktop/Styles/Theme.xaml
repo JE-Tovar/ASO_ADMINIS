@@ -308,6 +308,21 @@
     </Style.Triggers>
   </Style>
 
+  <Style x:Key="ChipEstadoVentaStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoVenta.Registrada}">
+        <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoVenta.Anulada}">
+        <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
   <!-- Nombre anterior de SectionCardStyle. Sigue vivo porque lo citan 64 sitios, para cuatro
        cosas distintas; las vistas lo van cambiando por el nombre que corresponda conforme se
        rehacen, y entonces desaparece. -->

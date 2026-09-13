@@ -1,0 +1,63 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.VentaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="460">
+
+  <StackPanel>
+    <controls:FormField Etiqueta="Fecha">
+      <DatePicker Style="{StaticResource FormDatePickerStyle}"
+                  SelectedDate="{Binding Fecha}" />
+    </controls:FormField>
+
+    <controls:FormField Etiqueta="Modelo" Ayuda="{Binding ExistenciaTexto}">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                ItemsSource="{Binding Modelos}" DisplayMemberPath="Etiqueta"
+                SelectedItem="{Binding ModeloSeleccionado}" />
+    </controls:FormField>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <controls:FormField Etiqueta="Cantidad">
+          <TextBox Text="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}">
+            <TextBox.Style>
+              <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBoxStyle}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding SePasa}" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource DangerTextBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+                    <Setter Property="ToolTip" Value="No hay tanta existencia de este modelo." />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBox.Style>
+          </TextBox>
+        </controls:FormField>
+      </StackPanel>
+
+      <StackPanel Grid.Column="2">
+        <controls:FormField Etiqueta="Precio (US$)">
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding PrecioUnitario, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:FormField>
+      </StackPanel>
+    </Grid>
+
+    <TextBlock Text="{Binding TotalBsTexto}" FontSize="{StaticResource FsCaption}"
+               Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,16" />
+
+    <controls:FormField Etiqueta="Cliente" Ayuda="Opcional.">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+  </StackPanel>
+</UserControl>

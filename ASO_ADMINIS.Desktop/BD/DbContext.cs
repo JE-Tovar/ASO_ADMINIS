@@ -20,6 +20,7 @@ public class AsoAdminisDbContext : DbContext
     public DbSet<Marca> Marcas { get; set; }
     public DbSet<Modelo> Modelos { get; set; }
     public DbSet<TasaCambio> TasasCambio { get; set; }
+    public DbSet<Venta> Ventas { get; set; }
 
     // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
     public DbSet<Proveedor> Proveedores { get; set; }
@@ -163,6 +164,34 @@ public class AsoAdminisDbContext : DbContext
 
             entity.Ignore(t => t.FechaTexto);
             entity.Ignore(t => t.ValorTexto);
+        });
+
+        modelBuilder.Entity<Venta>(entity =>
+        {
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.Numero).IsRequired().HasMaxLength(20);
+            entity.Property(v => v.ModeloNombre).HasMaxLength(150);
+            entity.Property(v => v.MarcaNombre).HasMaxLength(120);
+            entity.Property(v => v.ClienteNombre).HasMaxLength(150);
+            entity.Property(v => v.MotivoAnulacion).HasMaxLength(500);
+            entity.Property(v => v.Cantidad).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(v => v.PrecioUnitarioUsd).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(v => v.TasaCambioUsada).HasColumnType("decimal(18,4)").IsRequired();
+
+            // El correlativo se calcula como "el último + 1" antes de escribir; este índice es
+            // la red por si dos puestos coincidieran — mismo criterio que Entradas/Salidas.
+            entity.HasIndex(v => new { v.OrganizacionId, v.Numero }).IsUnique();
+
+            entity.Ignore(v => v.CuentaEnKardex);
+            entity.Ignore(v => v.TotalUsd);
+            entity.Ignore(v => v.TotalBs);
+            entity.Ignore(v => v.EstadoTexto);
+            entity.Ignore(v => v.FechaTexto);
+            entity.Ignore(v => v.ModeloTexto);
+            entity.Ignore(v => v.CantidadTexto);
+            entity.Ignore(v => v.PrecioUnitarioTexto);
+            entity.Ignore(v => v.TotalUsdTexto);
+            entity.Ignore(v => v.TotalBsTexto);
         });
 
         // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
@@ -363,6 +392,9 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(s => s.MotivoAnulacion).HasMaxLength(500);
 
             entity.HasIndex(s => new { s.OrganizacionId, s.Numero }).IsUnique();
+
+            // El camino inverso del enlace a Ventas: qué salida generó una venta.
+            entity.HasIndex(s => s.VentaId);
 
             entity.Ignore(s => s.CuentaEnKardex);
             entity.Ignore(s => s.DestinoTexto);

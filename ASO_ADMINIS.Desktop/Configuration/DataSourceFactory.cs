@@ -28,6 +28,7 @@ public static class DataSourceFactory
     private static IModeloDataSource? _modelos;
     private static ITasaCambioDataSource? _tasasCambio;
     private static ITasaCambioProveedor? _proveedorTasaCambio;
+    private static IVentaDataSource? _ventas;
     private static IArticuloDataSource? _articulos;
     private static IEntradaInventarioDataSource? _entradasInventario;
     private static ISalidaInventarioDataSource? _salidasInventario;
@@ -69,6 +70,9 @@ public static class DataSourceFactory
 
     public static ITasaCambioProveedor CrearProveedorTasaCambio() =>
         _proveedorTasaCambio ??= new DolarApiTasaCambioProveedor();
+
+    public static IVentaDataSource CrearVentas() =>
+        _ventas ??= new SqlVentaDataSource();
 
     public static IArticuloDataSource CrearArticulos() =>
         _articulos ??= new SqlArticuloDataSource();

@@ -69,6 +69,16 @@ public static class ModuloCatalogo
             ]),
 
         new Modulo(
+            "Ventas",
+            "Ventas",
+            "Registro de ventas a clientes.",
+            Iconos.Ventas,
+            [
+                new Submodulo("Ventas.Registro", "Registro de ventas",
+                    "Ventas registradas, con lo que descuentan del almacén.", Iconos.Ventas)
+            ]),
+
+        new Modulo(
             "Finanzas",
             "Finanzas",
             "Pagos a proveedores y libro de banco.",
@@ -94,6 +104,18 @@ public static class ModuloCatalogo
                     "Historial de entradas y registro de lo que llega al almacén.", Iconos.Entradas),
                 new Submodulo("Inventario.Salidas", "Salidas",
                     "Historial de salidas y emisión de boletos de salida.", Iconos.Salidas)
+            ]),
+
+        new Modulo(
+            "Reportes",
+            "Reportes",
+            "Ventas y gastos de la organización.",
+            Iconos.Reportes,
+            [
+                new Submodulo("Reportes.Ventas", "Ventas",
+                    "Ventas registradas en el período, con totales y gráficos.", Iconos.Ventas),
+                new Submodulo("Reportes.Gastos", "Gastos",
+                    "Pagos a proveedores en el período, con totales y gráficos.", Iconos.Reportes)
             ]),
     ];
 
