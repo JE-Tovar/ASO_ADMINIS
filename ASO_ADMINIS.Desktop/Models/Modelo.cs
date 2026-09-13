@@ -58,6 +58,16 @@ public class Modelo : IEntidad<int>, IDeOrganizacion
 
     public string PrecioVentaTexto => PrecioVenta.ToString("N2");
 
+    /// <summary>
+    /// Equivalente en bolívares a la tasa vigente. NO se persiste (va con <c>Ignore</c> en el
+    /// DbContext): depende de una tabla aparte y este modelo no tiene acceso a la base. La
+    /// rellena <c>ModelosViewModel</c> con <see cref="Services.TasaCambioService"/> antes de
+    /// mostrar la lista, igual que <see cref="Articulo.Existencia"/>.
+    /// </summary>
+    public decimal PrecioVentaBs { get; set; }
+
+    public string PrecioVentaBsTexto => PrecioVentaBs > 0 ? PrecioVentaBs.ToString("N2") : "—";
+
     public string Etiqueta => $"{MarcaNombre} · {Nombre}";
 
     /// <summary>Copia superficial (solo hay tipos de valor y cadenas) para no mutar el original en la lista.</summary>

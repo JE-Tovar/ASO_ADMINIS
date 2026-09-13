@@ -50,6 +50,21 @@
                    Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}" />
 
           <Button Content="Guardar" Style="{StaticResource PrimaryButtonStyle}" Margin="0,16,0,0" HorizontalAlignment="Left" Command="{Binding GuardarCommand}" />
+
+          <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,20,0,16" />
+
+          <TextBlock Text="Tasa de cambio" FontSize="{StaticResource FsSubtitle}" FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Text="Bolívares por dólar, oficial BCV. Se trae sola al iniciar sesión; usa &quot;Actualizar&quot; si hace falta forzarla."
+                     FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,8" />
+
+          <TextBlock Text="{Binding TasaActualTexto}" FontSize="{StaticResource FsBody}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12" />
+
+          <Button Content="Actualizar" Style="{StaticResource SecondaryButtonStyle}"
+                  HorizontalAlignment="Left" Margin="0"
+                  Command="{Binding ActualizarTasaCommand}" />
         </StackPanel>
       </Border>
     </Grid>

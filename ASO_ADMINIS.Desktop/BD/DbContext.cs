@@ -19,6 +19,7 @@ public class AsoAdminisDbContext : DbContext
     // ---- Catálogo: marcas y modelos ----
     public DbSet<Marca> Marcas { get; set; }
     public DbSet<Modelo> Modelos { get; set; }
+    public DbSet<TasaCambio> TasasCambio { get; set; }
 
     // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
     public DbSet<Proveedor> Proveedores { get; set; }
@@ -145,6 +146,23 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(m => m.CategoriaTexto);
             entity.Ignore(m => m.PrecioVentaTexto);
             entity.Ignore(m => m.Etiqueta);
+
+            // Equivalente en bolívares: NO se persiste, lo calcula ModelosViewModel con la tasa
+            // vigente antes de pintar la grilla — mismo criterio que Articulo.Existencia.
+            entity.Ignore(m => m.PrecioVentaBs);
+            entity.Ignore(m => m.PrecioVentaBsTexto);
+        });
+
+        modelBuilder.Entity<TasaCambio>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.Valor).HasColumnType("decimal(18,4)").IsRequired();
+
+            // Una fila por día: respalda el "buscar o crear" de TasaCambioService.
+            entity.HasIndex(t => new { t.OrganizacionId, t.Fecha }).IsUnique();
+
+            entity.Ignore(t => t.FechaTexto);
+            entity.Ignore(t => t.ValorTexto);
         });
 
         // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----

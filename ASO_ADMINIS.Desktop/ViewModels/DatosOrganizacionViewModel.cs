@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using ASO_ADMINIS.Desktop.Models;
 using ASO_ADMINIS.Desktop.Services;
@@ -16,13 +18,16 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
 {
     private readonly IOrganizacionDataSource _organizaciones;
     private readonly IServicioDialogo _dialogos;
+    private readonly TasaCambioService _tasaCambio;
 
     public DatosOrganizacionViewModel(IOrganizacionDataSource organizaciones,
                                       IServicioDialogo dialogos,
-                                      ISesionActual sesion)
+                                      ISesionActual sesion,
+                                      TasaCambioService tasaCambio)
     {
         _organizaciones = organizaciones;
         _dialogos = dialogos;
+        _tasaCambio = tasaCambio;
 
         PuedeEditar = sesion.Puede(Permisos.Organizacion.Editar);
 
@@ -33,11 +38,61 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
         }
 
         GuardarCommand = new RelayCommand(Guardar, () => PuedeEditar);
+        ActualizarTasaCommand = new RelayCommand(() => _ = ActualizarTasa(), () => PuedeEditar && !Actualizando);
+
+        ActualizarTextoTasa();
     }
 
     public bool PuedeEditar { get; }
 
     public ICommand GuardarCommand { get; }
+    public ICommand ActualizarTasaCommand { get; }
+
+    private bool _actualizando;
+    public bool Actualizando
+    {
+        get => _actualizando;
+        private set
+        {
+            if (SetProperty(ref _actualizando, value))
+                CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    private string _tasaActualTexto = string.Empty;
+    public string TasaActualTexto
+    {
+        get => _tasaActualTexto;
+        private set => SetProperty(ref _tasaActualTexto, value);
+    }
+
+    private void ActualizarTextoTasa()
+    {
+        var actual = _tasaCambio.Actual();
+        TasaActualTexto = actual is null
+            ? "Sin tasa registrada todavía."
+            : $"Bs. {actual.ValorTexto} por US$1 · BCV, {actual.FechaTexto}";
+    }
+
+    private async Task ActualizarTasa()
+    {
+        Actualizando = true;
+        try
+        {
+            await _tasaCambio.ActualizarDesdeApi();
+            ActualizarTextoTasa();
+        }
+        catch (Exception ex)
+        {
+            ActualizarTextoTasa();
+            _dialogos.Informar("No se pudo actualizar la tasa",
+                $"{ex.Message}\n\nSe sigue usando la última tasa guardada: {TasaActualTexto}");
+        }
+        finally
+        {
+            Actualizando = false;
+        }
+    }
 
     private string _codigo = string.Empty;
     public string Codigo

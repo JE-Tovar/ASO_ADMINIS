@@ -40,8 +40,11 @@ public sealed class AdministracionViewModel : PantallaViewModelBase
     {
         _dialogos = dialogos;
 
+        var tasaCambio = new TasaCambioService(
+            DataSourceFactory.CrearTasasCambio(), DataSourceFactory.CrearProveedorTasaCambio());
+
         Organizacion = new DatosOrganizacionViewModel(
-            DataSourceFactory.CrearOrganizaciones(), dialogos, sesion);
+            DataSourceFactory.CrearOrganizaciones(), dialogos, sesion, tasaCambio);
         Usuarios = new UsuariosCrudViewModel(DataSourceFactory.CrearUsuarios(), dialogos, sesion);
         PermisosDeUsuario = new PermisosDeUsuarioViewModel(
             DataSourceFactory.CrearPermisosUsuario(), dialogos, sesion);

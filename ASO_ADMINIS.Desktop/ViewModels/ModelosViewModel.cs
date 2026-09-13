@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using ASO_ADMINIS.Desktop.Configuration;
@@ -24,6 +25,7 @@ public sealed class ModelosViewModel : PantallaCrudViewModel<Modelo, int>
     private readonly IMarcaDataSource _marcas;
     private readonly IServicioDialogo _dialogos;
     private readonly CatalogoService _servicio;
+    private readonly TasaCambioService _tasaCambio;
 
     private string _filtro = FiltroTodas;
 
@@ -49,6 +51,14 @@ public sealed class ModelosViewModel : PantallaCrudViewModel<Modelo, int>
                                                DataSourceFactory.CrearSalidasInventario());
 
         _servicio = new CatalogoService(_marcas, modelos, articulos, inventario);
+
+        _tasaCambio = new TasaCambioService(
+            DataSourceFactory.CrearTasasCambio(), DataSourceFactory.CrearProveedorTasaCambio());
+
+        // La base ya pobló Items en su constructor, pero sin el equivalente en bolívares: sin
+        // esto la primera pintada saldría con esa columna en "—" hasta la primera recarga.
+        RellenarPreciosBs(Items);
+        ItemsView.Refresh();
 
         CambiarFiltroCommand = new RelayCommand<string>(filtro =>
         {
@@ -82,7 +92,25 @@ public sealed class ModelosViewModel : PantallaCrudViewModel<Modelo, int>
 
     protected override CrudEditorViewModelBase<Modelo> CrearEditor(Modelo item) =>
         new ModeloEditorViewModel(item, [.. _marcas.GetAll().Where(m => m.Activo).OrderBy(m => m.Nombre)],
-                                  _servicio, _marcas, _dialogos);
+                                  _servicio, _marcas, _dialogos, _tasaCambio.Actual()?.Valor);
+
+    /// <summary>Rellena el equivalente en bolívares con la tasa vigente (0 si nunca se pudo traer ninguna).</summary>
+    private void RellenarPreciosBs(IEnumerable<Modelo> modelos)
+    {
+        var tasa = _tasaCambio.Actual()?.Valor ?? 0m;
+        foreach (var modelo in modelos)
+            modelo.PrecioVentaBs = tasa > 0 ? modelo.PrecioVenta * tasa : 0m;
+    }
+
+    /// <summary>Relee el catálogo y le vuelve a pegar el equivalente en bolívares encima.</summary>
+    public override void Recargar()
+    {
+        base.Recargar();
+
+        RellenarPreciosBs(Items);
+        ItemsView.Refresh();
+        OnTodasLasPropiedadesCambiaron();
+    }
 
     protected override void Agregar()
     {

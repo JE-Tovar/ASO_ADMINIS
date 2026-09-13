@@ -4,6 +4,7 @@ using ASO_ADMINIS.Desktop.BD;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ASO_ADMINIS.Desktop.Migrations
 {
     [DbContext(typeof(AsoAdminisDbContext))]
-    partial class AsoAdminisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260913185818_AgregarTasaCambio")]
+    partial class AgregarTasaCambio
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

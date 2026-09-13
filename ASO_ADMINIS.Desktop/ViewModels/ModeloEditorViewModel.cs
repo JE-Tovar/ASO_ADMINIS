@@ -23,17 +23,20 @@ public sealed class ModeloEditorViewModel : CrudEditorViewModelBase<Modelo>
     private readonly CatalogoService _servicio;
     private readonly IMarcaDataSource _marcasDataSource;
     private readonly IServicioDialogo _dialogos;
+    private readonly decimal? _tasaCambio;
 
     public ModeloEditorViewModel(Modelo original,
                                  IReadOnlyList<Marca> marcas,
                                  CatalogoService servicio,
                                  IMarcaDataSource marcasDataSource,
-                                 IServicioDialogo dialogos)
+                                 IServicioDialogo dialogos,
+                                 decimal? tasaCambio)
     {
         _original = original;
         _servicio = servicio;
         _marcasDataSource = marcasDataSource;
         _dialogos = dialogos;
+        _tasaCambio = tasaCambio;
 
         Marcas = new ObservableCollection<Marca>(marcas);
 
@@ -107,8 +110,19 @@ public sealed class ModeloEditorViewModel : CrudEditorViewModelBase<Modelo>
     public string PrecioVenta
     {
         get => _precioVenta;
-        set => SetProperty(ref _precioVenta, value);
+        set
+        {
+            if (SetProperty(ref _precioVenta, value))
+                OnPropertyChanged(nameof(PrecioVentaBsTexto));
+        }
     }
+
+    /// <summary>Vista previa en vivo del equivalente en bolívares, con la tasa vigente al abrir el editor.</summary>
+    public string PrecioVentaBsTexto => _tasaCambio is { } tasa && decimal.TryParse(PrecioVenta, out var precio) && precio > 0
+        ? $"≈ Bs. {(precio * tasa):N2}"
+        : _tasaCambio is null
+            ? "Sin tasa de cambio registrada todavía."
+            : string.Empty;
 
     private string _notas = string.Empty;
     public string Notas

@@ -59,9 +59,13 @@
       </StackPanel>
     </Grid>
 
-    <controls:FormField Etiqueta="Precio de venta" Ayuda="Referencia; todavía no hay módulo de Ventas que lo use.">
-      <TextBox Style="{StaticResource FormTextBoxStyle}"
-               Text="{Binding PrecioVenta, UpdateSourceTrigger=PropertyChanged}" />
+    <controls:FormField Etiqueta="Precio de venta (US$)" Ayuda="Referencia; todavía no hay módulo de Ventas que lo use.">
+      <StackPanel>
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding PrecioVenta, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Text="{Binding PrecioVentaBsTexto}" FontSize="{StaticResource FsCaption}"
+                   Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+      </StackPanel>
     </controls:FormField>
 
     <controls:FormField Etiqueta="Notas">

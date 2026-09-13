@@ -65,7 +65,8 @@
             <controls:ColumnaTexto Header="Marca" Binding="{Binding MarcaNombre}" Width="20*" MinWidth="120" />
             <controls:ColumnaTexto Header="Modelo" Binding="{Binding Nombre}" Width="26*" MinWidth="140" />
             <controls:ColumnaTexto Header="Categoría" Binding="{Binding CategoriaTexto}" Width="16*" MinWidth="100" />
-            <controls:ColumnaTexto Header="Precio" Binding="{Binding PrecioVentaTexto}" Width="14*" MinWidth="90" />
+            <controls:ColumnaTexto Header="Precio (US$)" Binding="{Binding PrecioVentaTexto}" Width="14*" MinWidth="90" />
+            <controls:ColumnaTexto Header="Precio (Bs)" Binding="{Binding PrecioVentaBsTexto}" Width="14*" MinWidth="90" />
             <DataGridTemplateColumn Header="Estado" Width="96">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>

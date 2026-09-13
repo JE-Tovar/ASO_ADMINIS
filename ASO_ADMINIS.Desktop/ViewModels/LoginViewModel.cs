@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using ASO_ADMINIS.Desktop.Configuration;
 using ASO_ADMINIS.Desktop.Services;
 
@@ -116,6 +117,11 @@ public class LoginViewModel : ViewModelBase
             // Dentro del try porque iniciar sesión también toca la base: resuelve el núcleo
             // del usuario para fijar el ámbito.
             _sesion.IniciarSesion(resultado.Usuario, resultado.Ajustes);
+
+            // En segundo plano y en silencio: es la primera vez que esta app habla con
+            // internet, y sin conexión no hay dónde avisar en pleno login. Administración
+            // sigue mostrando la última tasa guardada mientras tanto.
+            _ = ActualizarTasaCambioEnSegundoPlano();
         }
         catch (Exception ex)
         {
@@ -127,5 +133,21 @@ public class LoginViewModel : ViewModelBase
 
         MensajeError = string.Empty;
         return true;
+    }
+
+    private static async Task ActualizarTasaCambioEnSegundoPlano()
+    {
+        try
+        {
+            var servicio = new TasaCambioService(
+                DataSourceFactory.CrearTasasCambio(), DataSourceFactory.CrearProveedorTasaCambio());
+
+            await servicio.ActualizarDesdeApi();
+        }
+        catch
+        {
+            // Sin internet o la fuente cayó: se sigue con la última tasa guardada. Quien la
+            // necesite ve el botón "Actualizar" en Administración · Organización.
+        }
     }
 }
