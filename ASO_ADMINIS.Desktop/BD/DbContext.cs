@@ -16,6 +16,10 @@ public class AsoAdminisDbContext : DbContext
     public DbSet<PermisoUsuario> PermisosUsuario { get; set; }
     public DbSet<PeticionCambio> PeticionesCambio { get; set; }
 
+    // ---- Catálogo: marcas y modelos ----
+    public DbSet<Marca> Marcas { get; set; }
+    public DbSet<Modelo> Modelos { get; set; }
+
     // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
     public DbSet<Proveedor> Proveedores { get; set; }
     public DbSet<FacturaProveedor> FacturasProveedor { get; set; }
@@ -109,6 +113,38 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(p => p.EstaPendiente);
             entity.Ignore(p => p.EstadoTexto);
             entity.Ignore(p => p.Resumen);
+        });
+
+        // ---- Catálogo: marcas y modelos ----
+
+        modelBuilder.Entity<Marca>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Nombre).IsRequired().HasMaxLength(120);
+            entity.Property(m => m.Notas).HasMaxLength(500);
+
+            entity.HasIndex(m => new { m.OrganizacionId, m.Nombre }).IsUnique();
+
+            entity.Ignore(m => m.EstadoTexto);
+            entity.Ignore(m => m.Etiqueta);
+        });
+
+        modelBuilder.Entity<Modelo>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.MarcaNombre).HasMaxLength(120);
+            entity.Property(m => m.Nombre).IsRequired().HasMaxLength(150);
+            entity.Property(m => m.PrecioVenta).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(m => m.Notas).HasMaxLength(500);
+
+            // El vínculo con su artículo se busca por ModeloId (ver CatalogoService); sin
+            // este índice sería un recorrido completo de Articulos por cada modelo abierto.
+            entity.HasIndex(m => m.MarcaId);
+
+            entity.Ignore(m => m.EstadoTexto);
+            entity.Ignore(m => m.CategoriaTexto);
+            entity.Ignore(m => m.PrecioVentaTexto);
+            entity.Ignore(m => m.Etiqueta);
         });
 
         // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
@@ -230,6 +266,10 @@ public class AsoAdminisDbContext : DbContext
             // Respalda el código aleatorio: si dos altas simultáneas generan el mismo candidato,
             // la segunda choca contra el índice en vez de duplicar el artículo.
             entity.HasIndex(a => new { a.OrganizacionId, a.Codigo }).IsUnique();
+
+            // El vínculo inverso Articulo → Modelo que usa CatalogoService para sincronizar y
+            // para saber si el artículo de un modelo ya se movió.
+            entity.HasIndex(a => a.ModeloId);
 
             // Existencia NO se persiste: es la suma del kardex, la rellena InventarioService.
             entity.Ignore(a => a.Existencia);

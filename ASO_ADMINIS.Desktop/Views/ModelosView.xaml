@@ -1,0 +1,88 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.ModelosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="1100">
+
+  <Grid Style="{StaticResource PantallaPlenaStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:PageHeader Grid.Row="0"
+                         Titulo="{Binding Submodulo.Nombre}"
+                         Descripcion="{Binding Submodulo.Descripcion}" />
+
+    <Border Grid.Row="1" Style="{StaticResource ToolbarStyle}" Margin="0,16,0,0">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <WrapPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+          <controls:SearchBox Width="280" Margin="0,0,12,0" VerticalAlignment="Center"
+                              Texto="{Binding TextoBusqueda, Mode=TwoWay}" />
+
+          <controls:FiltroDropdown Style="{StaticResource FiltroDropdownStyle}" SelectedIndex="0"
+                                   Margin="0,0,12,0" VerticalAlignment="Center"
+                                   Command="{Binding CambiarFiltroCommand}">
+            <ComboBoxItem Content="Todas" />
+            <ComboBoxItem Content="Calzado" />
+            <ComboBoxItem Content="Ropa" />
+            <ComboBoxItem Content="Correas y carteras" />
+            <ComboBoxItem Content="Otro" />
+          </controls:FiltroDropdown>
+        </WrapPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,12,0,0">
+          <Button Content="Nuevo modelo" Style="{StaticResource PrimaryButtonStyle}"
+                  Command="{Binding AgregarCommand}" />
+          <Button Content="Editar" Style="{StaticResource SecondaryButtonStyle}"
+                  Command="{Binding EditarCommand}" />
+          <Button Content="Eliminar" Style="{StaticResource SecondaryButtonStyle}"
+                  Foreground="{DynamicResource DangerTextBrush}"
+                  Command="{Binding EliminarCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0" Margin="0,16,0,0">
+      <Grid>
+        <DataGrid x:Name="Tabla" Style="{StaticResource DataGridStyle}"
+                  ItemsSource="{Binding ItemsView}"
+                  SelectedItem="{Binding SelectedItem}">
+          <DataGrid.Columns>
+            <controls:ColumnaTexto Header="Nº" Binding="{Binding Id}" Width="40" />
+            <controls:ColumnaTexto Header="Marca" Binding="{Binding MarcaNombre}" Width="20*" MinWidth="120" />
+            <controls:ColumnaTexto Header="Modelo" Binding="{Binding Nombre}" Width="26*" MinWidth="140" />
+            <controls:ColumnaTexto Header="Categoría" Binding="{Binding CategoriaTexto}" Width="16*" MinWidth="100" />
+            <controls:ColumnaTexto Header="Precio" Binding="{Binding PrecioVentaTexto}" Width="14*" MinWidth="90" />
+            <DataGridTemplateColumn Header="Estado" Width="96">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource ChipActivoStyle}">
+                    <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+                  </Border>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+          </DataGrid.Columns>
+        </DataGrid>
+
+        <controls:EmptyState Icono="{x:Static controls:Iconos.Modelo}"
+                             Titulo="No hay modelos"
+                             Detalle="Da de alta un modelo para empezar a llevar su existencia en el almacén."
+                             Visibility="{Binding HasItems, ElementName=Tabla, Converter={StaticResource SinItemsAVis}}" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

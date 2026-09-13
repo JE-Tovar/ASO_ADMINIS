@@ -58,6 +58,15 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     public bool Activo { get; set; } = true;
 
     /// <summary>
+    /// Modelo de Catálogo del que este artículo es el vínculo con Inventario. Nulo en los
+    /// artículos que no vienen de un Modelo (compatibilidad con el scaffold genérico). Lo
+    /// asigna <see cref="Services.CatalogoService"/> al crear el artículo; Nombre/Categoría/
+    /// Activo quedan sincronizados desde el Modelo — Código, Unidad, Mínimo y Ubicación siguen
+    /// siendo terreno exclusivo de esta pantalla.
+    /// </summary>
+    public int? ModeloId { get; set; }
+
+    /// <summary>
     /// NO se persiste (va con <c>Ignore</c> en el DbContext): depende de dos tablas enteras y el
     /// modelo no tiene acceso a la base. La rellena <c>InventarioService.RellenarExistencias</c>
     /// antes de mostrar la lista, igual que <see cref="CuentaBancaria.SaldoActual"/>.

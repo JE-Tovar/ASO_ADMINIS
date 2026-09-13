@@ -62,12 +62,19 @@ public static class MatrizPermisos
         Permisos.Ver(ModuloCatalogo.Inicio.Clave),
         Permisos.Ver(ModuloCatalogo.Peticiones.Clave),
         Permisos.Ver(ModuloCatalogo.Configuracion.Clave),
+        Permisos.Ver("Catalogo.Modelos"),
         Permisos.Ver("Finanzas.CuentasPorPagar"),
         Permisos.Ver("Finanzas.Banco"),
         Permisos.Ver("Finanzas.Proveedores"),
         Permisos.Ver("Inventario.Almacen"),
         Permisos.Ver("Inventario.Entradas"),
         Permisos.Ver("Inventario.Salidas"),
+
+        Permisos.Marcas.Crear,
+        Permisos.Marcas.Editar,
+
+        Permisos.Modelos.Crear,
+        Permisos.Modelos.Editar,
 
         Permisos.Proveedores.Crear,
         Permisos.Proveedores.Editar,
@@ -85,8 +92,9 @@ public static class MatrizPermisos
 
         // Fuera a propósito:
         // - Finanzas.Pagar / Banco.*: mover dinero es de Supervisor.
-        // - Proveedores.Eliminar / FacturasProveedor.Eliminar / Articulos.Eliminar: borrar es
-        //   de Supervisor.
+        // - Proveedores.Eliminar / FacturasProveedor.Eliminar / Articulos.Eliminar /
+        //   Modelos.Eliminar: borrar es de Supervisor. Marcas no tiene Eliminar: no existe
+        //   pantalla desde donde borrar una (ver Permisos.Marcas).
         // - EntradasInventario.Anular / SalidasInventario.Anular: deshacer un documento del
         //   almacén es de Supervisor, igual que deshacer uno de Finanzas.
     ];
@@ -99,6 +107,8 @@ public static class MatrizPermisos
     private static readonly HashSet<string> _supervisor =
         _operador.Concat(
         [
+            Permisos.Modelos.Eliminar,
+
             Permisos.Proveedores.Eliminar,
             Permisos.FacturasProveedor.Eliminar,
 

@@ -9,6 +9,12 @@
        de MainWindow.xaml.cs y esta lista. Si falta la plantilla se nota al instante: el area
        de contenido muestra el nombre del tipo del ViewModel en vez de la pantalla. -->
 
+  <!-- Catálogo · Modelos -->
+
+  <DataTemplate DataType="{x:Type vm:ModelosViewModel}">
+    <views:ModelosView />
+  </DataTemplate>
+
   <!-- Plantilla de ejemplo (Finanzas · Cuentas por Pagar y Banco) -->
 
   <DataTemplate DataType="{x:Type vm:BancoViewModel}">

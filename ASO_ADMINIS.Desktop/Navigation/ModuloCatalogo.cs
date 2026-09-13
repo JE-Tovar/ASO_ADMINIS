@@ -30,11 +30,10 @@ public sealed record Modulo(
 /// dashboards y el enrutado de MainWindow leen de aquí, así que agregar o renombrar un
 /// submódulo se hace en un solo lugar.
 ///
-/// PROVISIONAL: este es el scaffold genérico de ASO, sin negocio real todavía. Por ahora solo
-/// trae dos módulos de ejemplo — Finanzas (Cuentas por Pagar y Banco) e Inventario — como
-/// plantilla viva de los patrones del framework (ver "Cómo se agrega un submódulo" en
-/// CLAUDE.md). Los módulos reales del negocio que adopte este scaffold se agregan aquí
-/// siguiendo esa receta.
+/// Catálogo es el primer módulo real del negocio (zapatería): Marcas y Modelos, éste último
+/// conectado con Inventario (ver <see cref="Services.CatalogoService"/>). Finanzas e Inventario
+/// siguen siendo los módulos de ejemplo del scaffold, como plantilla viva de los patrones del
+/// framework (ver "Cómo se agrega un submódulo" en CLAUDE.md).
 /// </summary>
 public static class ModuloCatalogo
 {
@@ -59,6 +58,16 @@ public static class ModuloCatalogo
 
     public static IReadOnlyList<Modulo> Modulos { get; } =
     [
+        new Modulo(
+            "Catalogo",
+            "Catálogo",
+            "Modelos que vende la organización.",
+            Iconos.Catalogo,
+            [
+                new Submodulo("Catalogo.Modelos", "Modelos",
+                    "Modelos que vende la organización, con su existencia en Inventario.", Iconos.Modelo)
+            ]),
+
         new Modulo(
             "Finanzas",
             "Finanzas",

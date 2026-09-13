@@ -78,6 +78,25 @@ public static class Permisos
     }
 
     /// <summary>
+    /// Marcas con las que trabaja la organización. No tienen pantalla propia: se crean y editan
+    /// inline desde el editor de Modelo (botones "+ Nueva"/"Editar" junto al combo de Marca) —
+    /// por eso no hay <c>Eliminar</c>: no existe ningún lugar desde donde borrar una.
+    /// </summary>
+    public static class Marcas
+    {
+        public const string Crear = "Marcas.Crear";
+        public const string Editar = "Marcas.Editar";
+    }
+
+    /// <summary>Modelos que vende la organización (Catálogo · Modelos).</summary>
+    public static class Modelos
+    {
+        public const string Crear = "Modelos.Crear";
+        public const string Editar = "Modelos.Editar";
+        public const string Eliminar = "Modelos.Eliminar";
+    }
+
+    /// <summary>
     /// Entradas al almacén. No hay "Editar" ni "Eliminar": una entrada es un documento, y un
     /// documento no se corrige ni se borra, se anula (ver <c>EntradasInventarioService</c>).
     /// </summary>
