@@ -31,10 +31,6 @@ public static class Iconos
     public const string Inicio =           "";     // house U+E2C2
     public const string Peticiones =       "";     // tray U+E4AA
 
-    public const string Catalogo =         ""; // storefront U+E470
-    public const string Marca =            ""; // tag U+E478
-    public const string Modelo =           ""; // sneaker U+E80C
-
     public const string Ventas =            ""; // receipt U+E3EC
     public const string Reportes =          ""; // chart-bar U+E150
 

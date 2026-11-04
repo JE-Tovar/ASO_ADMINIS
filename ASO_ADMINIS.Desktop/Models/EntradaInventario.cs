@@ -153,16 +153,33 @@ public class EntradaInventarioLinea
     public int ArticuloId { get; set; }
     public string ArticuloCodigo { get; set; } = string.Empty;  // snapshot
     public string ArticuloNombre { get; set; } = string.Empty;  // snapshot
-    public string UnidadTexto { get; set; } = string.Empty;     // snapshot
+    public string UnidadTexto { get; set; } = string.Empty;     // snapshot, unidad BASE
 
+    /// <summary>Presentación en que se cargó (snapshot): "Cuñete", o la unidad base.</summary>
+    public string PresentacionNombre { get; set; } = string.Empty;
+
+    /// <summary>Cuánto de la unidad base trae cada presentación, al momento de cargar. 1 = base.</summary>
+    public decimal Factor { get; set; } = 1m;
+
+    /// <summary>Lo que se tecleó, en la presentación: "2" cuñetes.</summary>
+    public decimal CantidadPresentacion { get; set; }
+
+    /// <summary>
+    /// En unidad BASE (<see cref="CantidadPresentacion"/> × <see cref="Factor"/>): es la que suma
+    /// el kardex, así que la existencia no necesita saber nada de presentaciones.
+    /// </summary>
     public decimal Cantidad { get; set; }
 
-    /// <summary>Cero en un ajuste: ahí no se compró nada.</summary>
+    /// <summary>Por presentación ("40 $ el cuñete"). Cero en un ajuste: ahí no se compró nada.</summary>
     public decimal PrecioUnitario { get; set; }
 
+    /// <summary><see cref="CantidadPresentacion"/> × <see cref="PrecioUnitario"/>.</summary>
     public decimal Subtotal { get; set; }
 
-    public string CantidadTexto => $"{Cantidad:N2} {UnidadTexto}".Trim();
+    /// <summary>Como se cargó: "2,00 Cuñete"; en la unidad base, "37,86 L".</summary>
+    public string CantidadTexto => Factor == 1m || string.IsNullOrEmpty(PresentacionNombre)
+        ? $"{Cantidad:N2} {UnidadTexto}".Trim()
+        : $"{CantidadPresentacion:N2} {PresentacionNombre}";
     public string PrecioUnitarioTexto => PrecioUnitario.ToString("N2");
     public string SubtotalTexto => Subtotal.ToString("N2");
     public string ArticuloTexto => $"{ArticuloCodigo} · {ArticuloNombre}";

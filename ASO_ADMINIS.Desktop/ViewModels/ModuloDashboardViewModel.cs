@@ -136,11 +136,10 @@ public sealed class ModuloDashboardViewModel : ViewModelBase, IRecargable
     /// <see cref="ModuloCatalogo"/>, para que no puedan desincronizarse.
     ///
     /// Cada módulo de negocio nuevo suma su propio caso aquí, siguiendo el mismo patrón — ver
-    /// CLAUDE.md. Hoy: "Catalogo", "Ventas", "Finanzas" e "Inventario".
+    /// CLAUDE.md. Hoy: "Ventas", "Finanzas" e "Inventario".
     /// </summary>
     private static IReadOnlyList<Indicador>? CalcularIndicadores(Modulo modulo) => modulo.Clave switch
     {
-        "Catalogo" => CalcularCatalogo(),
         "Ventas" => CalcularVentas(),
         "Finanzas" => CalcularFinanzas(),
         "Inventario" => CalcularInventario(),
@@ -160,18 +159,6 @@ public sealed class ModuloDashboardViewModel : ViewModelBase, IRecargable
             new Indicador("Vendido este mes", $"{delMes.Sum(v => v.TotalUsd):N2}", "en dólares"),
             new Indicador("Ventas", $"{delMes.Count}", "registradas este mes"),
             new Indicador("Unidades", $"{delMes.Sum(v => v.Cantidad):N2}", "vendidas este mes")
-        ];
-    }
-
-    private static IReadOnlyList<Indicador> CalcularCatalogo()
-    {
-        var marcas = DataSourceFactory.CrearMarcas().GetAll().ToList();
-        var modelos = DataSourceFactory.CrearModelos().GetAll().ToList();
-
-        return
-        [
-            new Indicador("Marcas", $"{marcas.Count(m => m.Activo)}", "activas en el catálogo"),
-            new Indicador("Modelos", $"{modelos.Count(m => m.Activo)}", "activos en el catálogo"),
         ];
     }
 

@@ -81,8 +81,7 @@ public class SalidaInventario : IEntidad<int>, IDeOrganizacion
 
     /// <summary>
     /// Venta que generó este boleto, si nació de una (ver <see cref="Services.VentasService"/>).
-    /// Nulo en los boletos que se emiten a mano desde esta pantalla — mismo patrón que
-    /// <see cref="Articulo.ModeloId"/>.
+    /// Nulo en los boletos que se emiten a mano desde Inventario · Salidas.
     /// </summary>
     public int? VentaId { get; set; }
 

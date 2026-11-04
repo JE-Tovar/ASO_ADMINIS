@@ -13,10 +13,19 @@
                   SelectedDate="{Binding Fecha}" />
     </controls:FormField>
 
-    <controls:FormField Etiqueta="Modelo" Ayuda="{Binding ExistenciaTexto}">
+    <controls:FormField Etiqueta="Artículo" Ayuda="{Binding ExistenciaTexto}">
       <ComboBox Style="{StaticResource FormComboBoxStyle}"
-                ItemsSource="{Binding Modelos}" DisplayMemberPath="Etiqueta"
-                SelectedItem="{Binding ModeloSeleccionado}" />
+                ItemsSource="{Binding Articulos}" DisplayMemberPath="Etiqueta"
+                SelectedItem="{Binding ArticuloSeleccionado}" />
+    </controls:FormField>
+
+    <!-- Solo si el artículo tiene presentaciones además de su unidad base (galón, cuñete…). -->
+    <controls:FormField Etiqueta="Presentación"
+                        Ayuda="La cantidad y el precio van en esta presentación."
+                        Visibility="{Binding TienePresentaciones, Converter={StaticResource BoolToVis}}">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                ItemsSource="{Binding Presentaciones}" DisplayMemberPath="Texto"
+                SelectedItem="{Binding PresentacionSeleccionada}" />
     </controls:FormField>
 
     <Grid>
@@ -35,7 +44,7 @@
                   <DataTrigger Binding="{Binding SePasa}" Value="True">
                     <Setter Property="BorderBrush" Value="{DynamicResource DangerTextBrush}" />
                     <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
-                    <Setter Property="ToolTip" Value="No hay tanta existencia de este modelo." />
+                    <Setter Property="ToolTip" Value="No hay tanta existencia de este artículo." />
                   </DataTrigger>
                 </Style.Triggers>
               </Style>
@@ -54,6 +63,12 @@
 
     <TextBlock Text="{Binding TotalBsTexto}" FontSize="{StaticResource FsCaption}"
                Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,16" />
+
+    <controls:FormField Etiqueta="Método de pago">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                ItemsSource="{Binding MetodosPago}" DisplayMemberPath="Texto"
+                SelectedItem="{Binding MetodoPagoSeleccionado}" />
+    </controls:FormField>
 
     <controls:FormField Etiqueta="Cliente" Ayuda="Opcional.">
       <TextBox Style="{StaticResource FormTextBoxStyle}"

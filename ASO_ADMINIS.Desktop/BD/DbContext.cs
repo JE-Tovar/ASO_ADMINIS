@@ -16,9 +16,7 @@ public class AsoAdminisDbContext : DbContext
     public DbSet<PermisoUsuario> PermisosUsuario { get; set; }
     public DbSet<PeticionCambio> PeticionesCambio { get; set; }
 
-    // ---- Catálogo: marcas y modelos ----
-    public DbSet<Marca> Marcas { get; set; }
-    public DbSet<Modelo> Modelos { get; set; }
+    // ---- Ventas ----
     public DbSet<TasaCambio> TasasCambio { get; set; }
     public DbSet<Venta> Ventas { get; set; }
 
@@ -117,42 +115,7 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(p => p.Resumen);
         });
 
-        // ---- Catálogo: marcas y modelos ----
-
-        modelBuilder.Entity<Marca>(entity =>
-        {
-            entity.HasKey(m => m.Id);
-            entity.Property(m => m.Nombre).IsRequired().HasMaxLength(120);
-            entity.Property(m => m.Notas).HasMaxLength(500);
-
-            entity.HasIndex(m => new { m.OrganizacionId, m.Nombre }).IsUnique();
-
-            entity.Ignore(m => m.EstadoTexto);
-            entity.Ignore(m => m.Etiqueta);
-        });
-
-        modelBuilder.Entity<Modelo>(entity =>
-        {
-            entity.HasKey(m => m.Id);
-            entity.Property(m => m.MarcaNombre).HasMaxLength(120);
-            entity.Property(m => m.Nombre).IsRequired().HasMaxLength(150);
-            entity.Property(m => m.PrecioVenta).HasColumnType("decimal(18,2)").IsRequired();
-            entity.Property(m => m.Notas).HasMaxLength(500);
-
-            // El vínculo con su artículo se busca por ModeloId (ver CatalogoService); sin
-            // este índice sería un recorrido completo de Articulos por cada modelo abierto.
-            entity.HasIndex(m => m.MarcaId);
-
-            entity.Ignore(m => m.EstadoTexto);
-            entity.Ignore(m => m.CategoriaTexto);
-            entity.Ignore(m => m.PrecioVentaTexto);
-            entity.Ignore(m => m.Etiqueta);
-
-            // Equivalente en bolívares: NO se persiste, lo calcula ModelosViewModel con la tasa
-            // vigente antes de pintar la grilla — mismo criterio que Articulo.Existencia.
-            entity.Ignore(m => m.PrecioVentaBs);
-            entity.Ignore(m => m.PrecioVentaBsTexto);
-        });
+        // ---- Ventas: tasa de cambio y registro de ventas ----
 
         modelBuilder.Entity<TasaCambio>(entity =>
         {
@@ -170,11 +133,13 @@ public class AsoAdminisDbContext : DbContext
         {
             entity.HasKey(v => v.Id);
             entity.Property(v => v.Numero).IsRequired().HasMaxLength(20);
-            entity.Property(v => v.ModeloNombre).HasMaxLength(150);
-            entity.Property(v => v.MarcaNombre).HasMaxLength(120);
+            entity.Property(v => v.ArticuloCodigo).HasMaxLength(20);
+            entity.Property(v => v.ArticuloNombre).HasMaxLength(150);
             entity.Property(v => v.ClienteNombre).HasMaxLength(150);
             entity.Property(v => v.MotivoAnulacion).HasMaxLength(500);
             entity.Property(v => v.Cantidad).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(v => v.PresentacionNombre).HasMaxLength(40);
+            entity.Property(v => v.Factor).HasColumnType("decimal(18,4)").IsRequired();
             entity.Property(v => v.PrecioUnitarioUsd).HasColumnType("decimal(18,2)").IsRequired();
             entity.Property(v => v.TasaCambioUsada).HasColumnType("decimal(18,4)").IsRequired();
 
@@ -187,8 +152,11 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(v => v.TotalBs);
             entity.Ignore(v => v.EstadoTexto);
             entity.Ignore(v => v.FechaTexto);
-            entity.Ignore(v => v.ModeloTexto);
+            entity.Ignore(v => v.ArticuloTexto);
+            entity.Ignore(v => v.MetodoPagoTexto);
             entity.Ignore(v => v.CantidadTexto);
+            entity.Ignore(v => v.CantidadNumeroTexto);
+            entity.Ignore(v => v.CantidadBase);
             entity.Ignore(v => v.PrecioUnitarioTexto);
             entity.Ignore(v => v.TotalUsdTexto);
             entity.Ignore(v => v.TotalBsTexto);
@@ -309,14 +277,17 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(a => a.Ubicacion).HasMaxLength(60);
             entity.Property(a => a.Notas).HasMaxLength(500);
             entity.Property(a => a.Minimo).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(a => a.PrecioVenta).HasColumnType("decimal(18,2)").IsRequired();
 
             // Respalda el código aleatorio: si dos altas simultáneas generan el mismo candidato,
             // la segunda choca contra el índice en vez de duplicar el artículo.
             entity.HasIndex(a => new { a.OrganizacionId, a.Codigo }).IsUnique();
 
-            // El vínculo inverso Articulo → Modelo que usa CatalogoService para sincronizar y
-            // para saber si el artículo de un modelo ya se movió.
-            entity.HasIndex(a => a.ModeloId);
+            // Equivalente en bolívares: NO se persiste, lo calcula AlmacenViewModel con la tasa
+            // vigente antes de pintar la grilla — mismo criterio que Existencia.
+            entity.Ignore(a => a.PrecioVentaBs);
+            entity.Ignore(a => a.PrecioVentaTexto);
+            entity.Ignore(a => a.PrecioVentaBsTexto);
 
             // Existencia NO se persiste: es la suma del kardex, la rellena InventarioService.
             entity.Ignore(a => a.Existencia);
@@ -328,6 +299,18 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(a => a.ExistenciaTexto);
             entity.Ignore(a => a.MinimoTexto);
             entity.Ignore(a => a.Etiqueta);
+            entity.Ignore(a => a.PresentacionesTexto);
+
+            // Medidas propias del rubro (galón, cuñete…): hijas del artículo, se guardan con él.
+            entity.OwnsMany(a => a.Presentaciones, presentacion =>
+            {
+                presentacion.WithOwner().HasForeignKey("ArticuloId");
+                presentacion.Property<int>("Id");
+                presentacion.HasKey("Id");
+                presentacion.Property(x => x.Nombre).IsRequired().HasMaxLength(40);
+                presentacion.Property(x => x.Factor).HasColumnType("decimal(18,4)");
+                presentacion.Property(x => x.PrecioVenta).HasColumnType("decimal(18,2)");
+            });
         });
 
         modelBuilder.Entity<EntradaInventario>(entity =>
@@ -370,7 +353,11 @@ public class AsoAdminisDbContext : DbContext
                 linea.Property(x => x.ArticuloCodigo).HasMaxLength(20);
                 linea.Property(x => x.ArticuloNombre).HasMaxLength(150);
                 linea.Property(x => x.UnidadTexto).HasMaxLength(30);
-                linea.Property(x => x.Cantidad).HasColumnType("decimal(18,2)");
+                linea.Property(x => x.PresentacionNombre).HasMaxLength(40);
+                linea.Property(x => x.Factor).HasColumnType("decimal(18,4)");
+                linea.Property(x => x.CantidadPresentacion).HasColumnType("decimal(18,2)");
+                // 4 decimales en la cantidad base: 3 × 0,946 L = 2,838 L no debe redondearse.
+                linea.Property(x => x.Cantidad).HasColumnType("decimal(18,4)");
                 linea.Property(x => x.PrecioUnitario).HasColumnType("decimal(18,2)");
                 linea.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
 
@@ -412,7 +399,8 @@ public class AsoAdminisDbContext : DbContext
                 linea.Property(x => x.ArticuloCodigo).HasMaxLength(20);
                 linea.Property(x => x.ArticuloNombre).HasMaxLength(150);
                 linea.Property(x => x.UnidadTexto).HasMaxLength(30);
-                linea.Property(x => x.Cantidad).HasColumnType("decimal(18,2)");
+                // 4 decimales: la salida de una venta por presentación (3 × 0,946 L) es fraccionaria.
+                linea.Property(x => x.Cantidad).HasColumnType("decimal(18,4)");
 
                 linea.Ignore(x => x.CantidadTexto);
                 linea.Ignore(x => x.ArticuloTexto);

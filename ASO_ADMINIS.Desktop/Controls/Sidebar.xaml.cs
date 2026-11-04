@@ -20,6 +20,9 @@ public partial class Sidebar : UserControl
 
         DataContext = _viewModel;
         _viewModel.NavegacionSolicitada += (_, e) => NavegacionSolicitada?.Invoke(this, e);
+
+        // La ventana se reconstruye al entrar y al salir: el menú viejo suelta el evento de la tasa.
+        Unloaded += (_, _) => _viewModel.Dispose();
     }
 
     /// <summary>Marca en el menú la sección visible, sin volver a pedir navegación.</summary>

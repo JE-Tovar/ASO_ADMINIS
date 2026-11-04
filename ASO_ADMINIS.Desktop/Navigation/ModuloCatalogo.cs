@@ -30,9 +30,9 @@ public sealed record Modulo(
 /// dashboards y el enrutado de MainWindow leen de aquí, así que agregar o renombrar un
 /// submódulo se hace en un solo lugar.
 ///
-/// Catálogo es el primer módulo real del negocio (zapatería): Marcas y Modelos, éste último
-/// conectado con Inventario (ver <see cref="Services.CatalogoService"/>). Finanzas e Inventario
-/// siguen siendo los módulos de ejemplo del scaffold, como plantilla viva de los patrones del
+/// Los módulos son genéricos, válidos para cualquier comercio (calzado, pinturas, etc.): lo que
+/// se vende es el artículo de Inventario · Almacén, con su precio de venta, y Ventas descuenta
+/// su existencia. Finanzas e Inventario son además la plantilla viva de los patrones del
 /// framework (ver "Cómo se agrega un submódulo" en CLAUDE.md).
 /// </summary>
 public static class ModuloCatalogo
@@ -58,16 +58,6 @@ public static class ModuloCatalogo
 
     public static IReadOnlyList<Modulo> Modulos { get; } =
     [
-        new Modulo(
-            "Catalogo",
-            "Catálogo",
-            "Modelos que vende la organización.",
-            Iconos.Catalogo,
-            [
-                new Submodulo("Catalogo.Modelos", "Modelos",
-                    "Modelos que vende la organización, con su existencia en Inventario.", Iconos.Modelo)
-            ]),
-
         new Modulo(
             "Ventas",
             "Ventas",

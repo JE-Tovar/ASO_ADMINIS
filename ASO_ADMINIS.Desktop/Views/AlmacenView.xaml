@@ -77,6 +77,7 @@
               <controls:ColumnaTexto Header="Artículo" Binding="{Binding Nombre}" Width="26*" MinWidth="140" />
               <controls:ColumnaTexto Header="Categoría" Binding="{Binding Categoria}" Width="15*" MinWidth="100" />
               <controls:ColumnaTexto Header="Unidad" Binding="{Binding UnidadTexto}" Width="11*" MinWidth="80" />
+              <controls:ColumnaTexto Header="Presentaciones" Binding="{Binding PresentacionesTexto}" Width="14*" MinWidth="100" />
               <controls:ColumnaNumero Header="Existencia" Binding="{Binding ExistenciaTexto}" Width="12*" MinWidth="90">
                 <controls:ColumnaNumero.ElementStyle>
                   <Style TargetType="TextBlock">
@@ -85,6 +86,8 @@
                 </controls:ColumnaNumero.ElementStyle>
               </controls:ColumnaNumero>
               <controls:ColumnaNumero Header="Mínimo" Binding="{Binding MinimoTexto}" Width="10*" MinWidth="76" />
+              <controls:ColumnaNumero Header="Precio (US$)" Binding="{Binding PrecioVentaTexto}" Width="11*" MinWidth="86" />
+              <controls:ColumnaNumero Header="Precio (Bs)" Binding="{Binding PrecioVentaBsTexto}" Width="12*" MinWidth="90" />
               <controls:ColumnaTexto Header="Ubicación" Binding="{Binding Ubicacion}" Width="14*" MinWidth="90" />
               <DataGridTemplateColumn Header="Estado" Width="110">
                 <DataGridTemplateColumn.CellTemplate>

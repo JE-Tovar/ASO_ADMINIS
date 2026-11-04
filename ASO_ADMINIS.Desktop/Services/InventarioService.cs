@@ -87,6 +87,15 @@ public sealed class InventarioService
             return false;
         }
 
+        if (articulo.PrecioVenta < 0)
+        {
+            error = "El precio de venta no puede ser negativo.";
+            return false;
+        }
+
+        if (!ValidarPresentaciones(articulo, out error))
+            return false;
+
         var repetido = _articulos.GetAll()
             .Where(a => a.Id != articulo.Id)
             .Any(a => string.Equals(a.Codigo.Trim(), articulo.Codigo.Trim(),
@@ -96,6 +105,50 @@ public sealed class InventarioService
         {
             error = $"Ya hay un artículo con el código {articulo.Codigo.Trim()}.";
             return false;
+        }
+
+        error = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Cada presentación necesita nombre propio (no repetido, ni igual a la unidad base, que ya
+    /// se ofrece sola) y un factor positivo: con factor cero una venta no descontaría nada.
+    /// </summary>
+    private static bool ValidarPresentaciones(Articulo articulo, out string? error)
+    {
+        var vistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            articulo.UnidadTexto, articulo.UnidadCorta
+        };
+
+        foreach (var presentacion in articulo.Presentaciones)
+        {
+            var nombre = presentacion.Nombre.Trim();
+
+            if (nombre.Length == 0)
+            {
+                error = "Hay una presentación sin nombre.";
+                return false;
+            }
+
+            if (!vistos.Add(nombre))
+            {
+                error = $"La presentación \"{nombre}\" está repetida o coincide con la unidad base.";
+                return false;
+            }
+
+            if (presentacion.Factor <= 0)
+            {
+                error = $"Indique cuántos {articulo.UnidadCorta} contiene la presentación \"{nombre}\".";
+                return false;
+            }
+
+            if (presentacion.PrecioVenta < 0)
+            {
+                error = $"El precio de la presentación \"{nombre}\" no puede ser negativo.";
+                return false;
+            }
         }
 
         error = null;

@@ -432,8 +432,30 @@ public sealed class LineaEntradaEditorViewModel : ViewModelBase
     public Articulo? ArticuloSeleccionado
     {
         get => _articuloSeleccionado;
-        set { if (SetProperty(ref _articuloSeleccionado, value)) Recalcular(); }
+        set
+        {
+            if (!SetProperty(ref _articuloSeleccionado, value))
+                return;
+
+            // Las opciones dependen del artículo del renglón; se arranca en la unidad base.
+            Presentaciones = value?.OpcionesDePresentacion() ?? [];
+            OnPropertyChanged(nameof(Presentaciones));
+            PresentacionSeleccionada = Presentaciones.FirstOrDefault();
+            Recalcular();
+        }
     }
+
+    /// <summary>La unidad base del artículo más sus presentaciones (galón, cuñete, caja…).</summary>
+    public IReadOnlyList<OpcionPresentacion> Presentaciones { get; private set; } = [];
+
+    private OpcionPresentacion? _presentacionSeleccionada;
+    public OpcionPresentacion? PresentacionSeleccionada
+    {
+        get => _presentacionSeleccionada;
+        set { if (SetProperty(ref _presentacionSeleccionada, value)) Recalcular(); }
+    }
+
+    private decimal Factor => PresentacionSeleccionada?.Factor ?? 1m;
 
     private string _cantidad = string.Empty;
     public string Cantidad
@@ -463,20 +485,31 @@ public sealed class LineaEntradaEditorViewModel : ViewModelBase
 
     public string SubtotalTexto => Subtotal.ToString("N2");
 
-    public string UnidadTexto => ArticuloSeleccionado?.UnidadCorta ?? string.Empty;
-
-    /// <summary>Lo que hay hoy en el almacén de ese artículo; se muestra como referencia.</summary>
+    /// <summary>Lo que hay hoy en el almacén de ese artículo, en unidad base; como referencia.</summary>
     public string ExistenciaTexto => ArticuloSeleccionado is { } articulo
         ? $"{articulo.Existencia:N2} {articulo.UnidadCorta}"
         : string.Empty;
 
+    /// <summary>Lo que entra al almacén, en unidad base, cuando se carga por presentación.</summary>
+    public string EquivalenteTexto => ArticuloSeleccionado is { } articulo && Factor != 1m && CantidadValor > 0
+        ? $"= {CantidadValor * Factor:0.####} {articulo.UnidadCorta}"
+        : string.Empty;
+
+    /// <summary>
+    /// La cantidad base (la que lee el kardex) se calcula aquí, desde la presentación, y el
+    /// servicio comprueba que cuadre. El precio y el subtotal quedan por presentación, que es
+    /// como viene en la factura del proveedor ("2 cuñetes a 40 $").
+    /// </summary>
     public EntradaInventarioLinea Construir(bool conPrecios) => new()
     {
         ArticuloId = ArticuloSeleccionado!.Id,
         ArticuloCodigo = ArticuloSeleccionado.Codigo,
         ArticuloNombre = ArticuloSeleccionado.Nombre,
         UnidadTexto = ArticuloSeleccionado.UnidadCorta,
-        Cantidad = CantidadValor,
+        PresentacionNombre = PresentacionSeleccionada?.Nombre ?? ArticuloSeleccionado.UnidadCorta,
+        Factor = Factor,
+        CantidadPresentacion = CantidadValor,
+        Cantidad = Math.Round(CantidadValor * Factor, 4),
         PrecioUnitario = conPrecios ? PrecioValor : 0m,
         Subtotal = conPrecios ? Subtotal : 0m
     };
@@ -485,7 +518,7 @@ public sealed class LineaEntradaEditorViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(Subtotal));
         OnPropertyChanged(nameof(SubtotalTexto));
-        OnPropertyChanged(nameof(UnidadTexto));
+        OnPropertyChanged(nameof(EquivalenteTexto));
         OnPropertyChanged(nameof(ExistenciaTexto));
         Cambio?.Invoke(this, EventArgs.Empty);
     }

@@ -12,15 +12,7 @@
     <views:MotivoEditorView />
   </DataTemplate>
 
-  <!-- Catálogo · Marcas y Modelos -->
-
-  <DataTemplate DataType="{x:Type vm:MarcaEditorViewModel}">
-    <views:MarcaEditorView />
-  </DataTemplate>
-
-  <DataTemplate DataType="{x:Type vm:ModeloEditorViewModel}">
-    <views:ModeloEditorView />
-  </DataTemplate>
+  <!-- Ventas -->
 
   <DataTemplate DataType="{x:Type vm:VentaEditorViewModel}">
     <views:VentaEditorView />

@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using ASO_ADMINIS.Desktop.Configuration;
 using ASO_ADMINIS.Desktop.Controls;
+using ASO_ADMINIS.Desktop.Models;
 using ASO_ADMINIS.Desktop.Navigation;
 using ASO_ADMINIS.Desktop.Services;
 
@@ -120,7 +122,7 @@ public sealed class GrupoNav(string titulo, IReadOnlyList<ModuloNavItem> items)
 /// (<see cref="NavegacionSolicitada"/>); quién muestra qué vista lo decide la ventana principal,
 /// que a su vez confirma el estado visual llamando a <see cref="Sincronizar"/>.
 /// </summary>
-public sealed class SidebarViewModel : ViewModelBase
+public sealed class SidebarViewModel : ViewModelBase, IDisposable
 {
     public event EventHandler<NavegacionEventArgs>? NavegacionSolicitada;
 
@@ -137,6 +139,19 @@ public sealed class SidebarViewModel : ViewModelBase
     public ModuloNavItem? Configuracion { get; }
 
     public bool VeConfiguracion => Configuracion is not null;
+
+    private string _tasaTexto = string.Empty;
+
+    /// <summary>
+    /// La tasa BCV vigente, fija al pie del menú para que la vea cualquier rol (el detalle y el
+    /// botón de actualizar siguen en Administración · Organización). Vacía hasta que termina la
+    /// primera lectura, que va en segundo plano — ver <see cref="CargarTasa"/>.
+    /// </summary>
+    public string TasaTexto
+    {
+        get => _tasaTexto;
+        private set => SetProperty(ref _tasaTexto, value);
+    }
 
     /// <summary>
     /// Todo lo que se marca y se desmarca al navegar. Existe porque el ítem del pie está fuera
@@ -201,7 +216,40 @@ public sealed class SidebarViewModel : ViewModelBase
         if (secciones.FirstOrDefault(i => i.Modulo.Clave == ModuloCatalogo.Peticiones.Clave)
             is { } peticiones)
             _ = ContarPendientes(peticiones, sesion);
+
+        // Al iniciar sesión la tasa del BCV se pide sin esperar (LoginViewModel), así que el
+        // menú arranca con la última guardada y se corrige solo cuando llega la nueva.
+        TasaCambioService.TasaActualizada += AlActualizarTasa;
+        _ = CargarTasa();
     }
+
+    /// <summary>Se desuscribe del evento estático: sin esto, cada ventana anterior quedaría viva.</summary>
+    public void Dispose() => TasaCambioService.TasaActualizada -= AlActualizarTasa;
+
+    private static string FormatearTasa(TasaCambio? tasa) => tasa is null
+        ? "Sin tasa BCV registrada"
+        : $"BCV  US$1 = Bs. {tasa.Valor:N2} · {tasa.FechaTexto}";
+
+    /// <summary>
+    /// Lee la última tasa guardada fuera del hilo de interfaz, mismo criterio que
+    /// <see cref="ContarPendientes"/>: es un adorno, si la consulta falla el pie queda vacío.
+    /// </summary>
+    private async Task CargarTasa()
+    {
+        try
+        {
+            var fuente = DataSourceFactory.CrearTasasCambio();
+            TasaTexto = FormatearTasa(await Task.Run(fuente.GetUltima));
+        }
+        catch
+        {
+            // Sin tasa en el pie. El detalle sigue en Administración · Organización.
+        }
+    }
+
+    /// <summary>El evento puede llegar desde un hilo de fondo (la petición al BCV).</summary>
+    private void AlActualizarTasa(TasaCambio tasa) =>
+        Application.Current?.Dispatcher.Invoke(() => TasaTexto = FormatearTasa(tasa));
 
     /// <summary>
     /// Pone el contador de la bandeja de peticiones, fuera del hilo de interfaz.

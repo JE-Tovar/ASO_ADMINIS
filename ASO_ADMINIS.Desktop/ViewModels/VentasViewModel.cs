@@ -83,9 +83,10 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
 
     protected override bool CoincideBusqueda(Venta item, string texto) =>
         item.Numero.Contains(texto, StringComparison.OrdinalIgnoreCase)
-        || item.ModeloNombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
-        || item.MarcaNombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
-        || item.ClienteNombre.Contains(texto, StringComparison.OrdinalIgnoreCase);
+        || item.ArticuloCodigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || item.ArticuloNombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || item.ClienteNombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || item.MetodoPagoTexto.Contains(texto, StringComparison.OrdinalIgnoreCase);
 
     protected override bool PasaFiltroExtra(Venta item) => _filtro switch
     {
@@ -104,23 +105,13 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     };
 
     /// <summary>
-    /// Los modelos y su existencia se leen frescos en cada apertura del editor, no se cachean:
+    /// Los artículos y su existencia se leen frescos en cada apertura del editor, no se cachean:
     /// mismo criterio que <c>SalidasViewModel.CrearEditor</c> con
     /// <c>InventarioService.ActivosConExistencia</c>.
     /// </summary>
-    protected override CrudEditorViewModelBase<Venta> CrearEditor(Venta item)
-    {
-        var modelos = DataSourceFactory.CrearModelos().GetAll()
-            .Where(m => m.Activo)
-            .OrderBy(m => m.Nombre)
-            .ToList();
-
-        var articulosPorModelo = _inventario.ActivosConExistencia()
-            .Where(a => a.ModeloId.HasValue)
-            .ToDictionary(a => a.ModeloId!.Value);
-
-        return new VentaEditorViewModel(item, modelos, articulosPorModelo, _servicio, _tasaCambio.Actual()?.Valor);
-    }
+    protected override CrudEditorViewModelBase<Venta> CrearEditor(Venta item) =>
+        new VentaEditorViewModel(item, _inventario.ActivosConExistencia(), _servicio,
+                                 _tasaCambio.Actual()?.Valor);
 
     /// <summary>
     /// El alta pasa por el servicio de dominio: registrar la venta es también descontar el
@@ -144,7 +135,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
 
         var editor = new MotivoEditorViewModel(
             $"Anular venta {venta.Numero}",
-            $"{venta.ModeloTexto} — {venta.CantidadTexto} — {venta.TotalUsdTexto} US$",
+            $"{venta.ArticuloTexto} — {venta.CantidadTexto} — {venta.TotalUsdTexto} US$",
             "Motivo de la anulación",
             "Indique el motivo de la anulación.");
 

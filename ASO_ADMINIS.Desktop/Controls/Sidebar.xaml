@@ -192,27 +192,36 @@
          módulos porque no es trabajo del día, es donde se va cuando hace falta ajustar algo.
          El DataContext es su ModuloNavItem: NavItemStyle marca lo seleccionado con
          DataTriggers sobre EstaSeleccionado y EstaActivo, y sin ellos no pintaría nada. -->
-    <Border Grid.Row="2" BorderBrush="{DynamicResource SidebarBorderBrush}" BorderThickness="0,1,0,0"
-            Padding="0,8" DataContext="{Binding Configuracion}"
-            Visibility="{Binding DataContext.VeConfiguracion,
-                                 RelativeSource={RelativeSource AncestorType=UserControl},
-                                 Converter={StaticResource BoolToVis}}">
-      <Button Style="{StaticResource NavItemStyle}"
-              AutomationProperties.Name="{Binding Nombre}"
-              ToolTip="{Binding Modulo.Descripcion}"
-              Command="{Binding DataContext.SeleccionarConfiguracionCommand,
-                                RelativeSource={RelativeSource AncestorType=UserControl}}">
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-          </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="{Binding Icono}" Style="{StaticResource NavIconStyle}"
-                     FontSize="{StaticResource FsTitle}" Width="20"
-                     TextAlignment="Center" Margin="0,0,8,0" />
-          <TextBlock Grid.Column="1" Text="{Binding Nombre}" VerticalAlignment="Center" />
-        </Grid>
-      </Button>
-    </Border>
+    <StackPanel Grid.Row="2">
+      <!-- Tasa BCV vigente: fuera del Border de Configuración porque ese se oculta a quien no la
+           ve, y la tasa la tiene que ver cualquier rol. -->
+      <TextBlock Text="{Binding TasaTexto}" FontSize="{StaticResource FsCaption}" FontWeight="{StaticResource FwBold}"
+                 Foreground="{DynamicResource NavTextSecondaryBrush}" TextWrapping="Wrap"
+                 Margin="16,8,16,8"
+                 ToolTip="Tasa oficial BCV. Se actualiza sola al iniciar sesión; el detalle está en Administración · Organización." />
+
+      <Border BorderBrush="{DynamicResource SidebarBorderBrush}" BorderThickness="0,1,0,0"
+              Padding="0,8" DataContext="{Binding Configuracion}"
+              Visibility="{Binding DataContext.VeConfiguracion,
+                                   RelativeSource={RelativeSource AncestorType=UserControl},
+                                   Converter={StaticResource BoolToVis}}">
+        <Button Style="{StaticResource NavItemStyle}"
+                AutomationProperties.Name="{Binding Nombre}"
+                ToolTip="{Binding Modulo.Descripcion}"
+                Command="{Binding DataContext.SeleccionarConfiguracionCommand,
+                                  RelativeSource={RelativeSource AncestorType=UserControl}}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding Icono}" Style="{StaticResource NavIconStyle}"
+                       FontSize="{StaticResource FsTitle}" Width="20"
+                       TextAlignment="Center" Margin="0,0,8,0" />
+            <TextBlock Grid.Column="1" Text="{Binding Nombre}" VerticalAlignment="Center" />
+          </Grid>
+        </Button>
+      </Border>
+    </StackPanel>
   </Grid>
 </UserControl>

@@ -54,6 +54,8 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="16" />
         <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="16" />
+        <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
       <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}">
@@ -62,6 +64,30 @@
 
       <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}">
         <oxy:PlotView Model="{Binding GraficoPorCategoria}" Height="260" Background="Transparent" />
+      </Border>
+
+      <!-- Tabla y no gráfico: para cuadrar caja hacen falta los montos exactos por método. -->
+      <Border Grid.Column="4" Style="{StaticResource SectionCardStyle}">
+        <Grid Height="260">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+
+          <TextBlock Grid.Row="0" Text="Por método de pago" FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center"
+                     Margin="0,0,0,8" />
+
+          <DataGrid Grid.Row="1" Style="{StaticResource DataGridStyle}"
+                    ItemsSource="{Binding PorMetodoPago}" IsReadOnly="True">
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Método" Binding="{Binding Metodo}" Width="30*" MinWidth="90" />
+              <controls:ColumnaNumero Header="Ventas" Binding="{Binding Ventas}" Width="14*" MinWidth="50" />
+              <controls:ColumnaNumero Header="US$" Binding="{Binding TotalUsdTexto}" Width="22*" MinWidth="70" />
+              <controls:ColumnaNumero Header="Bs" Binding="{Binding TotalBsTexto}" Width="24*" MinWidth="80" />
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
       </Border>
     </Grid>
 
@@ -72,8 +98,9 @@
           <DataGrid.Columns>
             <controls:ColumnaTexto Header="Nº" Binding="{Binding Numero}" Width="12*" MinWidth="86" />
             <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="10*" MinWidth="78" />
-            <controls:ColumnaTexto Header="Modelo" Binding="{Binding ModeloTexto}" Width="26*" MinWidth="150" />
+            <controls:ColumnaTexto Header="Artículo" Binding="{Binding ArticuloTexto}" Width="26*" MinWidth="150" />
             <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteNombre}" Width="18*" MinWidth="110" />
+            <controls:ColumnaTexto Header="Método de pago" Binding="{Binding MetodoPagoTexto}" Width="13*" MinWidth="100" />
             <controls:ColumnaNumero Header="Cant." Binding="{Binding CantidadTexto}" Width="8*" MinWidth="56" />
             <controls:ColumnaNumero Header="Total US$" Binding="{Binding TotalUsdTexto}" Width="13*" MinWidth="86" />
             <controls:ColumnaNumero Header="Total Bs" Binding="{Binding TotalBsTexto}" Width="13*" MinWidth="86" />

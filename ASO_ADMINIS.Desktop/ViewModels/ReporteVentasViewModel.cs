@@ -21,21 +21,21 @@ namespace ASO_ADMINIS.Desktop.ViewModels;
 public sealed class ReporteVentasViewModel : PantallaViewModelBase
 {
     private readonly IVentaDataSource _ventas;
-    private readonly IModeloDataSource _modelos;
+    private readonly IArticuloDataSource _articulos;
 
     public ReporteVentasViewModel(Modulo modulo, Submodulo submodulo)
-        : this(modulo, submodulo, DataSourceFactory.CrearVentas(), DataSourceFactory.CrearModelos())
+        : this(modulo, submodulo, DataSourceFactory.CrearVentas(), DataSourceFactory.CrearArticulos())
     {
     }
 
     private ReporteVentasViewModel(Modulo modulo,
                                    Submodulo submodulo,
                                    IVentaDataSource ventas,
-                                   IModeloDataSource modelos)
+                                   IArticuloDataSource articulos)
         : base(modulo, submodulo)
     {
         _ventas = ventas;
-        _modelos = modelos;
+        _articulos = articulos;
 
         _desde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _hasta = DateTime.Today;
@@ -44,6 +44,9 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
     }
 
     public ObservableCollection<Venta> Items { get; } = [];
+
+    /// <summary>Cuánto entró por cada método de pago en el período: lo que se mira al cuadrar caja.</summary>
+    public ObservableCollection<ResumenMetodoPago> PorMetodoPago { get; } = [];
 
     private DateTime? _desde;
     public DateTime? Desde
@@ -98,7 +101,7 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
 
     private void Recalcular()
     {
-        var modelosPorId = _modelos.GetAll().ToDictionary(m => m.Id);
+        var articulosPorId = _articulos.GetAll().ToDictionary(a => a.Id);
 
         var enRango = _ventas.GetAll()
             .Where(v => v.Estado == EstadoVenta.Registrada)
@@ -115,8 +118,15 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
         TotalBsTexto = enRango.Sum(v => v.TotalBs).ToString("N2");
         TotalUnidadesTexto = enRango.Sum(v => v.Cantidad).ToString("N2");
 
+        PorMetodoPago.Clear();
+        foreach (var grupo in enRango.GroupBy(v => v.MetodoPagoTexto)
+                                     .OrderByDescending(g => g.Sum(v => v.TotalUsd)))
+            PorMetodoPago.Add(new ResumenMetodoPago(grupo.Key, grupo.Count(),
+                                                    grupo.Sum(v => v.TotalUsd).ToString("N2"),
+                                                    grupo.Sum(v => v.TotalBs).ToString("N2")));
+
         GraficoPorDia = ConstruirGraficoPorDia(enRango);
-        GraficoPorCategoria = ConstruirGraficoPorCategoria(enRango, modelosPorId);
+        GraficoPorCategoria = ConstruirGraficoPorCategoria(enRango, articulosPorId);
     }
 
     /// <summary>
@@ -144,16 +154,24 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
     }
 
     private static PlotModel ConstruirGraficoPorCategoria(IReadOnlyList<Venta> ventas,
-                                                           IReadOnlyDictionary<int, Modelo> modelosPorId)
+                                                           IReadOnlyDictionary<int, Articulo> articulosPorId)
     {
         var modelo = new PlotModel { Title = "Ventas por categoría" };
         var serie = new PieSeries { StrokeThickness = 1, InsideLabelPosition = 0.7 };
 
+        // La categoría es texto libre en el artículo: se agrupa sin distinguir mayúsculas y un
+        // artículo sin categoría (o ya borrado) cae en "Sin categoría".
         foreach (var grupo in ventas.GroupBy(v =>
-                     modelosPorId.TryGetValue(v.ModeloId, out var m) ? m.CategoriaTexto : "Otro"))
+                     articulosPorId.TryGetValue(v.ArticuloId, out var a) && !string.IsNullOrWhiteSpace(a.Categoria)
+                         ? a.Categoria.Trim()
+                         : "Sin categoría",
+                     StringComparer.OrdinalIgnoreCase))
             serie.Slices.Add(new PieSlice(grupo.Key, (double)grupo.Sum(v => v.TotalUsd)));
 
         modelo.Series.Add(serie);
         return modelo;
     }
 }
+
+/// <summary>Una fila de la tarjeta "Por método de pago" de Reportes · Ventas.</summary>
+public sealed record ResumenMetodoPago(string Metodo, int Ventas, string TotalUsdTexto, string TotalBsTexto);

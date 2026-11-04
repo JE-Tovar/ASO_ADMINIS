@@ -62,7 +62,6 @@ public static class MatrizPermisos
         Permisos.Ver(ModuloCatalogo.Inicio.Clave),
         Permisos.Ver(ModuloCatalogo.Peticiones.Clave),
         Permisos.Ver(ModuloCatalogo.Configuracion.Clave),
-        Permisos.Ver("Catalogo.Modelos"),
         Permisos.Ver("Ventas.Registro"),
         Permisos.Ver("Reportes.Ventas"),
         Permisos.Ver("Finanzas.CuentasPorPagar"),
@@ -71,12 +70,6 @@ public static class MatrizPermisos
         Permisos.Ver("Inventario.Almacen"),
         Permisos.Ver("Inventario.Entradas"),
         Permisos.Ver("Inventario.Salidas"),
-
-        Permisos.Marcas.Crear,
-        Permisos.Marcas.Editar,
-
-        Permisos.Modelos.Crear,
-        Permisos.Modelos.Editar,
 
         Permisos.Ventas.Crear,
 
@@ -96,9 +89,8 @@ public static class MatrizPermisos
 
         // Fuera a propósito:
         // - Finanzas.Pagar / Banco.*: mover dinero es de Supervisor.
-        // - Proveedores.Eliminar / FacturasProveedor.Eliminar / Articulos.Eliminar /
-        //   Modelos.Eliminar: borrar es de Supervisor. Marcas no tiene Eliminar: no existe
-        //   pantalla desde donde borrar una (ver Permisos.Marcas).
+        // - Proveedores.Eliminar / FacturasProveedor.Eliminar / Articulos.Eliminar: borrar es
+        //   de Supervisor.
         // - EntradasInventario.Anular / SalidasInventario.Anular / Ventas.Anular: deshacer un
         //   documento es de Supervisor, igual que en Finanzas.
         // - Ver.Reportes.Gastos: expone información financiera, mismo nivel que Finanzas.Pagar.
@@ -115,8 +107,6 @@ public static class MatrizPermisos
             Permisos.Ver("Reportes.Gastos"),
 
             Permisos.Ventas.Anular,
-
-            Permisos.Modelos.Eliminar,
 
             Permisos.Proveedores.Eliminar,
             Permisos.FacturasProveedor.Eliminar,

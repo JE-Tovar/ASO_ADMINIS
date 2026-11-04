@@ -156,8 +156,6 @@ public partial class MainWindow : Window
     private static readonly IReadOnlyDictionary<string, Func<Modulo, Submodulo, IPantalla>> Pantallas =
         new Dictionary<string, Func<Modulo, Submodulo, IPantalla>>
         {
-            ["Catalogo.Modelos"] = (m, s) => new ModelosViewModel(m, s),
-
             ["Ventas.Registro"] = (m, s) => new VentasViewModel(m, s),
 
             ["Reportes.Ventas"] = (m, s) => new ReporteVentasViewModel(m, s),

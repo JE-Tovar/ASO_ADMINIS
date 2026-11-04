@@ -1,9 +1,9 @@
 # ASO Adminis — sistema de gestión para venta de artículos
 
 Aplicación de gestión de escritorio: **WPF · .NET 8** (`net8.0-windows`), instalación local en
-LAN, una sola organización por instalación. El negocio real será **venta de artículos**, todavía
-por construir — hoy trae el armazón técnico completo más dos módulos de ejemplo (Finanzas e
-Inventario) que documentan los patrones a seguir para construirlo.
+LAN, una sola organización por instalación. Es un sistema **genérico de venta de artículos**,
+pensado para servir a cualquier comercio (zapatería, venta de pintura, ferretería…) sin
+modificar el modelo de datos: **Ventas** y **Reportes** sobre **Inventario** y **Finanzas**.
 
 ## Origen de este proyecto (2026-09-13)
 
@@ -17,11 +17,16 @@ sumó un módulo de Inventario construido de cero contra ese armazón, y luego A
 módulos de negocio propios de ASO_RTR (Nómina, Operaciones, Catálogo — específicos de una planta
 de embotellado) para quedar como plantilla neutra, sin negocio real.
 
-**Este clon todavía no tiene el módulo de negocio real** (venta de artículos) — eso queda para una
-sesión siguiente, una vez definido con el cliente cómo funciona (catálogo, punto de venta, clientes,
-etc.). Por ahora se conservan los dos módulos de ejemplo que trajo ASO_GENERIC porque, entre los
-dos, cubren los cuatro patrones que vale la pena tener a la vista al construir el primer módulo
-real:
+Sobre ese armazón se agregaron después **Ventas** (registro de ventas que descuenta el almacén),
+**Reportes** (ventas y gastos) y la **tasa de cambio BCV**. Un primer intento lo orientó a una
+zapatería (módulo Catálogo con Marcas y Modelos); el 2026-11-03 se revirtió para dejarlo
+genérico: **lo que se vende es directamente el `Articulo` de Inventario · Almacén**, con su
+precio de venta y una categoría de texto libre, así que sirve igual para calzado que para
+pintura. No hay marcas ni categorías fijas de ningún rubro — si un cliente concreto las
+necesita, se agregan para él, no en la base.
+
+Finanzas e Inventario, además, cubren los cuatro patrones que vale la pena tener a la vista al
+construir un módulo nuevo:
 
 - **CRUD simple** — `Proveedor`.
 - **Documento con líneas** — `FacturaProveedor`, `EntradaInventario`/`SalidaInventario`.
@@ -32,10 +37,9 @@ real:
 - Y, solo en Inventario: **existencia derivada** (kardex calculado, no tecleado) y **grilla de
   líneas editable** (`Controls/PuenteDeDatos.cs`), que no tenía ningún otro módulo del scaffold.
 
-La migración de EF Core también se reinició: `Migrations/` de este proyecto empieza (y por ahora
-termina) en una única migración `Baseline`, generada contra el modelo ya recortado — no había
-una migración limpia que heredar una vez que se quitaron las tablas de los tres módulos
-eliminados.
+La migración de EF Core también se reinició: `Migrations/` de este proyecto empieza en una
+migración `Baseline`, generada contra el modelo ya recortado — no había una migración limpia que
+heredar una vez que se quitaron las tablas de los tres módulos eliminados.
 
 ## Cómo ejecutar
 
@@ -62,8 +66,9 @@ Es escritorio, no web (no hay dev server / puerto). `dotnet run` dentro de
 
 ## Estructura de módulos
 
-Hoy hay **dos módulos de negocio de ejemplo**: **Finanzas** (Cuentas por Pagar, Banco y
-Proveedores) e **Inventario** (Almacén, Entradas y Salidas), más **cuatro módulos fijados** sin
+Hoy hay **cuatro módulos de negocio**: **Ventas** (Registro de ventas), **Finanzas** (Cuentas por
+Pagar, Banco y Proveedores), **Inventario** (Almacén, Entradas y Salidas) y **Reportes** (Ventas y
+Gastos, de solo lectura, con gráficos OxyPlot), más **cuatro módulos fijados** sin
 submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Administración**
 (usuarios con sus permisos, y los datos de la propia organización) y **Configuración**
 (apariencia, cuenta propia, preferencias de la máquina — anclada al pie del sidebar, fuera de su
@@ -76,7 +81,7 @@ submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Ad
 - `Views/InicioView` — lanzador con una tarjeta por módulo.
 - `Views/ModuloDashboardView` — resumen del módulo: indicadores + tarjeta por submódulo. Los
   valores los calcula `ModuloDashboardViewModel.CalcularIndicadores` (un `switch` por clave de
-  módulo) — hoy con los casos `"Finanzas"` e `"Inventario"`.
+  módulo) — hoy con los casos `"Ventas"`, `"Finanzas"` e `"Inventario"`.
 - `Views/SubmoduloView` — submódulo en construcción, para cuando se agregue uno nuevo al catálogo
   antes de tener su pantalla real.
 - Framework CRUD reutilizable (`CrudViewModelBase`, `CrudEditorViewModelBase`, `CrudEditorWindow`,
@@ -135,6 +140,24 @@ llega) y **Salidas** (boletos de salida). Las decisiones que no se deducen del c
   cambió; el precio a pagar es que **hay que refrescar la vista a mano** tras rellenarla, porque
   los modelos no notifican cambios (ver `AlmacenViewModel.Recargar`). El cálculo es una pasada por
   cada tabla sobre un diccionario, no una consulta por artículo.
+- **Unidad base vs presentación.** `UnidadMedida` (enum, ordinal) es la unidad en que se cuenta
+  la existencia y **no se alarga por rubro**. Las medidas propias de cada negocio (galón,
+  cuñete, saco de 42,5 kg, caja de 12) son `Articulo.Presentaciones`: filas hijas del artículo
+  (`OwnsMany`, tabla `PresentacionArticulo`) con nombre, factor (cuánto de la unidad base
+  contiene) y precio opcional (0 = factor × precio base). `Articulo.OpcionesDePresentacion()`
+  ofrece siempre primero la unidad base, que no se da de alta.
+  - **El kardex no sabe nada de presentaciones**: `EntradaInventarioLinea.Cantidad` y
+    `SalidaInventarioLinea.Cantidad` siguen en unidad base (`decimal(18,4)` para no redondear
+    3 × 0,946 L). La línea de entrada guarda además `PresentacionNombre`, `Factor` y
+    `CantidadPresentacion` como snapshot; precio y subtotal van por presentación ("2 cuñetes a
+    40 $"), así la factura de Finanzas cuadra con la del proveedor. `EntradasInventarioService`
+    comprueba que `Cantidad = CantidadPresentacion × Factor`.
+  - **`Venta.Cantidad` y el precio van en la presentación vendida**; su salida vinculada
+    descuenta `Venta.CantidadBase` (cantidad × factor).
+  - Las **latas cerradas con existencia propia** (galón de blanco ≠ cuñete de blanco) no usan
+    presentaciones: son artículos distintos en `Pieza`. Las presentaciones son para granel o
+    para "compro por caja, vendo por pieza".
+  - Las salidas manuales (boletos) siguen solo en unidad base.
 - **El stock inicial se carga con una entrada de tipo `Ajuste`**, que es el único tipo que no
   genera cuenta por pagar. Un ajuste negativo es una salida con motivo `Merma` o `Traslado`; no
   hay entradas con cantidad negativa.
@@ -167,14 +190,48 @@ llega) y **Salidas** (boletos de salida). Las decisiones que no se deducen del c
   silencio. Lo usan las dos grillas de líneas (Entradas, Salidas) para ocultar la columna de
   precios en un ajuste y para llegar al comando de quitar línea.
 
+## Ventas, Reportes y tasa de cambio
+
+- **El artículo ES el producto.** No hay un catálogo aparte de Inventario: `Articulo` lleva
+  `PrecioVenta` (US$, de referencia) y `Categoria` (texto libre, sin enum de rubro). Así el mismo
+  sistema sirve a una zapatería o a una pinturería sin tocar el modelo.
+- **`Venta` es de una sola línea** (un artículo, cantidad, precio, cliente opcional), no un
+  carrito. Guarda snapshots (`ArticuloCodigo`, `ArticuloNombre`, `PrecioUnitarioUsd`,
+  `TasaCambioUsada`) para que un cambio posterior de precio, tasa o nombre no altere ventas ya
+  hechas. El editor propone `Articulo.PrecioVenta`, pero el precio es editable en cada venta.
+- **Método de pago** (`Models/Venta.cs`, enum `MetodoPago`, ORDINAL append-only): obligatorio en
+  altas nuevas (`VentasService.Validar`), sin valor preseleccionado en el editor para que nadie
+  lo deje puesto por inercia. La columna es nullable solo por las ventas anteriores a
+  `AgregarMetodoPagoVenta`, que se muestran como "No indicado". Reportes · Ventas lo resume en una
+  tabla por método (montos exactos, para cuadrar caja).
+- **Registrar una venta genera una `SalidaInventario` vinculada** (`SalidaInventario.VentaId`),
+  y así el kardex la cuenta sin que Inventario sepa nada de Ventas; anular la venta anula su
+  salida. `VentasService` escribe la salida directo contra su fuente de datos, no por
+  `SalidasInventarioService`, porque las reglas de un boleto (quién retira, a qué área) no aplican.
+- **Tasa BCV**: `TasaCambioService` la trae de DolarAPI al iniciar sesión (sin internet sigue con
+  la última guardada) y se puede forzar en Administración · Organización. La tasa vigente se ve
+  para todos los roles al pie del sidebar; se corrige sola porque `ActualizarDesdeApi` dispara
+  el evento estático `TasaCambioService.TasaActualizada` (el sidebar se desuscribe en
+  `Unloaded`, porque la ventana se reconstruye en cada sesión). Los equivalentes en Bs
+  (`Articulo.PrecioVentaBs`) son propiedades `Ignore()`-adas que rellena el ViewModel, igual que
+  `Existencia`.
+- **Reportes** es de solo lectura: Ventas agrupa por día y por `Articulo.Categoria` (vacía →
+  "Sin categoría"); Gastos son los pagos reales a proveedores.
+
 ## Persistencia
 
 Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
 
-- **Migraciones** en `ASO_ADMINIS.Desktop/Migrations/`, una sola: `Baseline`, generada contra el
-  modelo recortado (`Organizacion`, `Usuario`, `PermisoUsuario`, `PeticionCambio`, `Proveedor`,
+- **Migraciones** en `ASO_ADMINIS.Desktop/Migrations/`: `Baseline` (modelo recortado:
+  `Organizacion`, `Usuario`, `PermisoUsuario`, `PeticionCambio`, `Proveedor`,
   `FacturaProveedor`+`FacturaProveedorLinea`, `CuentaBancaria`, `MovimientoBanco`, `Articulo`,
-  `EntradaInventario`+`EntradaInventarioLinea`, `SalidaInventario`+`SalidaInventarioLinea`).
+  `EntradaInventario`+`EntradaInventarioLinea`, `SalidaInventario`+`SalidaInventarioLinea`),
+  `AgregarCatalogoMarcasModelos`, `AgregarTasaCambio`, `AgregarVentas`,
+  `QuitarCatalogoMarcasModelos`, `AgregarMetodoPagoVenta` y `AgregarPresentacionesArticulo`
+  (esta última rellena los documentos previos como cargados en unidad base, factor 1). Esta última deshace el enfoque zapatería **sin perder datos**:
+  su `Up` está reordenado a mano para pasar el precio de cada modelo a su artículo y repuntar
+  `Ventas.ModeloId` → `ArticuloId` antes de borrar `Marcas`/`Modelos`. Si se edita una
+  migración generada, revisar el script con `dotnet ef migrations script`.
 - **La cadena de conexión vive solo en `appsettings.local.json`** (por máquina, en `.gitignore`);
   la de `appsettings.json` (clave `ConnectionStrings:AsoAdminisDb`) apunta a LocalDB con un
   `.mdf` en `App_Data`.
@@ -289,8 +346,8 @@ propio porque no decide nada del negocio). Las preferencias NO van a la base de 
 
 ## PROVISIONAL — decisiones pendientes, marcadas a propósito
 
-El rubro ya está definido (venta de artículos) pero el módulo todavía no se construyó. Lo
-siguiente son placeholders deliberados, fáciles de revisar y cambiar; no son bugs:
+El sistema es genérico a propósito (sirve a cualquier comercio). Lo siguiente son placeholders
+deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto; no son bugs:
 
 1. **Marca**: paleta ámbar/azul placeholder y monograma de texto sin logo — ver "Marca" arriba.
 2. **Roles genéricos**: `Operador` / `Supervisor` / `AdministradorOrganizacion` / `Desarrollador`
@@ -303,11 +360,10 @@ siguiente son placeholders deliberados, fáciles de revisar y cambiar; no son bu
    cuando se conozca la necesidad real — no está prefigurado en el modelo de datos actual.
 4. **Nombre de la empresa / razón social**: el `.csproj` usa "ASO Adminis" como placeholder en
    `Product`/`Company`, a falta de la razón social real del cliente.
-5. **Módulo de negocio real (venta de artículos)**: hoy solo están los dos de ejemplo (Finanzas,
-   Inventario). El módulo de ventas se agrega con la receta de "Cómo se agrega un submódulo",
-   usando Finanzas para los cuatro patrones del framework e Inventario para un módulo construido
-   de cero contra este armazón (kardex derivado, documento con líneas editables, acoplamiento
-   entre módulos) — probablemente el más cercano a lo que necesita un punto de venta.
+5. **Ventas mínimo**: una venta es de una sola línea, con un único método de pago (no pagos
+   mixtos), el cliente es texto libre y no hay cuentas por cobrar. Es deliberadamente genérico; crecerlo (carrito multi-artículo,
+   padrón de clientes, cobro) con la receta de "Cómo se agrega un submódulo", usando
+   `EntradaInventario` como modelo de documento con líneas editables.
 6. **`Solicitables` vacío**: no hay ninguna petición de cambio configurada todavía — ver
    "Peticiones de cambio" arriba. Los dos candidatos naturales ya existen:
    `EntradasInventario.Anular` y `SalidasInventario.Anular`, que hoy un Operador simplemente no
@@ -318,9 +374,8 @@ siguiente son placeholders deliberados, fáciles de revisar y cambiar; no son bu
 
 ## Próximo paso sugerido
 
-1. **Definir con el cliente el detalle del módulo de venta de artículos** (catálogo, punto de
-   venta, clientes, medios de pago) y construirlo; Finanzas e Inventario ya dejan los cuatro
-   patrones y el almacén del que tirará.
+1. **Ampliar Ventas sin atarlo a un rubro** (varias líneas por venta, clientes, pagos mixtos);
+   lo específico de un cliente (marcas, tallas, colores…) se agrega para ese cliente, no aquí.
 2. **Decidir los roles reales** del negocio y reemplazar los cuatro genéricos.
 3. **Elegir el color de marca y el logo real** y actualizar lo descrito en "Marca".
 4. **Llevar la comprobación de permisos a los servicios de dominio** de cada módulo nuevo desde

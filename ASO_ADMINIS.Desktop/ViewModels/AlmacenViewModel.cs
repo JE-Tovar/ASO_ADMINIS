@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using ASO_ADMINIS.Desktop.Configuration;
@@ -21,6 +22,7 @@ public sealed class AlmacenViewModel : PantallaCrudViewModel<Articulo, int>
     private const string FiltroTodos = "Todos";
 
     private readonly InventarioService _servicio;
+    private readonly TasaCambioService _tasaCambio;
 
     private string _filtro = FiltroTodos;
 
@@ -41,9 +43,12 @@ public sealed class AlmacenViewModel : PantallaCrudViewModel<Articulo, int>
                                           DataSourceFactory.CrearEntradasInventario(),
                                           DataSourceFactory.CrearSalidasInventario());
 
-        // La base ya pobló Items en su constructor, pero sin existencias: sin esto la primera
-        // pintada saldría con todo en cero hasta la primera recarga.
-        _servicio.RellenarExistencias(Items);
+        _tasaCambio = new TasaCambioService(
+            DataSourceFactory.CrearTasasCambio(), DataSourceFactory.CrearProveedorTasaCambio());
+
+        // La base ya pobló Items en su constructor, pero sin existencias ni precio en Bs: sin
+        // esto la primera pintada saldría con todo en cero hasta la primera recarga.
+        RellenarDerivados();
         ItemsView.Refresh();
 
         CambiarFiltroCommand = new RelayCommand<string>(filtro =>
@@ -81,7 +86,7 @@ public sealed class AlmacenViewModel : PantallaCrudViewModel<Articulo, int>
     protected override Articulo CrearNuevo() => new() { Activo = true };
 
     protected override CrudEditorViewModelBase<Articulo> CrearEditor(Articulo item) =>
-        new ArticuloEditorViewModel(item, _servicio);
+        new ArticuloEditorViewModel(item, _servicio, _tasaCambio.Actual()?.Valor);
 
     /// <summary>
     /// Relee el catálogo y le vuelve a pegar la existencia encima. El refresco va después de
@@ -91,9 +96,19 @@ public sealed class AlmacenViewModel : PantallaCrudViewModel<Articulo, int>
     {
         base.Recargar();
 
-        _servicio.RellenarExistencias(Items);
+        RellenarDerivados();
         ItemsView.Refresh();
         OnTodasLasPropiedadesCambiaron();
+    }
+
+    /// <summary>Lo que no está en la tabla: existencia (del kardex) y precio en Bs (de la tasa vigente).</summary>
+    private void RellenarDerivados()
+    {
+        _servicio.RellenarExistencias(Items);
+
+        var tasa = _tasaCambio.Actual()?.Valor ?? 0m;
+        foreach (var articulo in Items)
+            articulo.PrecioVentaBs = tasa > 0 ? articulo.PrecioVenta * tasa : 0m;
     }
 }
 
@@ -108,11 +123,13 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
 {
     private readonly Articulo _original;
     private readonly InventarioService _servicio;
+    private readonly decimal? _tasaCambio;
 
-    public ArticuloEditorViewModel(Articulo original, InventarioService servicio)
+    public ArticuloEditorViewModel(Articulo original, InventarioService servicio, decimal? tasaCambio)
     {
         _original = original;
         _servicio = servicio;
+        _tasaCambio = tasaCambio;
 
         Codigo = original.Codigo;
         Nombre = original.Nombre;
@@ -121,17 +138,47 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         Notas = original.Notas;
         Activo = original.Id == 0 || original.Activo;
         Minimo = original.Minimo == 0 ? string.Empty : original.Minimo.ToString("0.##");
+        PrecioVenta = original.PrecioVenta == 0 ? string.Empty : original.PrecioVenta.ToString("0.##");
         UnidadSeleccionada = original.Unidad;
 
+        foreach (var presentacion in original.Presentaciones)
+            Presentaciones.Add(new PresentacionEditorViewModel
+            {
+                Nombre = presentacion.Nombre,
+                Factor = presentacion.Factor.ToString("0.####"),
+                PrecioVenta = presentacion.PrecioVenta == 0 ? string.Empty : presentacion.PrecioVenta.ToString("0.##")
+            });
+
         GenerarCodigoCommand = new RelayCommand(() => Codigo = _servicio.GenerarCodigo());
+
+        AgregarPresentacionCommand = new RelayCommand(() => Presentaciones.Add(new PresentacionEditorViewModel()));
+
+        QuitarPresentacionCommand = new RelayCommand<PresentacionEditorViewModel>(presentacion =>
+        {
+            if (presentacion is not null)
+                Presentaciones.Remove(presentacion);
+        });
     }
 
     public override string Titulo =>
         _original.Id == 0 ? "Nuevo artículo" : $"Editar {_original.Nombre}";
 
-    public override double AnchoEditor => Ancho.Estandar;
+    /// <summary>Amplio: lleva la grilla de presentaciones dentro.</summary>
+    public override double AnchoEditor => Ancho.Amplio;
 
     public ICommand GenerarCodigoCommand { get; }
+
+    /// <summary>
+    /// Medidas propias del rubro (galón, cuñete, caja de 12…). Quitar una no afecta documentos
+    /// ya registrados: cada uno guardó el nombre y el factor de la presentación que usó.
+    /// </summary>
+    public ObservableCollection<PresentacionEditorViewModel> Presentaciones { get; } = [];
+
+    public ICommand AgregarPresentacionCommand { get; }
+    public ICommand QuitarPresentacionCommand { get; }
+
+    /// <summary>Encabezado de la columna del factor: dice en qué unidad se mide.</summary>
+    public string EncabezadoFactor => $"Contiene ({new Articulo { Unidad = UnidadSeleccionada }.UnidadCorta})";
 
     public IReadOnlyList<UnidadMedida> Unidades { get; } =
     [
@@ -144,7 +191,11 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
     public UnidadMedida UnidadSeleccionada
     {
         get => _unidadSeleccionada;
-        set => SetProperty(ref _unidadSeleccionada, value);
+        set
+        {
+            if (SetProperty(ref _unidadSeleccionada, value))
+                OnPropertyChanged(nameof(EncabezadoFactor));
+        }
     }
 
     private string _codigo = string.Empty;
@@ -174,6 +225,24 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         get => _minimo;
         set => SetProperty(ref _minimo, value);
     }
+
+    private string _precioVenta = string.Empty;
+    public string PrecioVenta
+    {
+        get => _precioVenta;
+        set
+        {
+            if (SetProperty(ref _precioVenta, value))
+                OnPropertyChanged(nameof(PrecioVentaBsTexto));
+        }
+    }
+
+    /// <summary>Vista previa en vivo del equivalente en bolívares, con la tasa vigente al abrir el editor.</summary>
+    public string PrecioVentaBsTexto => _tasaCambio is { } tasa && decimal.TryParse(PrecioVenta, out var precio) && precio > 0
+        ? $"≈ Bs. {(precio * tasa):N2}"
+        : _tasaCambio is null
+            ? "Sin tasa de cambio registrada todavía."
+            : string.Empty;
 
     private string _ubicacion = string.Empty;
     public string Ubicacion
@@ -205,6 +274,21 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
             return false;
         }
 
+        if (!string.IsNullOrWhiteSpace(PrecioVenta)
+            && (!decimal.TryParse(PrecioVenta, out var precio) || precio < 0))
+        {
+            error = "El precio de venta debe ser un número mayor o igual a cero.";
+            return false;
+        }
+
+        // Lo de forma (que se pueda leer el número) se mira aquí; lo de fondo (nombres repetidos,
+        // factor positivo) lo decide InventarioService.Validar.
+        if (Presentaciones.FirstOrDefault(p => !p.FactorEsNumero || !p.PrecioEsNumero) is { } mala)
+        {
+            error = $"Revise los números de la presentación \"{mala.Nombre.Trim()}\".";
+            return false;
+        }
+
         // Se genera ANTES de validar y se deja escrito en el campo: así el usuario ve con qué
         // código se guardó, en vez de enterarse al volver al listado.
         if (string.IsNullOrWhiteSpace(Codigo))
@@ -221,9 +305,62 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         articulo.Categoria = Categoria.Trim();
         articulo.Unidad = UnidadSeleccionada;
         articulo.Minimo = decimal.TryParse(Minimo, out var minimo) ? minimo : 0m;
+        articulo.PrecioVenta = decimal.TryParse(PrecioVenta, out var precio) ? precio : 0m;
         articulo.Ubicacion = Ubicacion.Trim();
         articulo.Notas = Notas.Trim();
         articulo.Activo = Activo;
+
+        // Una fila del todo vacía (la que se agregó y no se llenó) no cuenta.
+        articulo.Presentaciones = [.. Presentaciones
+            .Where(p => !p.EstaVacia)
+            .Select(p => new PresentacionArticulo
+            {
+                Nombre = p.Nombre.Trim(),
+                Factor = p.FactorValor,
+                PrecioVenta = p.PrecioValor
+            })];
+
         return articulo;
     }
+}
+
+/// <summary>
+/// Un renglón de la grilla de presentaciones mientras se escribe. Los números viajan como texto,
+/// igual que en el resto de los editores: un campo vacío no es un cero.
+/// </summary>
+public sealed class PresentacionEditorViewModel : ViewModelBase
+{
+    private string _nombre = string.Empty;
+    public string Nombre
+    {
+        get => _nombre;
+        set => SetProperty(ref _nombre, value);
+    }
+
+    private string _factor = string.Empty;
+    public string Factor
+    {
+        get => _factor;
+        set => SetProperty(ref _factor, value);
+    }
+
+    private string _precioVenta = string.Empty;
+
+    /// <summary>Opcional: vacío = contenido × precio base del artículo.</summary>
+    public string PrecioVenta
+    {
+        get => _precioVenta;
+        set => SetProperty(ref _precioVenta, value);
+    }
+
+    public bool EstaVacia =>
+        string.IsNullOrWhiteSpace(Nombre) && string.IsNullOrWhiteSpace(Factor) && string.IsNullOrWhiteSpace(PrecioVenta);
+
+    public bool FactorEsNumero => EstaVacia || decimal.TryParse(Factor, out _);
+
+    public bool PrecioEsNumero => string.IsNullOrWhiteSpace(PrecioVenta) || decimal.TryParse(PrecioVenta, out _);
+
+    public decimal FactorValor => decimal.TryParse(Factor, out var valor) ? valor : 0m;
+
+    public decimal PrecioValor => decimal.TryParse(PrecioVenta, out var valor) ? valor : 0m;
 }

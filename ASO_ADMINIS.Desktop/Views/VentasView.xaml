@@ -69,9 +69,13 @@
             <DataGrid.Columns>
               <controls:ColumnaTexto Header="Nº" Binding="{Binding Numero}" Width="12*" MinWidth="86" />
               <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="10*" MinWidth="78" />
-              <controls:ColumnaTexto Header="Modelo" Binding="{Binding ModeloTexto}" Width="24*" MinWidth="150" />
-              <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteNombre}" Width="18*" MinWidth="110" />
-              <controls:ColumnaNumero Header="Cant." Binding="{Binding CantidadTexto}" Width="8*" MinWidth="56" />
+              <controls:ColumnaTexto Header="Artículo" Binding="{Binding ArticuloTexto}" Width="24*" MinWidth="150" />
+              <!-- Oculta por ahora para ganar espacio; el dato se sigue guardando y el buscador lo encuentra. -->
+              <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteNombre}" Width="18*" MinWidth="110"
+                                     Visibility="Collapsed" />
+              <controls:ColumnaTexto Header="Método de pago" Binding="{Binding MetodoPagoTexto}" Width="13*" MinWidth="100" />
+              <controls:ColumnaNumero Header="Cant." Binding="{Binding CantidadNumeroTexto}" Width="8*" MinWidth="56" />
+              <controls:ColumnaTexto Header="Presentación" Binding="{Binding PresentacionNombre}" Width="11*" MinWidth="86" />
               <controls:ColumnaNumero Header="Total US$" Binding="{Binding TotalUsdTexto}" Width="12*" MinWidth="86" />
               <controls:ColumnaNumero Header="Total Bs" Binding="{Binding TotalBsTexto}" Width="12*" MinWidth="86" />
               <DataGridTemplateColumn Header="Estado" Width="96">
@@ -88,7 +92,7 @@
 
           <controls:EmptyState Icono="{x:Static controls:Iconos.Ventas}"
                                Titulo="No hay ventas registradas"
-                               Detalle="Registra la primera venta de un modelo con existencia en el almacén."
+                               Detalle="Registra la primera venta de un artículo con existencia en el almacén."
                                Visibility="{Binding HasItems, ElementName=TablaVentas, Converter={StaticResource SinItemsAVis}}" />
         </Grid>
       </Border>

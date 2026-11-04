@@ -7,8 +7,8 @@ namespace ASO_ADMINIS.Desktop.Services;
 /// <summary>
 /// Reglas de la venta: valida contra la existencia real y, al registrar, genera el
 /// <see cref="SalidaInventario"/> vinculado para que el kardex la cuente — mismo acoplamiento
-/// entre módulos que <c>EntradasInventarioService</c> exigiendo <c>CuentasPorPagarService</c>, o
-/// <c>CatalogoService</c> creando el <see cref="Articulo"/> de un <see cref="Modelo"/> nuevo.
+/// entre módulos que <c>EntradasInventarioService</c> exigiendo <c>CuentasPorPagarService</c>.
+/// Lo que se vende es directamente un <see cref="Articulo"/> del almacén.
 ///
 /// No pasa por <see cref="SalidasInventarioService"/>: sus reglas (quién retira, a qué área)
 /// son de un boleto de almacén, no de una venta. Aquí se escribe la Salida directo contra su
@@ -46,9 +46,9 @@ public sealed class VentasService
     /// </summary>
     public bool Validar(Venta venta, out string? error)
     {
-        if (venta.ModeloId == 0)
+        if (venta.ArticuloId == 0)
         {
-            error = "Elija el modelo que se vendió.";
+            error = "Elija el artículo que se vendió.";
             return false;
         }
 
@@ -64,18 +64,36 @@ public sealed class VentasService
             return false;
         }
 
-        var articulo = ArticuloDeModelo(venta.ModeloId);
-        if (articulo is null)
+        if (venta.MetodoPago is null)
         {
-            error = "El modelo elegido no tiene un artículo de inventario vinculado.";
+            error = "Indique el método de pago.";
             return false;
         }
 
-        var disponible = _inventario.Existencia(articulo.Id);
-        if (venta.Cantidad > disponible)
+        var articulo = _articulos.GetById(venta.ArticuloId);
+        if (articulo is null)
         {
+            error = "El artículo elegido ya no existe en el almacén.";
+            return false;
+        }
+
+        if (venta.Factor <= 0)
+        {
+            error = "Elija la presentación que se vendió.";
+            return false;
+        }
+
+        // Se compara en unidad base, que es en la que se lleva la existencia.
+        var disponible = _inventario.Existencia(articulo.Id);
+        if (venta.CantidadBase > disponible)
+        {
+            var enPresentacion = venta.Factor == 1m
+                ? string.Empty
+                : $" (≈ {disponible / venta.Factor:N2} {venta.PresentacionNombre})";
+
             error = $"No hay existencia suficiente de {articulo.Nombre}: " +
-                    $"hay {disponible:N2} {articulo.UnidadCorta} y se piden {venta.Cantidad:N2}.";
+                    $"hay {disponible:N2} {articulo.UnidadCorta}{enPresentacion} " +
+                    $"y se piden {venta.CantidadTexto}.";
             return false;
         }
 
@@ -101,7 +119,7 @@ public sealed class VentasService
         if (!Validar(venta, out var error))
             throw new InvalidOperationException(error);
 
-        var articulo = ArticuloDeModelo(venta.ModeloId)!;
+        var articulo = _articulos.GetById(venta.ArticuloId)!;
 
         venta.Numero = SiguienteNumeroVenta();
         venta.Estado = EstadoVenta.Registrada;
@@ -131,7 +149,8 @@ public sealed class VentasService
                     ArticuloCodigo = articulo.Codigo,
                     ArticuloNombre = articulo.Nombre,
                     UnidadTexto = articulo.UnidadCorta,
-                    Cantidad = guardada.Cantidad
+                    // En unidad base: 3 galones salen del almacén como 11,355 L.
+                    Cantidad = Math.Round(guardada.CantidadBase, 4)
                 }
             ]
         });
@@ -167,9 +186,6 @@ public sealed class VentasService
         _ventas.Update(copia);
         return copia;
     }
-
-    private Articulo? ArticuloDeModelo(int modeloId) =>
-        _articulos.GetAll().FirstOrDefault(a => a.ModeloId == modeloId);
 
     private string SiguienteNumeroVenta()
     {

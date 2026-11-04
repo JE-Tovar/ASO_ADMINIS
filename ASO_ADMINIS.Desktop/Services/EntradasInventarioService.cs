@@ -64,20 +64,31 @@ public sealed class EntradasInventarioService
             return false;
         }
 
-        if (entrada.Lineas.Any(l => l.Cantidad <= 0))
+        if (entrada.Lineas.Any(l => l.CantidadPresentacion <= 0 || l.Cantidad <= 0))
         {
             error = "La cantidad de cada línea debe ser mayor que cero.";
             return false;
         }
 
+        // La cantidad base es la que lee el kardex: tiene que ser exactamente la tecleada por su
+        // factor, venga de donde venga la línea.
+        if (entrada.Lineas.Any(l => l.Factor <= 0
+                                    || l.Cantidad != Math.Round(l.CantidadPresentacion * l.Factor, 4)))
+        {
+            error = "Hay una línea con una presentación inválida; vuelva a elegirla.";
+            return false;
+        }
+
+        // El mismo artículo sí puede venir en dos presentaciones (cuñetes y galones), pero no dos
+        // veces en la misma: eso son dos líneas que deberían ser una.
         var repetido = entrada.Lineas
-            .GroupBy(l => l.ArticuloId)
+            .GroupBy(l => (l.ArticuloId, l.PresentacionNombre))
             .FirstOrDefault(g => g.Count() > 1);
 
         if (repetido is not null)
         {
-            error = $"El artículo {repetido.First().ArticuloNombre} está en más de una línea; " +
-                    "júntelas en una sola.";
+            error = $"El artículo {repetido.First().ArticuloNombre} ({repetido.Key.PresentacionNombre}) " +
+                    "está en más de una línea; júntelas en una sola.";
             return false;
         }
 
@@ -211,14 +222,16 @@ public sealed class EntradasInventarioService
 
         var existencias = _inventario.ExistenciasPorArticulo();
 
-        foreach (var linea in entrada.Lineas)
+        // Por artículo y no por línea: un mismo artículo puede venir en dos presentaciones
+        // (cuñetes y galones), y lo que hay que comparar es todo lo que trajo, en unidad base.
+        foreach (var articulo in entrada.Lineas.GroupBy(l => l.ArticuloId))
         {
-            var quedaria = existencias.GetValueOrDefault(linea.ArticuloId) - linea.Cantidad;
+            var quedaria = existencias.GetValueOrDefault(articulo.Key) - articulo.Sum(l => l.Cantidad);
 
             if (quedaria < 0)
                 throw new InvalidOperationException(
-                    $"No se puede anular: de {linea.ArticuloNombre} ya se despacharon " +
-                    $"{-quedaria:N2} {linea.UnidadTexto} de los que trajo esta entrada.");
+                    $"No se puede anular: de {articulo.First().ArticuloNombre} ya se despacharon " +
+                    $"{-quedaria:N2} {articulo.First().UnidadTexto} de los que trajo esta entrada.");
         }
 
         // La factura va primero: es la que puede rechazar.
