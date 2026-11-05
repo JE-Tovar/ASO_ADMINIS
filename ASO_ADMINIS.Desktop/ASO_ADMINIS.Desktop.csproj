@@ -42,9 +42,16 @@
     <Resource Include="Assets\Fonts\Satoshi-Bold.ttf" />
   </ItemGroup>
 
-  <!-- Assets/Logo/ vacío a propósito: este scaffold no trae logo de ningún cliente (ver
-       Controls/Sidebar.xaml). Al adoptar el scaffold, poner el logo real ahí y volver a declarar
-       ApplicationIcon + los Resource + Icon= de cada Window (ver CLAUDE.md "Logo"). -->
+  <!-- Logo (caja registradora): el .ico lo genera Assets/Logo/generar_icono.py a partir de la
+       misma geometria que LogoCajaGeometry (Styles/Componentes.xaml). ApplicationIcon es el del
+       .exe; el Resource es el que usan los Icon= de cada Window (barra de tareas, Alt+Tab). -->
+  <PropertyGroup>
+    <ApplicationIcon>Assets\Logo\aso-adminis.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\Logo\aso-adminis.ico" />
+    <None Remove="Assets\Logo\generar_icono.py" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="appsettings.json">

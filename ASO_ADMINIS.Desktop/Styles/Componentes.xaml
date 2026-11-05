@@ -372,4 +372,15 @@
     </Setter>
   </Style>
 
+  <!-- Logo: caja registradora (visor del cliente, ticket, cuerpo con teclado, gaveta) en una
+       cuadricula de 24x24. EvenOdd recorta las teclas y el tirador. Se pinta con un Path
+       (Fill=OnAccentBrush sobre el tile PrimaryButtonBrush) en Sidebar.xaml y LoginView.xaml.
+       Assets/Logo/generar_icono.py dibuja la MISMA geometria para el .ico: cambiar las dos. -->
+  <PathGeometry x:Key="LogoCajaGeometry" FillRule="EvenOdd"
+                Figures="M13,2 H20 V6.5 H13 Z M15.5,6.5 H17.5 V9 H15.5 Z M4.5,3 H9.5 V9 H4.5 Z
+                         M4,9 L20,9 L21.5,16 L2.5,16 Z M1.5,17 H22.5 V21.5 H1.5 Z
+                         M6,10.8 H8 V12.4 H6 Z M11,10.8 H13 V12.4 H11 Z M16,10.8 H18 V12.4 H16 Z
+                         M6,13.2 H8 V14.8 H6 Z M11,13.2 H13 V14.8 H11 Z M16,13.2 H18 V14.8 H16 Z
+                         M9,18.5 H15 V20 H9 Z" />
+
 </ResourceDictionary>

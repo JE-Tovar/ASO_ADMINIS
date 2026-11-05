@@ -316,10 +316,22 @@ siguen aplicando al escribir XAML nuevo:
 ## Marca
 
 `Colors.xaml`/`ColorsOscuro.xaml` traen una paleta ámbar/azul **placeholder**, con los contrastes
-ya calculados (ver su comentario de cabecera). `Assets/Logo/` está vacía a propósito: el sidebar
-(`Controls/Sidebar.xaml`) y el login (`Views/LoginView.xaml`) muestran un monograma de texto ("A"
-sobre `PrimaryButtonBrush`) en vez de una imagen, para no arrastrar el arte de ningún cliente
-anterior.
+ya calculados (ver su comentario de cabecera).
+
+**Logo (2026-11-04): una caja registradora**, glifo plano de una sola tinta en una cuadrícula
+24×24 (visor del cliente, ticket, cuerpo con teclado, gaveta con tirador). Vive en dos sitios
+que **hay que mantener iguales**:
+
+- **En la app, vectorial**: `LogoCajaGeometry` (`Styles/Componentes.xaml`, `FillRule="EvenOdd"`
+  para recortar teclas y tirador), pintado con un `Path` `Fill=OnAccentBrush` sobre el tile
+  `PrimaryButtonBrush` en `Controls/Sidebar.xaml` (36 px) y `Views/LoginView.xaml` (56 px). Al ser
+  vector sigue al tema sin mapa de bits.
+- **En Windows, rasterizado**: `Assets/Logo/aso-adminis.ico` (16–256 px; a ≤24 px va sin ticket y
+  con teclado 2×2), generado por `python Assets/Logo/generar_icono.py` (Pillow), que dibuja la
+  misma geometría con los hex de `PrimaryButtonColor`/`OnAccentColor` escritos en el script.
+  Es `ApplicationIcon` (el `.exe`) y `<Resource>` para el `Icon=` de `MainWindow`, `LoginView`,
+  `PrimerArranqueView` y `CrudEditorWindow` (eso es lo que pinta la barra de tareas y Alt+Tab).
+  **Si cambia el color de marca, regenerar el `.ico`.**
 
 Al adoptar este scaffold para un negocio real:
 
@@ -327,12 +339,9 @@ Al adoptar este scaffold para un negocio real:
    `AccentBlueColor`, `InfoColor`, `NavIndicatorColor`, `FocusRingColor`, y los neutros de
    navegación con tinte de marca) y **recalcular los contrastes** descritos en el comentario de
    `Colors.xaml` — no basta con cambiar los hex, hay que verificar que sigan pasando AA.
-2. Si hay logo real: ponerlo en `Assets/Logo/` (rasterizado — no hay lector de SVG en el
-   proyecto), declararlo `<Resource>` en el `.csproj`, volver a poner `ApplicationIcon` en el
-   `.csproj`, y reemplazar el monograma de texto por la `<Image>` en `Sidebar.xaml`/`LoginView.xaml`
-   más el `Icon=` de `MainWindow.xaml`/`LoginView.xaml`/`PrimerArranqueView.xaml`/
-   `CrudEditorWindow.xaml` (esto último es lo que Windows pinta de verdad en la barra de tareas,
-   Alt+Tab y el Administrador de tareas — no el ícono del `.exe`).
+2. Si el cliente trae su propio logo: reemplazar `LogoCajaGeometry` (si es vectorizable a un
+   `Path`) o el `Path` por una `<Image>` rasterizada (no hay lector de SVG en el proyecto), y
+   sustituir `Assets/Logo/aso-adminis.ico` conservando el nombre.
 3. Cambiar el texto "ASO Adminis" en `Sidebar.xaml`, `LoginView.xaml`, `MainWindow.xaml`
    (`Title`) y `PrimerArranqueView.xaml` (`Title`), y `Product`/`Company`/`Description` en el
    `.csproj`.
@@ -349,7 +358,8 @@ propio porque no decide nada del negocio). Las preferencias NO van a la base de 
 El sistema es genérico a propósito (sirve a cualquier comercio). Lo siguiente son placeholders
 deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto; no son bugs:
 
-1. **Marca**: paleta ámbar/azul placeholder y monograma de texto sin logo — ver "Marca" arriba.
+1. **Marca**: la paleta ámbar/azul sigue siendo placeholder (el logo de caja registradora ya
+   existe) — ver "Marca" arriba.
 2. **Roles genéricos**: `Operador` / `Supervisor` / `AdministradorOrganizacion` / `Desarrollador`
    no están atados a ningún puesto real. Ajustar los nombres y los conjuntos base en
    `Models/Rol.cs` / `Services/MatrizPermisos.cs` en cuanto el negocio real esté definido — son
@@ -377,6 +387,6 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
 1. **Ampliar Ventas sin atarlo a un rubro** (varias líneas por venta, clientes, pagos mixtos);
    lo específico de un cliente (marcas, tallas, colores…) se agrega para ese cliente, no aquí.
 2. **Decidir los roles reales** del negocio y reemplazar los cuatro genéricos.
-3. **Elegir el color de marca y el logo real** y actualizar lo descrito en "Marca".
+3. **Elegir el color de marca real** y actualizar lo descrito en "Marca" (y regenerar el `.ico`).
 4. **Llevar la comprobación de permisos a los servicios de dominio** de cada módulo nuevo desde
    el principio (no repetir el hueco que tiene hoy el CRUD genérico).

@@ -14,20 +14,15 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- Marca. PLACEHOLDER: este scaffold no trae logo propio (ver Assets/Logo/, vacío a
-         propósito) — solo un monograma de texto para no arrastrar el arte de ningún cliente.
-         Al adoptar este scaffold para un negocio real, reemplazar este bloque por el logo real
-         (mismo patrón que tenía ASO_RTR: Image a pack://application:,,,/Assets/Logo/..., mapa de
-         bits porque no hay lector de SVG en el proyecto) y el nombre de abajo. -->
+    <!-- Marca: el logo (caja registradora) es vectorial — LogoCajaGeometry en
+         Styles/Componentes.xaml — sobre el tile de acento, así sigue al tema sin mapa de bits. -->
     <Border Grid.Row="0" Padding="16,16,16,12"
             BorderBrush="{DynamicResource SidebarBorderBrush}" BorderThickness="0,0,0,1">
       <StackPanel Orientation="Horizontal">
         <Border Width="36" Height="36" CornerRadius="{StaticResource RadMd}"
                 Background="{DynamicResource PrimaryButtonBrush}">
-          <TextBlock Text="A" HorizontalAlignment="Center" VerticalAlignment="Center"
-                     FontSize="{StaticResource FsTitle}"
-                     FontWeight="{StaticResource FwBold}"
-                     Foreground="{DynamicResource OnAccentBrush}" />
+          <Path Data="{StaticResource LogoCajaGeometry}" Stretch="Uniform" Margin="6"
+                Fill="{DynamicResource OnAccentBrush}" />
         </Border>
 
         <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">

@@ -6,6 +6,7 @@
         xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
         mc:Ignorable="d"
         Title="Iniciar sesión — ASO Adminis"
+        Icon="pack://application:,,,/Assets/Logo/aso-adminis.ico"
         Width="420" MinHeight="380" MaxHeight="720"
         SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
@@ -22,14 +23,12 @@
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
-      <!-- Marca. PLACEHOLDER (ver Controls/Sidebar.xaml): monograma de texto, sin logo propio. -->
+      <!-- Marca: logo vectorial (ver Controls/Sidebar.xaml). -->
       <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource TkBloque}">
         <Border Width="56" Height="56" CornerRadius="{StaticResource RadMd}"
                 Background="{DynamicResource PrimaryButtonBrush}">
-          <TextBlock Text="A" HorizontalAlignment="Center" VerticalAlignment="Center"
-                     FontSize="{StaticResource FsDisplay}"
-                     FontWeight="{StaticResource FwBold}"
-                     Foreground="{DynamicResource OnAccentBrush}" />
+          <Path Data="{StaticResource LogoCajaGeometry}" Stretch="Uniform" Margin="9"
+                Fill="{DynamicResource OnAccentBrush}" />
         </Border>
         <TextBlock Text="ASO Adminis" Margin="10,0,0,0"
                    FontSize="{StaticResource FsDisplay}"
