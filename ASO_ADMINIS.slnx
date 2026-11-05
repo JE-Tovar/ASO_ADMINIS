@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="ASO_ADMINIS.Desktop/ASO_ADMINIS.Desktop.csproj" />
+  <Project Path="ASO_ADMINIS.Tests/ASO_ADMINIS.Tests.csproj" />
 </Solution>
