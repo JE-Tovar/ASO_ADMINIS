@@ -20,6 +20,7 @@ public static class DataSourceFactory
     private static IFacturaProveedorDataSource? _facturasProveedor;
     private static ICuentaBancariaDataSource? _cuentasBancarias;
     private static IMovimientoBancoDataSource? _movimientosBanco;
+    private static IGastoVarioDataSource? _gastosVarios;
     private static IOrganizacionDataSource? _organizaciones;
     private static IUsuarioDataSource? _usuarios;
     private static IPermisoUsuarioDataSource? _permisosUsuario;
@@ -48,6 +49,9 @@ public static class DataSourceFactory
 
     public static IMovimientoBancoDataSource CrearMovimientosBanco() =>
         _movimientosBanco ??= new SqlMovimientoBancoDataSource();
+
+    public static IGastoVarioDataSource CrearGastosVarios() =>
+        _gastosVarios ??= new SqlGastoVarioDataSource();
 
     public static IOrganizacionDataSource CrearOrganizaciones() =>
         _organizaciones ??= new SqlOrganizacionDataSource();

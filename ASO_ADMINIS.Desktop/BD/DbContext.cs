@@ -28,6 +28,7 @@ public class AsoAdminisDbContext : DbContext
     public DbSet<FacturaProveedor> FacturasProveedor { get; set; }
     public DbSet<CuentaBancaria> CuentasBancarias { get; set; }
     public DbSet<MovimientoBanco> MovimientosBanco { get; set; }
+    public DbSet<GastoVario> GastosVarios { get; set; }
 
     // ---- Inventario: almacén, entradas y salidas ----
     public DbSet<Articulo> Articulos { get; set; }
@@ -398,6 +399,35 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(m => m.OrigenTexto);
             entity.Ignore(m => m.DocumentoTexto);
             entity.Ignore(m => m.ConciliacionTexto);
+        });
+
+        modelBuilder.Entity<GastoVario>(entity =>
+        {
+            entity.HasKey(g => g.Id);
+            entity.Property(g => g.Numero).IsRequired().HasMaxLength(20);
+            entity.Property(g => g.Categoria).IsRequired().HasMaxLength(60);
+            entity.Property(g => g.Concepto).IsRequired().HasMaxLength(200);
+            entity.Property(g => g.Beneficiario).HasMaxLength(120);
+            entity.Property(g => g.Referencia).HasMaxLength(60);
+            entity.Property(g => g.CuentaNombre).HasMaxLength(120);
+            entity.Property(g => g.CreadoPorNombre).HasMaxLength(120);
+            entity.Property(g => g.MotivoAnulacion).HasMaxLength(500);
+            entity.Property(g => g.Monto).HasColumnType("decimal(18,2)");
+            entity.Property(g => g.TasaCambio).HasColumnType("decimal(18,4)");
+            entity.Property(g => g.MontoBs).HasColumnType("decimal(18,2)");
+
+            // Mismo criterio que Entradas/Salidas: el servicio numera "el último + 1" y el
+            // índice único es la red si dos puestos coinciden.
+            entity.HasIndex(g => new { g.OrganizacionId, g.Numero }).IsUnique();
+            entity.HasIndex(g => new { g.OrganizacionId, g.Fecha });
+
+            entity.Ignore(g => g.Vigente);
+            entity.Ignore(g => g.FechaTexto);
+            entity.Ignore(g => g.MonedaTexto);
+            entity.Ignore(g => g.MontoTexto);
+            entity.Ignore(g => g.MontoBsTexto);
+            entity.Ignore(g => g.PagoTexto);
+            entity.Ignore(g => g.EstadoTexto);
         });
 
         // ---- Inventario ----

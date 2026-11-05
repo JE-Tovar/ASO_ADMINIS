@@ -37,7 +37,8 @@ public enum OrigenMovimiento
 {
     Manual,
     FacturaProveedor,
-    Transferencia
+    Transferencia,
+    GastoVario
 }
 
 /// <summary>
@@ -194,6 +195,7 @@ public class MovimientoBanco : IEntidad<int>, IDeOrganizacion
         OrigenMovimiento.Manual => "Manual",
         OrigenMovimiento.FacturaProveedor => "Factura de proveedor",
         OrigenMovimiento.Transferencia => "Transferencia",
+        OrigenMovimiento.GastoVario => "Gasto vario",
         _ => Origen.ToString()
     };
 

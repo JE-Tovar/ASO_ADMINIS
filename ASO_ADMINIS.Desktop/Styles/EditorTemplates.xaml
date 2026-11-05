@@ -40,6 +40,10 @@
     <views:ProveedorEditorView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:GastoVarioEditorViewModel}">
+    <views:GastoVarioEditorView />
+  </DataTemplate>
+
   <DataTemplate DataType="{x:Type vm:FacturaProveedorEditorViewModel}">
     <views:FacturaProveedorEditorView />
   </DataTemplate>

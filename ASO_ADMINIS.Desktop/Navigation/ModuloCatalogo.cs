@@ -75,11 +75,13 @@ public static class ModuloCatalogo
         new Modulo(
             "Finanzas",
             "Finanzas",
-            "Pagos a proveedores y libro de banco.",
+            "Pagos a proveedores, gastos varios y libro de banco.",
             Iconos.Finanzas,
             [
                 new Submodulo("Finanzas.CuentasPorPagar", "Cuentas por Pagar",
                     "Obligaciones con proveedores y su vencimiento.", Iconos.CuentasPorPagar),
+                new Submodulo("Finanzas.GastosVarios", "Gastos varios",
+                    "Pagos que no son a proveedores: servicios, alquiler, fletes, limpieza…", Iconos.Finanzas),
                 new Submodulo("Finanzas.Banco", "Banco",
                     "Estado de la cuenta según lo cobrado y pagado en la aplicación.", Iconos.Banco),
                 new Submodulo("Finanzas.Proveedores", "Proveedores",
@@ -109,7 +111,7 @@ public static class ModuloCatalogo
                 new Submodulo("Reportes.Ventas", "Ventas",
                     "Ventas registradas en el período, con totales y gráficos.", Iconos.Ventas),
                 new Submodulo("Reportes.Gastos", "Gastos",
-                    "Pagos a proveedores en el período, con totales y gráficos.", Iconos.Reportes),
+                    "Pagos a proveedores y gastos varios del período, en Bs, con totales y gráficos.", Iconos.Reportes),
                 new Submodulo("Reportes.LibroVentas", "Libro de ventas",
                     "Libro fiscal del período (mes o quincena), exportable para el contador.", Iconos.CuentasPorPagar)
             ]),

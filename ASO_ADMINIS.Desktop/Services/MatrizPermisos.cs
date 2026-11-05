@@ -127,6 +127,9 @@ public static class MatrizPermisos
             Permisos.Finanzas.Pagar,
             Permisos.Finanzas.Anular,
 
+            Permisos.Ver("Finanzas.GastosVarios"),
+            Permisos.GastosVarios.Crear,
+
             Permisos.Banco.Crear,
             Permisos.Banco.Editar,
             Permisos.Banco.Eliminar,

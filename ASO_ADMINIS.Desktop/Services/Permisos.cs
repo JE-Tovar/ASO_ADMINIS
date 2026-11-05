@@ -43,6 +43,15 @@ public static class Permisos
     }
 
     /// <summary>
+    /// Gastos varios: registrar uno mueve dinero (y puede asentar en Banco), así que va con
+    /// Supervisor. Anularlo usa <see cref="Finanzas.Anular"/>, como el resto de Finanzas.
+    /// </summary>
+    public static class GastosVarios
+    {
+        public const string Crear = "GastosVarios.Crear";
+    }
+
+    /// <summary>
     /// El libro de banco: los movimientos que se teclean a mano. Los que nacen de un pago no
     /// piden permiso propio — ya lo guarda <see cref="Finanzas.Pagar"/>, y exigir otro más
     /// dejaría pagar la factura sin que el dinero apareciera en el libro.

@@ -170,6 +170,35 @@ public sealed class BancoService
                    usuarioId);
 
     /// <summary>
+    /// Asiento de un gasto vario pagado desde una cuenta. Lo escribe
+    /// <see cref="GastosVariosService.Registrar"/>; mismo criterio de permisos que
+    /// <see cref="RegistrarPagoProveedor"/> (lo exige el servicio que llama).
+    /// </summary>
+    public MovimientoBanco RegistrarGastoVario(GastoVario gasto, AsientoBanco datos, int usuarioId)
+        => Asentar(TipoMovimientoBanco.Salida,
+                   gasto.Monto,
+                   $"Gasto {gasto.Numero} — {gasto.Concepto}",
+                   CategoriaMovimiento.GastoVario,
+                   OrigenMovimiento.GastoVario,
+                   gasto.Id,
+                   datos,
+                   usuarioId);
+
+    /// <summary>
+    /// Anula los asientos vivos que nacieron de un documento cuando ese documento se anula.
+    /// Composición, como <see cref="RegistrarGastoVario"/>: el permiso lo exigió el servicio del
+    /// documento (<c>Finanzas.Anular</c>), y pedir además <c>Banco.Anular</c> dejaría el
+    /// documento anulado con su dinero todavía fuera de la cuenta.
+    /// </summary>
+    public void AnularDerivados(OrigenMovimiento origen, int origenId, string motivo)
+    {
+        foreach (var asiento in _movimientos.GetByOrigen(origen, origenId)
+                                            .Where(m => m.Estado != EstadoMovimientoBanco.Anulado)
+                                            .ToList())
+            AnularUno(asiento, motivo);
+    }
+
+    /// <summary>
     /// El cuerpo común de los tres. Congela el monto que dice el documento en este instante: si
     /// mañana alguien corrige la factura, el libro no se mueve — mismo criterio que
     /// <c>TarifaMonto</c> en los documentos que citan una tarifa.

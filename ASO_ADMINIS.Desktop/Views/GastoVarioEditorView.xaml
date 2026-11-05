@@ -1,0 +1,86 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.GastoVarioEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="520">
+
+  <StackPanel>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <controls:FormField Grid.Column="0" Etiqueta="Fecha">
+        <DatePicker Style="{StaticResource FormDatePickerStyle}" SelectedDate="{Binding Fecha}" />
+      </controls:FormField>
+
+      <!-- Combo editable: se elige una categoría usada o se escribe una nueva. -->
+      <controls:FormField Grid.Column="2" Etiqueta="Categoría">
+        <ComboBox Style="{StaticResource EditableComboBoxStyle}" IsEditable="True"
+                  ItemsSource="{Binding Categorias}"
+                  Text="{Binding Categoria, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+    </Grid>
+
+    <controls:FormField Etiqueta="Concepto" Ayuda="En qué consistió: &quot;Recibo de luz de octubre&quot;, &quot;Flete a Valencia&quot;.">
+      <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="200"
+               Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <controls:FormField Grid.Column="0" Etiqueta="Beneficiario (opcional)">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="120"
+                 Text="{Binding Beneficiario, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+
+      <controls:FormField Grid.Column="2" Etiqueta="Referencia (opcional)">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="60"
+                 Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="N° de recibo, de transferencia o de comprobante." />
+      </controls:FormField>
+    </Grid>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <controls:FormField Grid.Column="0" Etiqueta="Moneda">
+        <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                  ItemsSource="{Binding Monedas}" DisplayMemberPath="Texto"
+                  SelectedItem="{Binding MonedaSeleccionada}" />
+      </controls:FormField>
+
+      <controls:FormField Grid.Column="2" Etiqueta="Monto">
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding Monto, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+    </Grid>
+
+    <controls:FormField Etiqueta="Se pagó con"
+                        Ayuda="Si sale de una cuenta, se registra solo el movimiento en Finanzas · Banco.">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                ItemsSource="{Binding OpcionesPago}" DisplayMemberPath="Texto"
+                SelectedItem="{Binding PagoSeleccionado}" />
+    </controls:FormField>
+
+    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+      <TextBlock Text="Equivalente" VerticalAlignment="Center" Margin="0,0,8,0"
+                 Foreground="{DynamicResource TextSecondaryBrush}" />
+      <TextBlock Text="{Binding EquivalenteTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>
