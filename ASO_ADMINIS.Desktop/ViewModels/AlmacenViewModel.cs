@@ -140,6 +140,7 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         Minimo = original.Minimo == 0 ? string.Empty : original.Minimo.ToString("0.##");
         PrecioVenta = original.PrecioVenta == 0 ? string.Empty : original.PrecioVenta.ToString("0.##");
         UnidadSeleccionada = original.Unidad;
+        AlicuotaSeleccionada = original.Alicuota;
 
         foreach (var presentacion in original.Presentaciones)
             Presentaciones.Add(new PresentacionEditorViewModel
@@ -196,6 +197,15 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
             if (SetProperty(ref _unidadSeleccionada, value))
                 OnPropertyChanged(nameof(EncabezadoFactor));
         }
+    }
+
+    public IReadOnlyList<OpcionAlicuota> OpcionesAlicuota { get; } = OpcionAlicuota.Todas;
+
+    private TipoAlicuota _alicuotaSeleccionada = TipoAlicuota.General;
+    public TipoAlicuota AlicuotaSeleccionada
+    {
+        get => _alicuotaSeleccionada;
+        set => SetProperty(ref _alicuotaSeleccionada, value);
     }
 
     private string _codigo = string.Empty;
@@ -304,6 +314,7 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         articulo.Nombre = Nombre.Trim();
         articulo.Categoria = Categoria.Trim();
         articulo.Unidad = UnidadSeleccionada;
+        articulo.Alicuota = AlicuotaSeleccionada;
         articulo.Minimo = decimal.TryParse(Minimo, out var minimo) ? minimo : 0m;
         articulo.PrecioVenta = decimal.TryParse(PrecioVenta, out var precio) ? precio : 0m;
         articulo.Ubicacion = Ubicacion.Trim();

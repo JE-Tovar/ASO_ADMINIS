@@ -63,6 +63,14 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     public decimal PrecioVenta { get; set; }
 
     /// <summary>
+    /// Alícuota de IVA del artículo. <see cref="PrecioVenta"/> es SIN IVA: el impuesto se suma
+    /// al facturar, con el porcentaje vigente de la organización.
+    /// </summary>
+    public TipoAlicuota Alicuota { get; set; } = TipoAlicuota.General;
+
+    public string AlicuotaTexto => Alicuotas.Texto(Alicuota);
+
+    /// <summary>
     /// Equivalente en bolívares a la tasa vigente. NO se persiste (va con <c>Ignore</c> en el
     /// DbContext): depende de otra tabla y el modelo no tiene acceso a la base. La rellena
     /// <c>AlmacenViewModel</c> con <see cref="Services.TasaCambioService"/> antes de pintar,

@@ -29,9 +29,11 @@
     <Border Grid.Row="1" Style="{StaticResource TabStripStyle}" VerticalAlignment="Bottom" />
 
     <!-- Ficha de la organización instalada: no es un padron, es la unica fila -->
-    <Grid Grid.Row="2" Margin="0,24,0,0" Visibility="{Binding MostrarOrganizacion, Converter={StaticResource BoolToVis}}">
-      <Border DataContext="{Binding Organizacion}" Style="{StaticResource CardStyle}"
-              VerticalAlignment="Top" HorizontalAlignment="Left" Width="460">
+    <ScrollViewer Grid.Row="2" Margin="0,24,0,0" VerticalScrollBarVisibility="Auto"
+                  Visibility="{Binding MostrarOrganizacion, Converter={StaticResource BoolToVis}}">
+    <WrapPanel DataContext="{Binding Organizacion}" Orientation="Horizontal">
+      <Border Style="{StaticResource CardStyle}"
+              VerticalAlignment="Top" HorizontalAlignment="Left" Width="460" Margin="0,0,16,16">
         <StackPanel>
           <TextBlock Text="Datos de la organización" FontSize="{StaticResource FsTitle}" FontWeight="{StaticResource FwBold}"
                      Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -67,7 +69,88 @@
                   Command="{Binding ActualizarTasaCommand}" />
         </StackPanel>
       </Border>
-    </Grid>
+
+      <!-- Datos fiscales del emisor: figuran en cada documento fiscal. Se guardan con el mismo
+           botón Guardar de la ficha de la organización. -->
+      <Border Style="{StaticResource CardStyle}"
+              VerticalAlignment="Top" HorizontalAlignment="Left" Width="520" Margin="0,0,16,16">
+        <StackPanel IsEnabled="{Binding PuedeEditar}">
+          <TextBlock Text="Datos fiscales" FontSize="{StaticResource FsTitle}" FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Text="Figuran en cada factura y nota. Los porcentajes deben coincidir con los programados en el emisor fiscal."
+                     FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,8" />
+
+          <controls:FormField Etiqueta="Razón social">
+            <TextBox Style="{StaticResource FormTextBoxStyle}"
+                     Text="{Binding RazonSocial, UpdateSourceTrigger=PropertyChanged}" />
+          </controls:FormField>
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <controls:FormField Grid.Column="0" Etiqueta="RIF" Ayuda="{Binding RifAyuda}">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       Text="{Binding Rif, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+            <controls:FormField Grid.Column="2" Etiqueta="Teléfono">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       Text="{Binding Telefono, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+          </Grid>
+
+          <controls:FormField Etiqueta="Dirección fiscal">
+            <TextBox Style="{StaticResource FormTextBoxStyle}"
+                     AcceptsReturn="True" MinLines="2" TextWrapping="Wrap"
+                     VerticalContentAlignment="Top"
+                     Text="{Binding DireccionFiscal, UpdateSourceTrigger=PropertyChanged}" />
+          </controls:FormField>
+
+          <CheckBox Content="Contribuyente especial" Margin="0,16,0,0" Cursor="Hand"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    IsChecked="{Binding ContribuyenteEspecial}" />
+          <TextBlock Text="Si está marcado, se percibe el IGTF sobre lo cobrado en divisas y el libro de ventas se lleva por quincena."
+                     FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+
+          <Grid Margin="0,4,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <controls:FormField Grid.Column="0" Etiqueta="IVA general %">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       Text="{Binding IvaGeneral, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+            <controls:FormField Grid.Column="2" Etiqueta="IVA reducida %">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       Text="{Binding IvaReducida, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+            <controls:FormField Grid.Column="4" Etiqueta="IVA adicional %">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       ToolTip="General + adicional de bienes suntuarios, ya sumados."
+                       Text="{Binding IvaAdicional, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+            <controls:FormField Grid.Column="6" Etiqueta="IGTF %">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       Text="{Binding Igtf, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+          </Grid>
+
+          <Button Content="Guardar" Style="{StaticResource PrimaryButtonStyle}" Margin="0,16,0,0"
+                  HorizontalAlignment="Left" Command="{Binding GuardarCommand}" />
+        </StackPanel>
+      </Border>
+    </WrapPanel>
+    </ScrollViewer>
 
     <!-- Usuarios y sus permisos: maestro-detalle, se ve a quien se esta editando todo el tiempo -->
     <Grid Grid.Row="2" Margin="0,24,0,0" Visibility="{Binding MostrarUsuarios, Converter={StaticResource BoolToVis}}">

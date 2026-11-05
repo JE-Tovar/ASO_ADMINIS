@@ -19,6 +19,7 @@ public class AsoAdminisDbContext : DbContext
     // ---- Ventas ----
     public DbSet<TasaCambio> TasasCambio { get; set; }
     public DbSet<Venta> Ventas { get; set; }
+    public DbSet<Cliente> Clientes { get; set; }
 
     // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
     public DbSet<Proveedor> Proveedores { get; set; }
@@ -67,8 +68,21 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(o => o.Nombre).IsRequired().HasMaxLength(150);
             entity.HasIndex(o => o.Codigo).IsUnique();
 
+            // Los valores por defecto de la columna (16/8/31/3) los pone la migración para las
+            // filas existentes; no van con HasDefaultValue porque EF tomaría un 0 tecleado como
+            // "sin valor" y lo cambiaría por el defecto.
+            entity.Property(o => o.RazonSocial).HasMaxLength(200);
+            entity.Property(o => o.Rif).HasMaxLength(15);
+            entity.Property(o => o.DireccionFiscal).HasMaxLength(300);
+            entity.Property(o => o.Telefono).HasMaxLength(40);
+            entity.Property(o => o.IvaGeneral).HasColumnType("decimal(5,2)");
+            entity.Property(o => o.IvaReducida).HasColumnType("decimal(5,2)");
+            entity.Property(o => o.IvaAdicional).HasColumnType("decimal(5,2)");
+            entity.Property(o => o.IgtfPorcentaje).HasColumnType("decimal(5,2)");
+
             entity.Ignore(o => o.Etiqueta);
             entity.Ignore(o => o.EstadoTexto);
+            entity.Ignore(o => o.DatosFiscalesCompletos);
         });
 
         modelBuilder.Entity<Usuario>(entity =>
@@ -182,6 +196,22 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(p => p.Etiqueta);
         });
 
+        modelBuilder.Entity<Cliente>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Rif).IsRequired().HasMaxLength(15);
+            entity.Property(c => c.Nombre).IsRequired().HasMaxLength(200);
+            entity.Property(c => c.DireccionFiscal).HasMaxLength(300);
+            entity.Property(c => c.Telefono).HasMaxLength(40);
+            entity.Property(c => c.Correo).HasMaxLength(120);
+
+            // Respaldo del "no repetir RIF" de ClienteValidacion.
+            entity.HasIndex(c => new { c.OrganizacionId, c.Rif }).IsUnique();
+
+            entity.Ignore(c => c.EstadoTexto);
+            entity.Ignore(c => c.Etiqueta);
+        });
+
         modelBuilder.Entity<FacturaProveedor>(entity =>
         {
             entity.HasKey(f => f.Id);
@@ -278,6 +308,10 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(a => a.Notas).HasMaxLength(500);
             entity.Property(a => a.Minimo).HasColumnType("decimal(18,2)").IsRequired();
             entity.Property(a => a.PrecioVenta).HasColumnType("decimal(18,2)").IsRequired();
+
+            // Los artículos que ya existían quedan en la general (defaultValue de la migración);
+            // el exento se marca a mano.
+            entity.Ignore(a => a.AlicuotaTexto);
 
             // Respalda el código aleatorio: si dos altas simultáneas generan el mismo candidato,
             // la segunda choca contra el índice en vez de duplicar el artículo.

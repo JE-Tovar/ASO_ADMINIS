@@ -35,6 +35,15 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
         {
             _codigo = organizacion.Codigo;
             _nombre = organizacion.Nombre;
+            _razonSocial = organizacion.RazonSocial;
+            _rif = organizacion.Rif;
+            _direccionFiscal = organizacion.DireccionFiscal;
+            _telefono = organizacion.Telefono;
+            _contribuyenteEspecial = organizacion.ContribuyenteEspecial;
+            _ivaGeneral = organizacion.IvaGeneral.ToString("0.##");
+            _ivaReducida = organizacion.IvaReducida.ToString("0.##");
+            _ivaAdicional = organizacion.IvaAdicional.ToString("0.##");
+            _igtf = organizacion.IgtfPorcentaje.ToString("0.##");
         }
 
         GuardarCommand = new RelayCommand(Guardar, () => PuedeEditar);
@@ -108,6 +117,82 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
         set => SetProperty(ref _nombre, value);
     }
 
+    // ---- Datos fiscales del emisor ----
+
+    private string _razonSocial = string.Empty;
+    public string RazonSocial
+    {
+        get => _razonSocial;
+        set => SetProperty(ref _razonSocial, value);
+    }
+
+    private string _rif = string.Empty;
+    public string Rif
+    {
+        get => _rif;
+        set
+        {
+            if (SetProperty(ref _rif, value))
+                OnPropertyChanged(nameof(RifAyuda));
+        }
+    }
+
+    public string RifAyuda => string.IsNullOrWhiteSpace(Rif)
+        ? "J-12345678-9. Sin RIF no se pueden emitir documentos fiscales."
+        : Services.Rif.Error(Rif, exigirRif: true) ?? $"✓ {Services.Rif.Normalizar(Rif)}";
+
+    private string _direccionFiscal = string.Empty;
+    public string DireccionFiscal
+    {
+        get => _direccionFiscal;
+        set => SetProperty(ref _direccionFiscal, value);
+    }
+
+    private string _telefono = string.Empty;
+    public string Telefono
+    {
+        get => _telefono;
+        set => SetProperty(ref _telefono, value);
+    }
+
+    private bool _contribuyenteEspecial;
+    public bool ContribuyenteEspecial
+    {
+        get => _contribuyenteEspecial;
+        set => SetProperty(ref _contribuyenteEspecial, value);
+    }
+
+    private string _ivaGeneral = "16";
+    public string IvaGeneral
+    {
+        get => _ivaGeneral;
+        set => SetProperty(ref _ivaGeneral, value);
+    }
+
+    private string _ivaReducida = "8";
+    public string IvaReducida
+    {
+        get => _ivaReducida;
+        set => SetProperty(ref _ivaReducida, value);
+    }
+
+    private string _ivaAdicional = "31";
+    public string IvaAdicional
+    {
+        get => _ivaAdicional;
+        set => SetProperty(ref _ivaAdicional, value);
+    }
+
+    private string _igtf = "3";
+    public string Igtf
+    {
+        get => _igtf;
+        set => SetProperty(ref _igtf, value);
+    }
+
+    private static bool LeerPorcentaje(string texto, out decimal valor) =>
+        decimal.TryParse(texto, out valor) && valor >= 0 && valor < 100;
+
     private void Guardar()
     {
         if (Ambito.Actual is not { } actual)
@@ -120,9 +205,34 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(Rif) && Services.Rif.Error(Rif, exigirRif: true) is { } errorRif)
+        {
+            _dialogos.Informar("RIF no válido", errorRif);
+            return;
+        }
+
+        if (!LeerPorcentaje(IvaGeneral, out var ivaGeneral)
+            || !LeerPorcentaje(IvaReducida, out var ivaReducida)
+            || !LeerPorcentaje(IvaAdicional, out var ivaAdicional)
+            || !LeerPorcentaje(Igtf, out var igtf))
+        {
+            _dialogos.Informar("Porcentajes no válidos",
+                "Los porcentajes de IVA e IGTF deben ser números entre 0 y 99,99.");
+            return;
+        }
+
         var actualizado = actual.Clonar();
         actualizado.Codigo = Codigo.Trim().ToUpperInvariant();
         actualizado.Nombre = Nombre.Trim();
+        actualizado.RazonSocial = RazonSocial.Trim();
+        actualizado.Rif = Services.Rif.Normalizar(Rif) ?? string.Empty;
+        actualizado.DireccionFiscal = DireccionFiscal.Trim();
+        actualizado.Telefono = Telefono.Trim();
+        actualizado.ContribuyenteEspecial = ContribuyenteEspecial;
+        actualizado.IvaGeneral = ivaGeneral;
+        actualizado.IvaReducida = ivaReducida;
+        actualizado.IvaAdicional = ivaAdicional;
+        actualizado.IgtfPorcentaje = igtf;
 
         try
         {
@@ -131,6 +241,7 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
 
             Codigo = actualizado.Codigo;
             Nombre = actualizado.Nombre;
+            Rif = actualizado.Rif;
 
             _dialogos.Informar("Organización actualizada", "Los datos se guardaron correctamente.");
         }

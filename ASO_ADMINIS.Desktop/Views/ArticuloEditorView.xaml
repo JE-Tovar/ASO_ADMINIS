@@ -82,15 +82,31 @@
       </StackPanel>
     </Grid>
 
-    <controls:FormField Etiqueta="Precio de venta (US$)"
-                        Ayuda="Referencia: Ventas lo propone al elegir el artículo, pero se puede cambiar en cada venta.">
-      <StackPanel>
-        <TextBox Style="{StaticResource FormTextBoxStyle}"
-                 Text="{Binding PrecioVenta, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBlock Text="{Binding PrecioVentaBsTexto}" FontSize="{StaticResource FsCaption}"
-                   Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
-      </StackPanel>
-    </controls:FormField>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <controls:FormField Grid.Column="0" Etiqueta="Precio de venta sin IVA (US$)"
+                          Ayuda="Referencia: Ventas lo propone al elegir el artículo, pero se puede cambiar en cada venta.">
+        <StackPanel>
+          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                   Text="{Binding PrecioVenta, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Text="{Binding PrecioVentaBsTexto}" FontSize="{StaticResource FsCaption}"
+                     Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+      </controls:FormField>
+
+      <controls:FormField Grid.Column="2" Etiqueta="Alícuota de IVA"
+                          Ayuda="El porcentaje de cada alícuota se fija en Administración · Organización.">
+        <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                  ItemsSource="{Binding OpcionesAlicuota}"
+                  DisplayMemberPath="Texto" SelectedValuePath="Valor"
+                  SelectedValue="{Binding AlicuotaSeleccionada}" />
+      </controls:FormField>
+    </Grid>
 
     <!-- Presentaciones: medidas propias del rubro, sin alargar la lista de unidades. -->
     <TextBlock Text="Presentaciones" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,4" />

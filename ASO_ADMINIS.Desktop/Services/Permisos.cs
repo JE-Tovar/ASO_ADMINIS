@@ -78,6 +78,14 @@ public static class Permisos
     }
 
 
+    /// <summary>Padrón de clientes (Ventas · Clientes).</summary>
+    public static class Clientes
+    {
+        public const string Crear = "Clientes.Crear";
+        public const string Editar = "Clientes.Editar";
+        public const string Eliminar = "Clientes.Eliminar";
+    }
+
     /// <summary>
     /// Ventas registradas (Ventas · Registro). No hay "Editar" ni "Eliminar": es un documento,
     /// no se corrige ni se borra, se anula.

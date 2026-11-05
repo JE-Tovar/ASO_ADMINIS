@@ -39,6 +39,10 @@
     <views:ProveedoresView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:ClientesViewModel}">
+    <views:ClientesView />
+  </DataTemplate>
+
   <!-- Inventario · Almacén, Entradas y Salidas -->
 
   <DataTemplate DataType="{x:Type vm:AlmacenViewModel}">

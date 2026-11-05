@@ -65,7 +65,9 @@ public static class ModuloCatalogo
             Iconos.Ventas,
             [
                 new Submodulo("Ventas.Registro", "Registro de ventas",
-                    "Ventas registradas, con lo que descuentan del almacén.", Iconos.Ventas)
+                    "Ventas registradas, con lo que descuentan del almacén.", Iconos.Ventas),
+                new Submodulo("Ventas.Clientes", "Clientes",
+                    "Padrón de clientes con su RIF o cédula, para facturarles.", Iconos.Usuarios)
             ]),
 
         new Modulo(

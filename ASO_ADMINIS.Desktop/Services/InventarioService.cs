@@ -67,6 +67,23 @@ public sealed class InventarioService
 
     // --- Validación del maestro ---
 
+    private static readonly string[] Genericas =
+    [
+        "articulo", "articulos", "mercancia", "mercancias", "varios", "varias", "producto",
+        "productos", "item", "items", "otros", "otro", "general", "miscelaneo", "miscelaneos"
+    ];
+
+    /// <summary>True si el nombre es solo una palabra genérica ("Artículo", "Varios"…).</summary>
+    public static bool DescripcionGenerica(string nombre)
+    {
+        var limpio = new string(nombre.Trim().ToLowerInvariant()
+            .Normalize(System.Text.NormalizationForm.FormD)
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                        != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .ToArray()).Trim('.', ' ');
+        return Genericas.Contains(limpio);
+    }
+
     public bool Validar(Articulo articulo, out string? error)
     {
         if (string.IsNullOrWhiteSpace(articulo.Nombre))
@@ -78,6 +95,15 @@ public sealed class InventarioService
         if (string.IsNullOrWhiteSpace(articulo.Codigo))
         {
             error = "Indique el código del artículo o deje el campo vacío para generarlo.";
+            return false;
+        }
+
+        // El SENIAT prohíbe descripciones genéricas en el documento fiscal, y el nombre del
+        // artículo es lo que se imprime en cada renglón.
+        if (DescripcionGenerica(articulo.Nombre))
+        {
+            error = $"\"{articulo.Nombre.Trim()}\" es una descripción genérica: la factura debe decir qué se vende " +
+                    "(p. ej. \"Pintura caucho blanco 1 gal\", no \"Artículo\" ni \"Varios\").";
             return false;
         }
 
