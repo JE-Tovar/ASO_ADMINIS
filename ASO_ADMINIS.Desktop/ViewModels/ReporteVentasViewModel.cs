@@ -139,55 +139,32 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
         GraficoPorCategoria = ConstruirGraficoPorCategoria(enRango, articulosPorId);
     }
 
+    /// <summary>Una barra horizontal por día; ver <see cref="Graficos.Barras"/>.</summary>
+    private static PlotModel ConstruirGraficoPorDia(IReadOnlyList<Venta> ventas) =>
+        Graficos.Barras("Ventas por día (Bs, neto de notas)",
+            ventas.GroupBy(v => v.Fecha.Date)
+                  .OrderBy(g => g.Key)
+                  .Select(g => (g.Key.ToString("dd/MM"), (double)g.Sum(v => v.Signo * v.Total))));
+
     /// <summary>
-    /// Barras horizontales y no columnas: <c>ColumnSeries</c> se retiró de OxyPlot 2.x
-    /// (ver github.com/oxyplot/oxyplot/discussions/2063) y transponer <c>BarSeries</c> con
-    /// <c>XAxisKey</c>/<c>YAxisKey</c> agrega una complejidad que esto no necesita — una barra
-    /// horizontal por día se lee igual de bien.
+    /// La categoría es texto libre en el artículo: se agrupa sin distinguir mayúsculas y un
+    /// artículo sin categoría (o ya borrado) cae en "Sin categoría". Por renglón (una factura
+    /// puede mezclar categorías), en Bs sin IVA y neto de notas de crédito. Los cargos de una
+    /// nota de débito no son artículos y no entran.
     /// </summary>
-    private static PlotModel ConstruirGraficoPorDia(IReadOnlyList<Venta> ventas)
-    {
-        var modelo = new PlotModel { Title = "Ventas por día (Bs, neto de notas)" };
-        var categorias = new CategoryAxis { Position = AxisPosition.Left };
-        var serie = new BarSeries { LabelPlacement = LabelPlacement.Outside, LabelFormatString = "{0:N0}" };
-
-        foreach (var grupo in ventas.GroupBy(v => v.Fecha.Date).OrderBy(g => g.Key))
-        {
-            categorias.Labels.Add(grupo.Key.ToString("dd/MM"));
-            serie.Items.Add(new BarItem { Value = (double)grupo.Sum(v => v.Signo * v.Total) });
-        }
-
-        modelo.Axes.Add(categorias);
-        modelo.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, MinimumPadding = 0, AbsoluteMinimum = 0 });
-        modelo.Series.Add(serie);
-        return modelo;
-    }
-
     private static PlotModel ConstruirGraficoPorCategoria(IReadOnlyList<Venta> ventas,
                                                            IReadOnlyDictionary<int, Articulo> articulosPorId)
     {
-        var modelo = new PlotModel { Title = "Ventas por categoría" };
-        var serie = new PieSeries { StrokeThickness = 1, InsideLabelPosition = 0.7 };
+        var porCategoria = ventas
+            .SelectMany(v => v.Lineas.Where(l => l.ArticuloId is not null).Select(l => (Linea: l, v.Signo)))
+            .GroupBy(x =>
+                articulosPorId.TryGetValue(x.Linea.ArticuloId!.Value, out var a) && !string.IsNullOrWhiteSpace(a.Categoria)
+                    ? a.Categoria.Trim()
+                    : "Sin categoría",
+                StringComparer.OrdinalIgnoreCase)
+            .Select(g => (g.Key, (double)g.Sum(x => x.Signo * x.Linea.Monto)));
 
-        // La categoría es texto libre en el artículo: se agrupa sin distinguir mayúsculas y un
-        // artículo sin categoría (o ya borrado) cae en "Sin categoría".
-        // Por renglón (una factura puede mezclar categorías), en Bs sin IVA y neto de notas de
-        // crédito. Los cargos de una nota de débito no son artículos y no entran.
-        var renglones = ventas.SelectMany(v => v.Lineas.Where(l => l.ArticuloId is not null)
-                                                       .Select(l => (Linea: l, v.Signo)));
-        foreach (var grupo in renglones.GroupBy(x =>
-                     articulosPorId.TryGetValue(x.Linea.ArticuloId!.Value, out var a) && !string.IsNullOrWhiteSpace(a.Categoria)
-                         ? a.Categoria.Trim()
-                         : "Sin categoría",
-                     StringComparer.OrdinalIgnoreCase))
-        {
-            var monto = grupo.Sum(x => x.Signo * x.Linea.Monto);
-            if (monto > 0)
-                serie.Slices.Add(new PieSlice(grupo.Key, (double)monto));
-        }
-
-        modelo.Series.Add(serie);
-        return modelo;
+        return Graficos.Torta("Ventas por categoría (Bs)", porCategoria);
     }
 }
 

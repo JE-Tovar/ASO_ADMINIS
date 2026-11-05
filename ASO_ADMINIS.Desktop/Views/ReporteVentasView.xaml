@@ -58,17 +58,17 @@
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
-      <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}">
-        <oxy:PlotView Model="{Binding GraficoPorDia}" Height="260" Background="Transparent" />
+      <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" MinWidth="260">
+        <oxy:PlotView Model="{Binding GraficoPorDia}" Height="300" Background="Transparent" />
       </Border>
 
-      <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}">
-        <oxy:PlotView Model="{Binding GraficoPorCategoria}" Height="260" Background="Transparent" />
+      <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" MinWidth="260">
+        <oxy:PlotView Model="{Binding GraficoPorCategoria}" Height="300" Background="Transparent" />
       </Border>
 
       <!-- Tabla y no gráfico: para cuadrar caja hacen falta los montos exactos por método. -->
-      <Border Grid.Column="4" Style="{StaticResource SectionCardStyle}">
-        <Grid Height="260">
+      <Border Grid.Column="4" Style="{StaticResource SectionCardStyle}" MinWidth="260">
+        <Grid Height="300">
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
