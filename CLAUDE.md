@@ -470,6 +470,19 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
    - **IGTF en notas:** las notas de crédito no revierten IGTF.
    - **Por confirmar con el contador:** los porcentajes de IVA, el criterio del IGTF y las
      columnas exactas del libro de ventas.
+   - **Documento para el cliente:** el simulador solo escribe un `.txt` en `%AppData%`; no hay
+     factura imprimible ni PDF para entregar. Con máquina fiscal la imprime la máquina; con
+     imprenta digital, normalmente el proveedor devuelve el PDF. Se resuelve junto con el
+     conector real.
+   - **Rangos de contingencia:** hoy solo se valida que el n° de control de papel no se repita.
+     Falta cargar en Organización el rango de formatos autorizados por la imprenta y exigir que
+     el número caiga dentro. No depende del cliente: se puede hacer ya.
+   - **Providencia SNAT/2026/00093** (vigente desde abril de 2027): solo se conoce por notas de
+     prensa. Hay que revisar su texto completo en la Gaceta 43.484 por si exige algo más en el
+     documento.
+   - **RIF:** solo se valida el dígito verificador, no que exista. No hay API oficial del SENIAT.
+     Si se retoma, la opción barata es un botón "Consultar en SENIAT" en la ficha del cliente
+     más una marca de "verificado por / fecha".
 6. **`Solicitables` vacío**: no hay ninguna petición de cambio configurada todavía — ver
    "Peticiones de cambio" arriba. Los dos candidatos naturales ya existen:
    `EntradasInventario.Anular` y `SalidasInventario.Anular`, que hoy un Operador simplemente no
