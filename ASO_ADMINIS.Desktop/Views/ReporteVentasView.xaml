@@ -96,13 +96,13 @@
         <DataGrid x:Name="TablaVentas" Style="{StaticResource DataGridStyle}"
                   ItemsSource="{Binding Items}" IsReadOnly="True">
           <DataGrid.Columns>
-            <controls:ColumnaTexto Header="Nº" Binding="{Binding Numero}" Width="12*" MinWidth="86" />
+            <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoCorto}" Width="6*" MinWidth="44" />
+            <controls:ColumnaTexto Header="N° fiscal" Binding="{Binding NumeroFiscalTexto}" Width="11*" MinWidth="90" />
             <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="10*" MinWidth="78" />
-            <controls:ColumnaTexto Header="Artículo" Binding="{Binding ArticuloTexto}" Width="26*" MinWidth="150" />
-            <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteNombre}" Width="18*" MinWidth="110" />
-            <controls:ColumnaTexto Header="Método de pago" Binding="{Binding MetodoPagoTexto}" Width="13*" MinWidth="100" />
-            <controls:ColumnaNumero Header="Cant." Binding="{Binding CantidadTexto}" Width="8*" MinWidth="56" />
-            <controls:ColumnaNumero Header="Total US$" Binding="{Binding TotalUsdTexto}" Width="13*" MinWidth="86" />
+            <controls:ColumnaTexto Header="Artículos" Binding="{Binding ArticuloTexto}" Width="24*" MinWidth="150" />
+            <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteTexto}" Width="18*" MinWidth="110" />
+            <controls:ColumnaTexto Header="Pago" Binding="{Binding MetodoPagoTexto}" Width="13*" MinWidth="100" />
+            <controls:ColumnaNumero Header="Ref. US$" Binding="{Binding TotalUsdTexto}" Width="11*" MinWidth="80" />
             <controls:ColumnaNumero Header="Total Bs" Binding="{Binding TotalBsTexto}" Width="13*" MinWidth="86" />
           </DataGrid.Columns>
         </DataGrid>

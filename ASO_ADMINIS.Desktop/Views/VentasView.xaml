@@ -28,6 +28,7 @@
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -41,8 +42,12 @@
             <controls:FiltroDropdown Style="{StaticResource FiltroDropdownStyle}" SelectedIndex="0"
                                      Margin="0,0,12,0" VerticalAlignment="Center"
                                      Command="{Binding CambiarFiltroCommand}">
-              <ComboBoxItem Content="Todas" />
-              <ComboBoxItem Content="Anuladas" />
+              <ComboBoxItem Content="Todos" />
+              <ComboBoxItem Content="Facturas" />
+              <ComboBoxItem Content="Notas de crédito" />
+              <ComboBoxItem Content="Notas de débito" />
+              <ComboBoxItem Content="Por transmitir" />
+              <ComboBoxItem Content="Histórico" />
             </controls:FiltroDropdown>
           </WrapPanel>
 
@@ -52,12 +57,24 @@
 
           <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
                       Margin="0,12,0,0">
-            <Button Content="Registrar venta" Style="{StaticResource PrimaryButtonStyle}"
+            <Button Content="Emitir factura" Style="{StaticResource PrimaryButtonStyle}"
                     Command="{Binding AgregarCommand}" />
-            <Button Content="Anular" Style="{StaticResource SecondaryButtonStyle}"
-                    Foreground="{DynamicResource DangerTextBrush}"
-                    Command="{Binding AnularCommand}" />
+            <Button Content="Nota de crédito" Style="{StaticResource SecondaryButtonStyle}"
+                    ToolTip="Devolución total o parcial de la factura seleccionada"
+                    Command="{Binding NotaCreditoCommand}" />
+            <Button Content="Nota de débito" Style="{StaticResource SecondaryButtonStyle}"
+                    ToolTip="Cargo adicional sobre la factura seleccionada"
+                    Command="{Binding NotaDebitoCommand}" />
+            <Button Content="Transmitir pendientes" Style="{StaticResource SecondaryButtonStyle}"
+                    ToolTip="Envía al emisor fiscal los documentos hechos en papel de contingencia"
+                    Command="{Binding TransmitirCommand}" />
+            <TextBlock Text="{Binding PendientesTexto}" VerticalAlignment="Center" Margin="8,0,0,0"
+                       FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource WarningTextBrush}" />
           </StackPanel>
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                     Text="{Binding EmisorTexto}" FontSize="{StaticResource FsCaption}"
+                     Foreground="{DynamicResource TextMutedBrush}" />
         </Grid>
       </Border>
 
@@ -67,18 +84,16 @@
                     ItemsSource="{Binding ItemsView}"
                     SelectedItem="{Binding SelectedItem}">
             <DataGrid.Columns>
-              <controls:ColumnaTexto Header="Nº" Binding="{Binding Numero}" Width="12*" MinWidth="86" />
-              <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="10*" MinWidth="78" />
-              <controls:ColumnaTexto Header="Artículo" Binding="{Binding ArticuloTexto}" Width="24*" MinWidth="150" />
-              <!-- Oculta por ahora para ganar espacio; el dato se sigue guardando y el buscador lo encuentra. -->
-              <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteNombre}" Width="18*" MinWidth="110"
-                                     Visibility="Collapsed" />
-              <controls:ColumnaTexto Header="Método de pago" Binding="{Binding MetodoPagoTexto}" Width="13*" MinWidth="100" />
-              <controls:ColumnaNumero Header="Cant." Binding="{Binding CantidadNumeroTexto}" Width="8*" MinWidth="56" />
-              <controls:ColumnaTexto Header="Presentación" Binding="{Binding PresentacionNombre}" Width="11*" MinWidth="86" />
-              <controls:ColumnaNumero Header="Total US$" Binding="{Binding TotalUsdTexto}" Width="12*" MinWidth="86" />
-              <controls:ColumnaNumero Header="Total Bs" Binding="{Binding TotalBsTexto}" Width="12*" MinWidth="86" />
-              <DataGridTemplateColumn Header="Estado" Width="96">
+              <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoCorto}" Width="6*" MinWidth="44" />
+              <controls:ColumnaTexto Header="N° fiscal" Binding="{Binding NumeroFiscalTexto}" Width="11*" MinWidth="90" />
+              <controls:ColumnaTexto Header="Control" Binding="{Binding NumeroControl}" Width="11*" MinWidth="86" />
+              <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaHoraTexto}" Width="12*" MinWidth="104" />
+              <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteTexto}" Width="20*" MinWidth="130" />
+              <controls:ColumnaTexto Header="Artículos" Binding="{Binding ArticuloTexto}" Width="20*" MinWidth="130" />
+              <controls:ColumnaTexto Header="Pago" Binding="{Binding MetodoPagoTexto}" Width="12*" MinWidth="90" />
+              <controls:ColumnaNumero Header="Total Bs" Binding="{Binding TotalBsTexto}" Width="12*" MinWidth="90" />
+              <controls:ColumnaNumero Header="Ref. US$" Binding="{Binding TotalUsdTexto}" Width="9*" MinWidth="70" />
+              <DataGridTemplateColumn Header="Estado" Width="110">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <Border Style="{StaticResource ChipEstadoVentaStyle}">
@@ -91,8 +106,8 @@
           </DataGrid>
 
           <controls:EmptyState Icono="{x:Static controls:Iconos.Ventas}"
-                               Titulo="No hay ventas registradas"
-                               Detalle="Registra la primera venta de un artículo con existencia en el almacén."
+                               Titulo="No hay documentos"
+                               Detalle="Emite la primera factura de un artículo con existencia en el almacén."
                                Visibility="{Binding HasItems, ElementName=TablaVentas, Converter={StaticResource SinItemsAVis}}" />
         </Grid>
       </Border>

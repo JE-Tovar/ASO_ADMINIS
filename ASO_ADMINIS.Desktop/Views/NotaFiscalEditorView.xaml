@@ -1,0 +1,107 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.NotaFiscalEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="900">
+
+  <UserControl.Resources>
+    <controls:PuenteDeDatos x:Key="Puente" Datos="{Binding}" />
+  </UserControl.Resources>
+
+  <StackPanel>
+    <TextBlock Text="{Binding FacturaTexto}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+    <!-- Nota de crédito: qué se devuelve de cada renglón -->
+    <StackPanel Visibility="{Binding EsCredito, Converter={StaticResource BoolToVis}}">
+      <TextBlock Text="Qué se devuelve" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,4" />
+      <TextBlock Text="A los mismos precios y alícuotas de la factura. La mercancía vuelve al almacén."
+                 FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8" />
+      <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+        <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Devoluciones}"
+                  IsReadOnly="True" MaxHeight="260" HeadersVisibility="Column" CanUserSortColumns="False">
+          <DataGrid.Columns>
+            <controls:ColumnaTexto Header="Artículo" Binding="{Binding Linea.Descripcion}" Width="34*" MinWidth="180" />
+            <controls:ColumnaTexto Header="Facturado" Binding="{Binding FacturadoTexto}" Width="14*" MinWidth="90" />
+            <controls:ColumnaNumero Header="Por devolver" Binding="{Binding DisponibleTexto}" Width="11*" MinWidth="80" />
+            <controls:ColumnaNumero Header="Precio Bs" Binding="{Binding Linea.PrecioUnitarioTexto}" Width="11*" MinWidth="80" />
+            <controls:ColumnaTexto Header="IVA" Binding="{Binding Linea.AlicuotaTexto}" Width="7*" MinWidth="50" />
+            <DataGridTemplateColumn Header="Devolver" Width="11*" MinWidth="80">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBox Style="{StaticResource LineaTextBoxStyle}" TextAlignment="Right"
+                           Text="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <controls:ColumnaNumero Header="Monto Bs" Binding="{Binding MontoTexto}" Width="12*" MinWidth="90" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+      <Button Content="Devolver todo" Margin="0,8,0,0" HorizontalAlignment="Left"
+              Style="{StaticResource SecondaryButtonStyle}" Command="{Binding DevolverTodoCommand}" />
+    </StackPanel>
+
+    <!-- Nota de débito: cargos adicionales -->
+    <StackPanel Visibility="{Binding EsDebito, Converter={StaticResource BoolToVis}}">
+      <TextBlock Text="Cargos adicionales" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,8" />
+      <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+        <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Cargos}"
+                  IsReadOnly="True" MaxHeight="220" HeadersVisibility="Column" CanUserSortColumns="False">
+          <DataGrid.Columns>
+            <DataGridTemplateColumn Header="Descripción" Width="44*" MinWidth="200">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBox Style="{StaticResource LineaTextBoxStyle}"
+                           Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="Monto Bs (sin IVA)" Width="18*" MinWidth="110">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBox Style="{StaticResource LineaTextBoxStyle}" TextAlignment="Right"
+                           Text="{Binding Monto, UpdateSourceTrigger=PropertyChanged}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="Alícuota" Width="20*" MinWidth="130">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <ComboBox Style="{StaticResource LineaComboBoxStyle}"
+                            ItemsSource="{Binding Datos.OpcionesAlicuota, Source={StaticResource Puente}}"
+                            DisplayMemberPath="Texto" SelectedValuePath="Valor"
+                            SelectedValue="{Binding Alicuota, UpdateSourceTrigger=PropertyChanged}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Width="48">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <Button Content="{x:Static controls:Iconos.Limpiar}"
+                          Style="{StaticResource LineaBotonQuitarStyle}" ToolTip="Quitar este cargo"
+                          Command="{Binding Datos.QuitarCargoCommand, Source={StaticResource Puente}}"
+                          CommandParameter="{Binding}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+          </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+      <Button Content="Agregar cargo" Margin="0,8,0,0" HorizontalAlignment="Left"
+              Style="{StaticResource SecondaryButtonStyle}" Command="{Binding AgregarCargoCommand}" />
+    </StackPanel>
+
+    <TextBlock Text="{Binding TotalTexto}" Margin="0,12,0,0" HorizontalAlignment="Right"
+               Style="{StaticResource FormValorCalculadoStyle}" />
+
+    <controls:FormField Etiqueta="Motivo" Ayuda="Figura en la nota y en el libro de ventas.">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               AcceptsReturn="True" MinLines="2" TextWrapping="Wrap" VerticalContentAlignment="Top"
+               Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+  </StackPanel>
+</UserControl>

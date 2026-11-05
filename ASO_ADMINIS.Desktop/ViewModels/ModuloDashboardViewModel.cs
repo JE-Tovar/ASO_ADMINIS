@@ -149,16 +149,20 @@ public sealed class ModuloDashboardViewModel : ViewModelBase, IRecargable
     private static IReadOnlyList<Indicador> CalcularVentas()
     {
         var hoy = DateTime.Today;
-        var delMes = DataSourceFactory.CrearVentas().GetAll()
-            .Where(v => v.Estado == EstadoVenta.Registrada
-                       && v.Fecha.Year == hoy.Year && v.Fecha.Month == hoy.Month)
+        var documentos = DataSourceFactory.CrearVentas().GetAll().ToList();
+        var delMes = documentos
+            .Where(v => v.Vigente && v.Fecha.Year == hoy.Year && v.Fecha.Month == hoy.Month)
             .ToList();
+        var pendientes = documentos.Count(v => v.Estado == EstadoVenta.PendienteTransmitir);
 
         return
         [
-            new Indicador("Vendido este mes", $"{delMes.Sum(v => v.TotalUsd):N2}", "en dólares"),
-            new Indicador("Ventas", $"{delMes.Count}", "registradas este mes"),
-            new Indicador("Unidades", $"{delMes.Sum(v => v.Cantidad):N2}", "vendidas este mes")
+            new Indicador("Vendido este mes", $"{delMes.Sum(v => v.Signo * v.Total):N2}", "en bolívares, neto de notas"),
+            new Indicador("Facturas", $"{delMes.Count(v => v.Tipo == TipoDocumentoVenta.Factura)}", "emitidas este mes"),
+            new Indicador("Por transmitir", $"{pendientes}", "documentos de contingencia")
+            {
+                Estado = SegunCuenta(pendientes, 1)
+            }
         ];
     }
 

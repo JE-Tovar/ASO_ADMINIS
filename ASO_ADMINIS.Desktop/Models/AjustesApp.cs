@@ -34,5 +34,11 @@ public class AjustesApp
     /// <summary>Clave del modulo que se estaba viendo al cerrar.</summary>
     public string UltimaSeccion { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Caja o terminal de venta de esta máquina ("CAJA-01"). Figura en cada documento fiscal
+    /// que se emite desde aquí; sin ella no se puede facturar.
+    /// </summary>
+    public string CajaCodigo { get; set; } = string.Empty;
+
     public AjustesApp Clonar() => (AjustesApp)MemberwiseClone();
 }

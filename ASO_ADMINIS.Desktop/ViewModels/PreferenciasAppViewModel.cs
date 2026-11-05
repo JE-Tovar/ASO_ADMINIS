@@ -17,6 +17,28 @@ public sealed class PreferenciasAppViewModel : ViewModelBase
     public PreferenciasAppViewModel()
     {
         _abrirEnUltimaSeccion = Ajustes.Actual.AbrirEnUltimaSeccion;
+        _cajaCodigo = Ajustes.Actual.CajaCodigo;
+    }
+
+    private string _cajaCodigo;
+
+    /// <summary>
+    /// Caja o terminal de venta de esta máquina. Figura en cada documento fiscal emitido desde
+    /// aquí; sin ella Ventas no deja facturar. Se guarda al salir del campo.
+    /// </summary>
+    public string CajaCodigo
+    {
+        get => _cajaCodigo;
+        set
+        {
+            var limpio = (value ?? string.Empty).Trim().ToUpperInvariant();
+            if (!SetProperty(ref _cajaCodigo, limpio))
+                return;
+
+            Ajustes.Actual.CajaCodigo = limpio;
+            if (Ajustes.Guardar())
+                Aviso.Mostrar();
+        }
     }
 
     public AvisoGuardado Aviso { get; } = new();

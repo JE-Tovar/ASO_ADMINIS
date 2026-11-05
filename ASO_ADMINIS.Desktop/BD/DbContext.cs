@@ -147,33 +147,89 @@ public class AsoAdminisDbContext : DbContext
         {
             entity.HasKey(v => v.Id);
             entity.Property(v => v.Numero).IsRequired().HasMaxLength(20);
-            entity.Property(v => v.ArticuloCodigo).HasMaxLength(20);
-            entity.Property(v => v.ArticuloNombre).HasMaxLength(150);
-            entity.Property(v => v.ClienteNombre).HasMaxLength(150);
+            entity.Property(v => v.CajaCodigo).HasMaxLength(20);
+            entity.Property(v => v.DocumentoAfectadoNumero).HasMaxLength(30);
+            entity.Property(v => v.Concepto).HasMaxLength(300);
+            entity.Property(v => v.ClienteRif).HasMaxLength(15);
+            entity.Property(v => v.ClienteNombre).HasMaxLength(200);
+            entity.Property(v => v.ClienteDireccion).HasMaxLength(300);
             entity.Property(v => v.MotivoAnulacion).HasMaxLength(500);
-            entity.Property(v => v.Cantidad).HasColumnType("decimal(18,2)").IsRequired();
-            entity.Property(v => v.PresentacionNombre).HasMaxLength(40);
-            entity.Property(v => v.Factor).HasColumnType("decimal(18,4)").IsRequired();
-            entity.Property(v => v.PrecioUnitarioUsd).HasColumnType("decimal(18,2)").IsRequired();
+            entity.Property(v => v.NumeroFiscal).HasMaxLength(30);
+            entity.Property(v => v.NumeroControl).HasMaxLength(30);
+            entity.Property(v => v.SerialEmisor).HasMaxLength(40);
             entity.Property(v => v.TasaCambioUsada).HasColumnType("decimal(18,4)").IsRequired();
+
+            foreach (var monto in new[]
+                     {
+                         nameof(Venta.MontoExento), nameof(Venta.BaseGeneral), nameof(Venta.IvaGeneral),
+                         nameof(Venta.BaseReducida), nameof(Venta.IvaReducida), nameof(Venta.BaseAdicional),
+                         nameof(Venta.IvaAdicional), nameof(Venta.BaseIgtf), nameof(Venta.Igtf),
+                         nameof(Venta.Total), nameof(Venta.Vuelto)
+                     })
+                entity.Property(monto).HasColumnType("decimal(18,2)");
+
+            foreach (var porcentaje in new[]
+                     {
+                         nameof(Venta.PorcentajeGeneral), nameof(Venta.PorcentajeReducida),
+                         nameof(Venta.PorcentajeAdicional), nameof(Venta.PorcentajeIgtf)
+                     })
+                entity.Property(porcentaje).HasColumnType("decimal(5,2)");
 
             // El correlativo se calcula como "el último + 1" antes de escribir; este índice es
             // la red por si dos puestos coincidieran — mismo criterio que Entradas/Salidas.
             entity.HasIndex(v => new { v.OrganizacionId, v.Numero }).IsUnique();
+            entity.HasIndex(v => v.DocumentoAfectadoId);
+            entity.HasIndex(v => new { v.OrganizacionId, v.Fecha });
 
-            entity.Ignore(v => v.CuentaEnKardex);
-            entity.Ignore(v => v.TotalUsd);
-            entity.Ignore(v => v.TotalBs);
-            entity.Ignore(v => v.EstadoTexto);
-            entity.Ignore(v => v.FechaTexto);
-            entity.Ignore(v => v.ArticuloTexto);
-            entity.Ignore(v => v.MetodoPagoTexto);
-            entity.Ignore(v => v.CantidadTexto);
-            entity.Ignore(v => v.CantidadNumeroTexto);
-            entity.Ignore(v => v.CantidadBase);
-            entity.Ignore(v => v.PrecioUnitarioTexto);
-            entity.Ignore(v => v.TotalUsdTexto);
-            entity.Ignore(v => v.TotalBsTexto);
+            entity.OwnsMany(v => v.Lineas, linea =>
+            {
+                linea.WithOwner().HasForeignKey("VentaId");
+                linea.Property<int>("Id");
+                linea.HasKey("Id");
+                linea.ToTable("VentaLineas");
+                linea.Property(x => x.Codigo).HasMaxLength(20);
+                linea.Property(x => x.Descripcion).IsRequired().HasMaxLength(200);
+                linea.Property(x => x.PresentacionNombre).HasMaxLength(40);
+                linea.Property(x => x.Factor).HasColumnType("decimal(18,4)");
+                linea.Property(x => x.Cantidad).HasColumnType("decimal(18,2)");
+                linea.Property(x => x.PrecioUnitarioUsd).HasColumnType("decimal(18,2)");
+                linea.Property(x => x.PrecioUnitario).HasColumnType("decimal(18,2)");
+                linea.Property(x => x.PorcentajeIva).HasColumnType("decimal(5,2)");
+                linea.Property(x => x.Monto).HasColumnType("decimal(18,2)");
+                linea.Property(x => x.Iva).HasColumnType("decimal(18,2)");
+
+                linea.Ignore(x => x.CantidadBase);
+                linea.Ignore(x => x.CantidadTexto);
+                linea.Ignore(x => x.PrecioUnitarioTexto);
+                linea.Ignore(x => x.MontoTexto);
+                linea.Ignore(x => x.AlicuotaTexto);
+            });
+
+            entity.OwnsMany(v => v.Pagos, pago =>
+            {
+                pago.WithOwner().HasForeignKey("VentaId");
+                pago.Property<int>("Id");
+                pago.HasKey("Id");
+                pago.ToTable("VentaPagos");
+                pago.Property(x => x.MontoBs).HasColumnType("decimal(18,2)");
+                pago.Property(x => x.MontoDivisa).HasColumnType("decimal(18,2)");
+                pago.Property(x => x.Referencia).HasMaxLength(60);
+
+                pago.Ignore(x => x.EsDivisa);
+                pago.Ignore(x => x.MetodoTexto);
+            });
+
+            foreach (var derivada in new[]
+                     {
+                         nameof(Venta.Vigente), nameof(Venta.Signo), nameof(Venta.BaseImponible),
+                         nameof(Venta.TotalIva), nameof(Venta.TotalConIva), nameof(Venta.TotalUsd),
+                         nameof(Venta.EsConsumidorFinal), nameof(Venta.TipoTexto), nameof(Venta.TipoCorto),
+                         nameof(Venta.EstadoTexto), nameof(Venta.FechaTexto), nameof(Venta.FechaHoraTexto),
+                         nameof(Venta.ClienteTexto), nameof(Venta.ArticuloTexto), nameof(Venta.MetodoPagoTexto),
+                         nameof(Venta.NumeroFiscalTexto), nameof(Venta.TotalTexto), nameof(Venta.TotalBsTexto),
+                         nameof(Venta.TotalUsdTexto)
+                     })
+                entity.Ignore(derivada);
         });
 
         // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
@@ -366,6 +422,7 @@ public class AsoAdminisDbContext : DbContext
 
             // El camino inverso del enlace a Finanzas: qué entrada originó una cuenta por pagar.
             entity.HasIndex(e => e.FacturaProveedorId);
+            entity.HasIndex(e => e.VentaId);
 
             entity.Ignore(e => e.GeneraCuentaPorPagar);
             entity.Ignore(e => e.CuentaEnKardex);
@@ -487,6 +544,7 @@ public class AsoAdminisDbContext : DbContext
     public override int SaveChanges()
     {
         EstamparOrganizacion();
+        ProtegerDocumentosFiscales();
 
         var filas = base.SaveChanges();
         AnunciarSiEscribio(filas);
@@ -502,6 +560,7 @@ public class AsoAdminisDbContext : DbContext
                                                      CancellationToken cancellationToken = default)
     {
         EstamparOrganizacion();
+        ProtegerDocumentosFiscales();
 
         var filas = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         AnunciarSiEscribio(filas);
@@ -523,6 +582,65 @@ public class AsoAdminisDbContext : DbContext
     {
         if (filasAfectadas > 0)
             CambiosDeDatos.Publicar();
+    }
+
+    /// <summary>
+    /// Inalterabilidad de los documentos fiscales (exigencia del SENIAT): un documento de venta
+    /// emitido no se borra ni se edita. Va aquí, y no solo en <c>VentasService</c>, porque es el
+    /// único punto por el que pasan TODAS las escrituras: ni un servicio nuevo ni un CRUD
+    /// genérico puede saltárselo.
+    ///
+    /// Solo hay dos cambios legítimos sobre un documento ya guardado, y son los únicos que pasan:
+    /// - transmitir uno de contingencia: <c>Estado</c> PendienteTransmitir → Registrada y su
+    ///   <c>FechaTransmision</c>;
+    /// - estamparle el reporte Z que lo cerró: <c>NumeroZ</c> de nulo a un valor.
+    ///
+    /// Por eso las fuentes de datos los escriben cargando la fila rastreada y cambiando solo ese
+    /// campo (ver <c>SqlVentaDataSource</c>): un <c>Update</c> de entidad desprendida marca todas
+    /// las columnas como modificadas y aquí se rechaza.
+    /// </summary>
+    private void ProtegerDocumentosFiscales()
+    {
+        foreach (var e in ChangeTracker.Entries<Venta>())
+        {
+            if (e.State == EntityState.Deleted)
+                throw new InvalidOperationException(
+                    $"El documento {e.Entity.NumeroFiscalTexto} no se puede eliminar: un documento fiscal es inalterable.");
+
+            if (e.State != EntityState.Modified)
+                continue;
+
+            var cambiadas = e.Properties.Where(p => p.IsModified).Select(p => p.Metadata.Name).ToHashSet();
+            cambiadas.Remove(nameof(IDeOrganizacion.OrganizacionId));
+
+            var permitidas = new[] { nameof(Venta.Estado), nameof(Venta.FechaTransmision), nameof(Venta.NumeroZ) };
+            var prohibidas = cambiadas.Except(permitidas).ToList();
+
+            var transicionValida =
+                !cambiadas.Contains(nameof(Venta.Estado))
+                || (e.OriginalValues.GetValue<EstadoVenta>(nameof(Venta.Estado)) == EstadoVenta.PendienteTransmitir
+                    && e.Entity.Estado == EstadoVenta.Registrada);
+
+            var zValido =
+                !cambiadas.Contains(nameof(Venta.NumeroZ))
+                || e.OriginalValues.GetValue<int?>(nameof(Venta.NumeroZ)) is null;
+
+            if (prohibidas.Count > 0 || !transicionValida || !zValido)
+                throw new InvalidOperationException(
+                    $"El documento {e.Entity.NumeroFiscalTexto} no se puede modificar: un documento fiscal es inalterable. " +
+                    "Para corregirlo, emita una nota de crédito o de débito.");
+        }
+
+        var hijos = ChangeTracker.Entries<VentaLinea>()
+            .Cast<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry>()
+            .Concat(ChangeTracker.Entries<VentaPago>());
+
+        foreach (var e in hijos)
+        {
+            if (e.State is EntityState.Modified or EntityState.Deleted)
+                throw new InvalidOperationException(
+                    "Los renglones y pagos de un documento fiscal no se pueden modificar ni eliminar.");
+        }
     }
 
     private void EstamparOrganizacion()

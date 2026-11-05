@@ -261,9 +261,14 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("VentaId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FacturaProveedorId");
+
+                    b.HasIndex("VentaId");
 
                     b.HasIndex("OrganizacionId", "Numero")
                         .IsUnique();
@@ -783,35 +788,68 @@ namespace ASO_ADMINIS.Desktop.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ArticuloCodigo")
+                    b.Property<decimal>("BaseAdicional")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseGeneral")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseIgtf")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseReducida")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CajaCodigo")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<int>("ArticuloId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ArticuloNombre")
+                    b.Property<string>("ClienteDireccion")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
-                    b.Property<decimal>("Cantidad")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int?>("ClienteId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ClienteNombre")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ClienteRif")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("Concepto")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("CreadoPorId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Estado")
+                    b.Property<DateTime?>("DocumentoAfectadoFecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DocumentoAfectadoId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Factor")
-                        .HasColumnType("decimal(18,4)");
+                    b.Property<string>("DocumentoAfectadoNumero")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("EnContingencia")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EsHistorico")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime2");
@@ -822,8 +860,23 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("MetodoPago")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("FechaTransmision")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Igtf")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IvaAdicional")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IvaGeneral")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IvaReducida")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoExento")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("MotivoAnulacion")
                         .HasMaxLength(500)
@@ -834,13 +887,35 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("NumeroControl")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("NumeroFiscal")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int?>("NumeroZ")
+                        .HasColumnType("int");
+
                     b.Property<int>("OrganizacionId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("PrecioUnitarioUsd")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<decimal>("PorcentajeAdicional")
+                        .HasColumnType("decimal(5,2)");
 
-                    b.Property<string>("PresentacionNombre")
+                    b.Property<decimal>("PorcentajeGeneral")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("PorcentajeIgtf")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("PorcentajeReducida")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("SerialEmisor")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
@@ -848,7 +923,20 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<decimal>("TasaCambioUsada")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Vuelto")
+                        .HasColumnType("decimal(18,2)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("DocumentoAfectadoId");
+
+                    b.HasIndex("OrganizacionId", "Fecha");
 
                     b.HasIndex("OrganizacionId", "Numero")
                         .IsUnique();
@@ -1044,6 +1132,111 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         });
 
                     b.Navigation("Lineas");
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Venta", b =>
+                {
+                    b.OwnsMany("ASO_ADMINIS.Desktop.Models.VentaLinea", "Lineas", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
+
+                            b1.Property<int>("Alicuota")
+                                .HasColumnType("int");
+
+                            b1.Property<int?>("ArticuloId")
+                                .HasColumnType("int");
+
+                            b1.Property<decimal>("Cantidad")
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<string>("Codigo")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("nvarchar(20)");
+
+                            b1.Property<string>("Descripcion")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<decimal>("Factor")
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<decimal>("Iva")
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<decimal>("Monto")
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<decimal>("PorcentajeIva")
+                                .HasColumnType("decimal(5,2)");
+
+                            b1.Property<decimal>("PrecioUnitario")
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<decimal>("PrecioUnitarioUsd")
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<string>("PresentacionNombre")
+                                .IsRequired()
+                                .HasMaxLength(40)
+                                .HasColumnType("nvarchar(40)");
+
+                            b1.Property<int>("VentaId")
+                                .HasColumnType("int");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("VentaId");
+
+                            b1.ToTable("VentaLineas", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("VentaId");
+                        });
+
+                    b.OwnsMany("ASO_ADMINIS.Desktop.Models.VentaPago", "Pagos", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
+
+                            b1.Property<int>("Metodo")
+                                .HasColumnType("int");
+
+                            b1.Property<decimal>("MontoBs")
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<decimal>("MontoDivisa")
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<string>("Referencia")
+                                .IsRequired()
+                                .HasMaxLength(60)
+                                .HasColumnType("nvarchar(60)");
+
+                            b1.Property<int>("VentaId")
+                                .HasColumnType("int");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("VentaId");
+
+                            b1.ToTable("VentaPagos", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("VentaId");
+                        });
+
+                    b.Navigation("Lineas");
+
+                    b.Navigation("Pagos");
                 });
 #pragma warning restore 612, 618
         }

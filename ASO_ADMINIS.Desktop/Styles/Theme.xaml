@@ -320,6 +320,17 @@
         <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
         <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
       </DataTrigger>
+      <!-- Contingencia: válido, pero falta transmitirlo al emisor fiscal. -->
+      <DataTrigger Binding="{Binding Estado}" Value="{x:Static models:EstadoVenta.PendienteTransmitir}">
+        <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource WarningTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding EsHistorico}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NeutralBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource NeutralTextBrush}" />
+      </DataTrigger>
     </Style.Triggers>
   </Style>
 

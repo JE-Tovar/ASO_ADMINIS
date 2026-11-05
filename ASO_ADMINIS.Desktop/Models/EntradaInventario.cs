@@ -15,7 +15,13 @@ public enum TipoEntrada
 {
     CompraProveedor,
     CompraExterna,
-    Ajuste
+    Ajuste,
+
+    /// <summary>
+    /// Mercancía que vuelve por una nota de crédito de venta. La genera <c>VentasService</c>;
+    /// no se carga a mano, no genera cuenta por pagar y no se anula (la nota es inalterable).
+    /// </summary>
+    DevolucionVenta
 }
 
 /// <summary>Estados de una entrada. Se persiste como ORDINAL: miembros nuevos al final.</summary>
@@ -82,6 +88,9 @@ public class EntradaInventario : IEntidad<int>, IDeOrganizacion
     /// clave foránea real, como el resto de las relaciones entre documentos.</summary>
     public int? FacturaProveedorId { get; set; }
 
+    /// <summary>Nota de crédito que originó esta entrada (solo <see cref="TipoEntrada.DevolucionVenta"/>).</summary>
+    public int? VentaId { get; set; }
+
     public string FacturaProveedorNumero { get; set; } = string.Empty;  // snapshot
 
     public string? MotivoAnulacion { get; set; }
@@ -91,8 +100,8 @@ public class EntradaInventario : IEntidad<int>, IDeOrganizacion
     public string CreadoPorNombre { get; set; } = string.Empty;  // snapshot
     public DateTime FechaCreacion { get; set; }
 
-    /// <summary>Un ajuste no le debe nada a nadie; los otros dos tipos sí.</summary>
-    public bool GeneraCuentaPorPagar => Tipo != TipoEntrada.Ajuste;
+    /// <summary>Solo las compras le deben algo a alguien; un ajuste o una devolución, no.</summary>
+    public bool GeneraCuentaPorPagar => Tipo is TipoEntrada.CompraProveedor or TipoEntrada.CompraExterna;
 
     /// <summary>Si esta entrada suma a las existencias. Un documento anulado deja de contar,
     /// que es lo que hace que anular devuelva el stock sin tocar ninguna otra fila.</summary>
@@ -102,6 +111,7 @@ public class EntradaInventario : IEntidad<int>, IDeOrganizacion
     {
         TipoEntrada.CompraProveedor => "Compra a proveedor",
         TipoEntrada.CompraExterna => "Compra externa",
+        TipoEntrada.DevolucionVenta => "Devolución de venta",
         _ => "Ajuste"
     };
 
@@ -110,6 +120,7 @@ public class EntradaInventario : IEntidad<int>, IDeOrganizacion
     public string OrigenTexto => Tipo switch
     {
         TipoEntrada.Ajuste => "Ajuste de inventario",
+        TipoEntrada.DevolucionVenta => $"Devolución · {ProveedorNombre}",
         TipoEntrada.CompraExterna when !string.IsNullOrWhiteSpace(CompradoPor) =>
             $"{ProveedorNombre} · compró {CompradoPor}",
         _ => ProveedorNombre

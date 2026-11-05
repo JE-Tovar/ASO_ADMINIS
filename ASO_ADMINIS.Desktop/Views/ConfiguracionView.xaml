@@ -218,6 +218,12 @@
           <TextBlock Style="{StaticResource AyudaAjusteStyle}"
                      Text="Si está apagado, la aplicación siempre abre en Inicio." />
 
+          <TextBlock Text="Caja de venta" Style="{StaticResource TituloTarjetaStyle}" Margin="0,20,0,0" />
+          <TextBox Style="{StaticResource FormTextBoxStyle}" Margin="0,8,0,0" MaxLength="20"
+                   Text="{Binding CajaCodigo, UpdateSourceTrigger=LostFocus}" />
+          <TextBlock Style="{StaticResource AyudaAjusteStyle}"
+                     Text="Código de la caja o terminal de esta máquina (p. ej. CAJA-01). Figura en cada factura; sin él no se puede facturar desde aquí." />
+
           <TextBlock Text="{Binding Aviso.Texto}" Margin="0,16,0,0"
                      FontSize="{StaticResource FsCaption}"
                      Foreground="{DynamicResource SuccessTextBrush}" />

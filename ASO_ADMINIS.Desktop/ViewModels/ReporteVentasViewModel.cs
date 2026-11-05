@@ -103,8 +103,10 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
     {
         var articulosPorId = _articulos.GetAll().ToDictionary(a => a.Id);
 
+        // Documentos vigentes (facturas y notas; las ventas históricas anuladas no cuentan).
+        // Las notas de crédito restan: todo se suma con su Signo.
         var enRango = _ventas.GetAll()
-            .Where(v => v.Estado == EstadoVenta.Registrada)
+            .Where(v => v.Vigente)
             .Where(v => Desde is not { } desde || v.Fecha.Date >= desde.Date)
             .Where(v => Hasta is not { } hasta || v.Fecha.Date <= hasta.Date)
             .OrderBy(v => v.Fecha)
@@ -114,16 +116,24 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
         foreach (var venta in enRango)
             Items.Add(venta);
 
-        TotalUsdTexto = enRango.Sum(v => v.TotalUsd).ToString("N2");
-        TotalBsTexto = enRango.Sum(v => v.TotalBs).ToString("N2");
-        TotalUnidadesTexto = enRango.Sum(v => v.Cantidad).ToString("N2");
+        TotalUsdTexto = enRango.Sum(v => v.Signo * v.TotalUsd).ToString("N2");
+        TotalBsTexto = enRango.Sum(v => v.Signo * v.Total).ToString("N2");
+        TotalUnidadesTexto = enRango.Where(v => v.Tipo != TipoDocumentoVenta.NotaDebito)
+            .Sum(v => v.Signo * v.Lineas.Sum(l => l.Cantidad)).ToString("N2");
 
+        // Lo cobrado por método: los pagos de las facturas (las notas no llevan pagos). Un pago
+        // en divisa se muestra con su monto en US$; uno en Bs, con su referencia a la tasa.
         PorMetodoPago.Clear();
-        foreach (var grupo in enRango.GroupBy(v => v.MetodoPagoTexto)
-                                     .OrderByDescending(g => g.Sum(v => v.TotalUsd)))
-            PorMetodoPago.Add(new ResumenMetodoPago(grupo.Key, grupo.Count(),
-                                                    grupo.Sum(v => v.TotalUsd).ToString("N2"),
-                                                    grupo.Sum(v => v.TotalBs).ToString("N2")));
+        var pagos = enRango.SelectMany(v => v.Pagos.Select(p => (Venta: v, Pago: p))).ToList();
+        foreach (var grupo in pagos.GroupBy(x => x.Pago.MetodoTexto)
+                                   .OrderByDescending(g => g.Sum(x => x.Pago.MontoBs)))
+            PorMetodoPago.Add(new ResumenMetodoPago(
+                grupo.Key,
+                grupo.Select(x => x.Venta.Id).Distinct().Count(),
+                grupo.Sum(x => x.Pago.EsDivisa
+                    ? x.Pago.MontoDivisa
+                    : x.Venta.TasaCambioUsada > 0 ? x.Pago.MontoBs / x.Venta.TasaCambioUsada : 0m).ToString("N2"),
+                grupo.Sum(x => x.Pago.MontoBs).ToString("N2")));
 
         GraficoPorDia = ConstruirGraficoPorDia(enRango);
         GraficoPorCategoria = ConstruirGraficoPorCategoria(enRango, articulosPorId);
@@ -137,14 +147,14 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
     /// </summary>
     private static PlotModel ConstruirGraficoPorDia(IReadOnlyList<Venta> ventas)
     {
-        var modelo = new PlotModel { Title = "Ventas por día (US$)" };
+        var modelo = new PlotModel { Title = "Ventas por día (Bs, neto de notas)" };
         var categorias = new CategoryAxis { Position = AxisPosition.Left };
         var serie = new BarSeries { LabelPlacement = LabelPlacement.Outside, LabelFormatString = "{0:N0}" };
 
         foreach (var grupo in ventas.GroupBy(v => v.Fecha.Date).OrderBy(g => g.Key))
         {
             categorias.Labels.Add(grupo.Key.ToString("dd/MM"));
-            serie.Items.Add(new BarItem { Value = (double)grupo.Sum(v => v.TotalUsd) });
+            serie.Items.Add(new BarItem { Value = (double)grupo.Sum(v => v.Signo * v.Total) });
         }
 
         modelo.Axes.Add(categorias);
@@ -161,12 +171,20 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
 
         // La categoría es texto libre en el artículo: se agrupa sin distinguir mayúsculas y un
         // artículo sin categoría (o ya borrado) cae en "Sin categoría".
-        foreach (var grupo in ventas.GroupBy(v =>
-                     articulosPorId.TryGetValue(v.ArticuloId, out var a) && !string.IsNullOrWhiteSpace(a.Categoria)
+        // Por renglón (una factura puede mezclar categorías), en Bs sin IVA y neto de notas de
+        // crédito. Los cargos de una nota de débito no son artículos y no entran.
+        var renglones = ventas.SelectMany(v => v.Lineas.Where(l => l.ArticuloId is not null)
+                                                       .Select(l => (Linea: l, v.Signo)));
+        foreach (var grupo in renglones.GroupBy(x =>
+                     articulosPorId.TryGetValue(x.Linea.ArticuloId!.Value, out var a) && !string.IsNullOrWhiteSpace(a.Categoria)
                          ? a.Categoria.Trim()
                          : "Sin categoría",
                      StringComparer.OrdinalIgnoreCase))
-            serie.Slices.Add(new PieSlice(grupo.Key, (double)grupo.Sum(v => v.TotalUsd)));
+        {
+            var monto = grupo.Sum(x => x.Signo * x.Linea.Monto);
+            if (monto > 0)
+                serie.Slices.Add(new PieSlice(grupo.Key, (double)monto));
+        }
 
         modelo.Series.Add(serie);
         return modelo;

@@ -1,0 +1,24 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.ContingenciaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="380">
+
+  <StackPanel>
+    <TextBlock Text="{Binding Explicacion}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+    <controls:FormField Etiqueta="N° de factura del formato">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding NumeroDocumento, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <controls:FormField Etiqueta="N° de control del formato">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding NumeroControl, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+  </StackPanel>
+</UserControl>

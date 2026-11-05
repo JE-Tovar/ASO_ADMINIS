@@ -22,6 +22,14 @@
     <views:ClienteEditorView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:NotaFiscalEditorViewModel}">
+    <views:NotaFiscalEditorView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:ContingenciaEditorViewModel}">
+    <views:ContingenciaEditorView />
+  </DataTemplate>
+
   <!-- Finanzas · Cuentas por Pagar y Banco -->
 
   <DataTemplate DataType="{x:Type vm:ProveedorEditorViewModel}">

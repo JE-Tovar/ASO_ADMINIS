@@ -46,7 +46,9 @@ public sealed class EntradasInventarioService
     /// constantemente. Que la factura generada esté ya pagada se comprueba dentro de
     /// <see cref="Anular"/>, no aquí.
     /// </summary>
-    public bool PuedeAnular(EntradaInventario entrada) => entrada.Estado == EstadoEntrada.Registrada;
+    /// <summary>Una devolución de venta no se anula: la nota de crédito que la generó es inalterable.</summary>
+    public bool PuedeAnular(EntradaInventario entrada) =>
+        entrada.Estado == EstadoEntrada.Registrada && entrada.Tipo != TipoEntrada.DevolucionVenta;
 
     // --- Validación ---
 

@@ -87,13 +87,19 @@ public static class Permisos
     }
 
     /// <summary>
-    /// Ventas registradas (Ventas · Registro). No hay "Editar" ni "Eliminar": es un documento,
-    /// no se corrige ni se borra, se anula.
+    /// Documentos fiscales de venta (Ventas · Registro). No hay "Editar", "Eliminar" ni
+    /// "Anular": un documento fiscal es inalterable y se corrige con una nota.
     /// </summary>
     public static class Ventas
     {
+        /// <summary>Emitir facturas.</summary>
         public const string Crear = "Ventas.Crear";
-        public const string Anular = "Ventas.Anular";
+
+        public const string NotaCredito = "Ventas.NotaCredito";
+        public const string NotaDebito = "Ventas.NotaDebito";
+
+        /// <summary>Registrar documentos en papel de contingencia y transmitirlos después.</summary>
+        public const string Contingencia = "Ventas.Contingencia";
     }
 
     /// <summary>

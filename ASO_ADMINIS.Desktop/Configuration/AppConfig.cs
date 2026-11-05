@@ -36,6 +36,9 @@ public static class AppConfig
     private static string CarpetaDatos =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "App_Data"));
 
+    /// <summary>Un valor suelto de la configuracion ("Seccion:Clave"), o null si no esta.</summary>
+    public static string? Valor(string clave) => _config[clave];
+
     /// <summary>Cadena de conexion a SQL Server (clave ConnectionStrings:AsoAdminisDb).</summary>
     public static string ConnectionString =>
         _config.GetConnectionString("AsoAdminisDb")

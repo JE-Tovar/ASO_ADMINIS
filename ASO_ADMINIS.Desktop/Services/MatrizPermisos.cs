@@ -95,7 +95,9 @@ public static class MatrizPermisos
         // - Finanzas.Pagar / Banco.*: mover dinero es de Supervisor.
         // - Proveedores.Eliminar / FacturasProveedor.Eliminar / Articulos.Eliminar: borrar es
         //   de Supervisor.
-        // - EntradasInventario.Anular / SalidasInventario.Anular / Ventas.Anular: deshacer un
+        // - Ventas.NotaCredito / NotaDebito / Contingencia: corregir un documento fiscal o
+        //   emitir fuera del emisor es de Supervisor.
+        // - EntradasInventario.Anular / SalidasInventario.Anular: deshacer un
         //   documento es de Supervisor, igual que en Finanzas.
         // - Ver.Reportes.Gastos: expone información financiera, mismo nivel que Finanzas.Pagar.
     ];
@@ -110,7 +112,9 @@ public static class MatrizPermisos
         [
             Permisos.Ver("Reportes.Gastos"),
 
-            Permisos.Ventas.Anular,
+            Permisos.Ventas.NotaCredito,
+            Permisos.Ventas.NotaDebito,
+            Permisos.Ventas.Contingencia,
 
             Permisos.Proveedores.Eliminar,
             Permisos.FacturasProveedor.Eliminar,
