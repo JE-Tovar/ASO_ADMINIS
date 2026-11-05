@@ -21,7 +21,7 @@
       </Grid.ColumnDefinitions>
 
       <StackPanel Grid.Column="0">
-        <controls:FormField Etiqueta="RIF">
+        <controls:FormField Etiqueta="RIF" Ayuda="{Binding RifAyuda}">
           <TextBox Style="{StaticResource FormTextBoxStyle}"
                    Text="{Binding Rif, UpdateSourceTrigger=PropertyChanged}" />
         </controls:FormField>

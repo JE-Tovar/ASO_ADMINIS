@@ -6,8 +6,10 @@ using ASO_ADMINIS.Desktop.Services;
 namespace ASO_ADMINIS.Desktop.ViewModels;
 
 /// <summary>
-/// Alta/edición de un proveedor. El RIF identifica al proveedor ante el fisco, así que se
-/// valida que no se repita: dos fichas del mismo proveedor partirían su cuenta en dos.
+/// Alta/edición de un proveedor. El RIF identifica al proveedor ante el fisco: si se escribe,
+/// tiene que ser un RIF completo cuyo dígito verificador cuadre (<see cref="Services.Rif"/>), se
+/// guarda normalizado y no puede repetirse — dos fichas del mismo proveedor partirían su cuenta
+/// en dos.
 /// </summary>
 public sealed class ProveedorEditorViewModel : CrudEditorViewModelBase<Proveedor>
 {
@@ -39,8 +41,20 @@ public sealed class ProveedorEditorViewModel : CrudEditorViewModelBase<Proveedor
     public string Rif
     {
         get => _rif;
-        set => SetProperty(ref _rif, value);
+        set
+        {
+            if (SetProperty(ref _rif, value))
+                OnPropertyChanged(nameof(RifAyuda));
+        }
     }
+
+    /// <summary>
+    /// Retroalimentación en vivo, como en la ficha de cliente. Un proveedor factura, así que se
+    /// exige RIF completo con dígito verificador (no cédula); el campo sigue siendo opcional.
+    /// </summary>
+    public string RifAyuda => string.IsNullOrWhiteSpace(Rif)
+        ? "Opcional. RIF completo: J-12345678-9."
+        : Services.Rif.Error(Rif, exigirRif: true) ?? $"✓ {Services.Rif.Normalizar(Rif)} · RIF válido";
 
     private string _telefono = string.Empty;
     public string Telefono
@@ -73,13 +87,23 @@ public sealed class ProveedorEditorViewModel : CrudEditorViewModelBase<Proveedor
 
         if (!string.IsNullOrWhiteSpace(Rif))
         {
+            if (Services.Rif.Error(Rif, exigirRif: true) is { } errorRif)
+            {
+                error = errorRif;
+                return false;
+            }
+
+            // Se compara normalizado: "J123456789" y "J-12345678-9" son el mismo proveedor. Las
+            // fichas viejas guardadas sin normalizar también se normalizan para comparar.
+            var rif = Services.Rif.Normalizar(Rif);
             var repetido = _proveedores.GetAll()
                 .Any(p => p.Id != _original.Id
-                          && string.Equals(p.Rif.Trim(), Rif.Trim(), StringComparison.OrdinalIgnoreCase));
+                          && string.Equals(Services.Rif.Normalizar(p.Rif) ?? p.Rif.Trim(), rif,
+                                           StringComparison.OrdinalIgnoreCase));
 
             if (repetido)
             {
-                error = $"Ya existe un proveedor con el RIF {Rif.Trim()}.";
+                error = $"Ya existe un proveedor con el RIF {rif}.";
                 return false;
             }
         }
@@ -92,7 +116,7 @@ public sealed class ProveedorEditorViewModel : CrudEditorViewModelBase<Proveedor
     {
         var proveedor = _original.Clonar();
         proveedor.Nombre = Nombre.Trim();
-        proveedor.Rif = Rif.Trim();
+        proveedor.Rif = Services.Rif.Normalizar(Rif) ?? Rif.Trim();
         proveedor.Telefono = Telefono.Trim();
         proveedor.Notas = Notas.Trim();
         proveedor.Activo = Activo;
