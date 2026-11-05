@@ -32,3 +32,7 @@ ASO_ADMINIS.Desktop/App_Data/
 # Documentacion interna del equipo. El repositorio es PUBLICO: estos documentos son de uso
 # interno y no se publican.
 docs/
+
+# Velopack: salida de dotnet publish y de vpk pack (instaladores y paquetes de cada version)
+publish/
+Releases/

@@ -46,6 +46,29 @@ Si en cambio quieres apuntar a un SQL Server real (compartido o remoto) en vez d
 local, copia `ASO_ADMINIS.Desktop/appsettings.local.example.json` como `appsettings.local.json` y
 pon ahí tu cadena de conexión — no se sube al repo, así que cada quien puede tener la suya.
 
+## Publicar una versión (Velopack)
+
+El instalador y las actualizaciones automáticas van con [Velopack](https://velopack.io)
+(`dotnet tool install -g vpk`). Desde la raíz del repo, subiendo antes `<Version>` en
+`ASO_ADMINIS.Desktop/ASO_ADMINIS.Desktop.csproj`:
+
+```bash
+dotnet publish ASO_ADMINIS.Desktop -c Release -r win-x64 --self-contained true -o publish
+vpk download github --repoUrl https://github.com/JE-Tovar/ASO_ADMINIS -o Releases  # solo desde la 2.ª versión: deja que se generen deltas
+vpk pack -u AsoAdminis -v <versión> -p publish -e ASO_ADMINIS.Desktop.exe --packTitle "ASO Adminis" --packAuthors ASO -i ASO_ADMINIS.Desktop/Assets/Logo/aso-adminis.ico -o Releases
+vpk upload github --repoUrl https://github.com/JE-Tovar/ASO_ADMINIS -o Releases --publish --releaseName "<versión>" --tag v<versión> --token <token>
+```
+
+`-u AsoAdminis` (el packId) no cambia nunca entre versiones: es la identidad de la app para
+Velopack. Se reparte `Releases/AsoAdminis-win-Setup.exe` (sin asistente ni permisos de
+administrador). Instalada, la app vive en `%LocalAppData%\AsoAdminis`, busca versiones nuevas en
+los Releases de GitHub después del login y guarda lo de la máquina (`App_Data` y
+`appsettings.local.json`) en `%LocalAppData%\ASO Adminis`, fuera de lo que reemplaza cada
+actualización. `appsettings.local.json` nunca entra al paquete (el repo y sus releases son
+públicos). La máquina destino necesita **LocalDB**, salvo que `appsettings.local.json` apunte a
+otro SQL Server. El `.exe` no está firmado: SmartScreen puede avisar "Editor desconocido" la
+primera vez.
+
 ## Estructura
 
 ```

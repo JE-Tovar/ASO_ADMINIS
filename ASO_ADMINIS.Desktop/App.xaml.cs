@@ -48,6 +48,10 @@ public partial class App : Application
 
         // A partir de aquí sí queremos que cerrar la última ventana cierre la app.
         ShutdownMode = ShutdownMode.OnLastWindowClose;
+
+        // Despues del login y con la ventana principal ya abierta: el aviso de "hay version
+        // nueva" no debe tapar el login ni retrasar el arranque mientras se consulta GitHub.
+        _ = Actualizaciones.BuscarAsync();
     }
 
     /// <summary>

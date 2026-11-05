@@ -12,6 +12,11 @@
     <Product>ASO Adminis</Product>
     <Company>ASO Adminis</Company>
     <Description>Aplicación de gestión — venta de artículos</Description>
+    <Version>0.1.0</Version>
+    <!-- Main propio (Program.cs) en vez del que genera App.xaml: Velopack tiene que correr antes
+         que nada de WPF, porque al instalar, actualizar y desinstalar lanza el .exe con
+         argumentos suyos y espera que salga sin abrir ventanas. -->
+    <StartupObject>ASO_ADMINIS.Desktop.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +30,9 @@
     <!-- Reportes · Ventas y Gastos: gráficos de barras y torta. Primera librería de terceros
          del proyecto fuera de EF Core - pura administrada, sin binarios nativos. -->
     <PackageReference Include="OxyPlot.Wpf" Version="2.2.0" />
+    <!-- Instalador + actualizaciones automaticas desde GitHub Releases (Program.cs,
+         Services/Actualizaciones.cs). Ver README "Publicar una version". -->
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
   <!-- La fuente de iconos viaja con el proyecto. Antes se usaba Segoe MDL2 Assets, que solo
@@ -57,8 +65,12 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Se copia para dotnet run / F5, pero NUNCA al publicar: el instalador acaba en GitHub
+         Releases de un repo publico y este archivo lleva la cadena de conexion de la maquina.
+         Instalada, la app lo busca en %LocalAppData%\ASO Adminis (ver AppConfig). -->
     <None Update="appsettings.local.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
 
