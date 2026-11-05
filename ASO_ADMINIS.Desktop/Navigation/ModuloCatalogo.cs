@@ -65,9 +65,11 @@ public static class ModuloCatalogo
             Iconos.Ventas,
             [
                 new Submodulo("Ventas.Registro", "Registro de ventas",
-                    "Ventas registradas, con lo que descuentan del almacén.", Iconos.Ventas),
+                    "Facturas y notas de crédito y débito emitidas; lo vendido se descuenta del almacén.", Iconos.Ventas),
                 new Submodulo("Ventas.Clientes", "Clientes",
-                    "Padrón de clientes con su RIF o cédula, para facturarles.", Iconos.Usuarios)
+                    "Padrón de clientes con su RIF o cédula, para facturarles.", Iconos.Usuarios),
+                new Submodulo("Ventas.Cierre", "Cierre del día",
+                    "Resumen diario por alícuota y medio de pago, y reportes X y Z.", Iconos.Banco)
             ]),
 
         new Modulo(
@@ -107,7 +109,9 @@ public static class ModuloCatalogo
                 new Submodulo("Reportes.Ventas", "Ventas",
                     "Ventas registradas en el período, con totales y gráficos.", Iconos.Ventas),
                 new Submodulo("Reportes.Gastos", "Gastos",
-                    "Pagos a proveedores en el período, con totales y gráficos.", Iconos.Reportes)
+                    "Pagos a proveedores en el período, con totales y gráficos.", Iconos.Reportes),
+                new Submodulo("Reportes.LibroVentas", "Libro de ventas",
+                    "Libro fiscal del período (mes o quincena), exportable para el contador.", Iconos.CuentasPorPagar)
             ]),
     ];
 

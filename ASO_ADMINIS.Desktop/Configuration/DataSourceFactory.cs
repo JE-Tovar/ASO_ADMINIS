@@ -29,6 +29,8 @@ public static class DataSourceFactory
     private static IVentaDataSource? _ventas;
     private static IClienteDataSource? _clientes;
     private static Services.Fiscal.IEmisorFiscal? _emisorFiscal;
+    private static IRetencionIvaDataSource? _retencionesIva;
+    private static ICierreZDataSource? _cierresZ;
     private static IArticuloDataSource? _articulos;
     private static IEntradaInventarioDataSource? _entradasInventario;
     private static ISalidaInventarioDataSource? _salidasInventario;
@@ -70,6 +72,12 @@ public static class DataSourceFactory
 
     public static IClienteDataSource CrearClientes() =>
         _clientes ??= new SqlClienteDataSource();
+
+    public static IRetencionIvaDataSource CrearRetencionesIva() =>
+        _retencionesIva ??= new SqlRetencionIvaDataSource();
+
+    public static ICierreZDataSource CrearCierresZ() =>
+        _cierresZ ??= new SqlCierreZDataSource();
 
     /// <summary>El emisor fiscal de esta instalación (ver Services/Fiscal/EmisoresFiscales.cs).</summary>
     public static Services.Fiscal.IEmisorFiscal CrearEmisorFiscal() =>

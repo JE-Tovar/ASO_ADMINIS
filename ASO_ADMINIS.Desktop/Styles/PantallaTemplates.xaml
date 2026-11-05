@@ -43,6 +43,14 @@
     <views:ClientesView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:CierreViewModel}">
+    <views:CierreView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:LibroVentasViewModel}">
+    <views:LibroVentasView />
+  </DataTemplate>
+
   <!-- Inventario · Almacén, Entradas y Salidas -->
 
   <DataTemplate DataType="{x:Type vm:AlmacenViewModel}">

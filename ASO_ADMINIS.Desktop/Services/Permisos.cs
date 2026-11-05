@@ -100,6 +100,12 @@ public static class Permisos
 
         /// <summary>Registrar documentos en papel de contingencia y transmitirlos después.</summary>
         public const string Contingencia = "Ventas.Contingencia";
+
+        /// <summary>Cierre Z de la máquina fiscal (pone a cero sus acumulados del día).</summary>
+        public const string CierreZ = "Ventas.CierreZ";
+
+        /// <summary>Registrar comprobantes de retención de IVA de clientes agentes de retención.</summary>
+        public const string Retenciones = "Ventas.Retenciones";
     }
 
     /// <summary>

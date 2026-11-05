@@ -66,9 +66,9 @@ Es escritorio, no web (no hay dev server / puerto). `dotnet run` dentro de
 
 ## Estructura de módulos
 
-Hoy hay **cuatro módulos de negocio**: **Ventas** (Registro de ventas), **Finanzas** (Cuentas por
-Pagar, Banco y Proveedores), **Inventario** (Almacén, Entradas y Salidas) y **Reportes** (Ventas y
-Gastos, de solo lectura, con gráficos OxyPlot), más **cuatro módulos fijados** sin
+Hoy hay **cuatro módulos de negocio**: **Ventas** (Registro de ventas, Clientes y Cierre del
+día), **Finanzas** (Cuentas por Pagar, Banco y Proveedores), **Inventario** (Almacén, Entradas y
+Salidas) y **Reportes** (Ventas, Gastos y Libro de ventas, de solo lectura), más **cuatro módulos fijados** sin
 submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Administración**
 (usuarios con sus permisos, y los datos de la propia organización) y **Configuración**
 (apariencia, cuenta propia, preferencias de la máquina — anclada al pie del sidebar, fuera de su
@@ -190,33 +190,111 @@ llega) y **Salidas** (boletos de salida). Las decisiones que no se deducen del c
   silencio. Lo usan las dos grillas de líneas (Entradas, Salidas) para ocultar la columna de
   precios en un ajuste y para llegar al comando de quitar línea.
 
-## Ventas, Reportes y tasa de cambio
+## Ventas: documentos fiscales (SENIAT), Reportes y tasa de cambio
 
-- **El artículo ES el producto.** No hay un catálogo aparte de Inventario: `Articulo` lleva
-  `PrecioVenta` (US$, de referencia) y `Categoria` (texto libre, sin enum de rubro). Así el mismo
-  sistema sirve a una zapatería o a una pinturería sin tocar el modelo.
-- **`Venta` es de una sola línea** (un artículo, cantidad, precio, cliente opcional), no un
-  carrito. Guarda snapshots (`ArticuloCodigo`, `ArticuloNombre`, `PrecioUnitarioUsd`,
-  `TasaCambioUsada`) para que un cambio posterior de precio, tasa o nombre no altere ventas ya
-  hechas. El editor propone `Articulo.PrecioVenta`, pero el precio es editable en cada venta.
-- **Método de pago** (`Models/Venta.cs`, enum `MetodoPago`, ORDINAL append-only): obligatorio en
-  altas nuevas (`VentasService.Validar`), sin valor preseleccionado en el editor para que nadie
-  lo deje puesto por inercia. La columna es nullable solo por las ventas anteriores a
-  `AgregarMetodoPagoVenta`, que se muestran como "No indicado". Reportes · Ventas lo resume en una
-  tabla por método (montos exactos, para cuadrar caja).
-- **Registrar una venta genera una `SalidaInventario` vinculada** (`SalidaInventario.VentaId`),
-  y así el kardex la cuenta sin que Inventario sepa nada de Ventas; anular la venta anula su
-  salida. `VentasService` escribe la salida directo contra su fuente de datos, no por
-  `SalidasInventarioService`, porque las reglas de un boleto (quién retira, a qué área) no aplican.
+Desde el 2026-11-04 Ventas cumple lo que el SENIAT exige a un software de ventas. El marco que se
+tomó (revisarlo con el contador del cliente): la Providencia **SNAT/2026/00084** derogó la
+homologación de software (la 2024/000121), y la **SNAT/2026/00093** (GO 43.484, vigente desde
+abril de 2027) fija como medios de emisión el portal o la app del SENIAT, las **imprentas
+digitales** y las **máquinas fiscales** con autorización previa. El papel queda solo para
+**contingencias**. **El software nunca se asigna el número de control: lo da el emisor.**
+
+- **El artículo ES el producto.** `Articulo` lleva `PrecioVenta` (US$, **sin IVA**), `Categoria`
+  (texto libre) y `Alicuota` (`TipoAlicuota`: Exento/General/Reducida/Adicional, ordinal). Los
+  **porcentajes** no van en el artículo sino en `Organizacion` (`IvaGeneral` 16, `IvaReducida` 8,
+  `IvaAdicional` 31 = 16 + 15 suntuario, `IgtfPorcentaje` 3), porque los decreta el Ejecutivo.
+  `InventarioService.DescripcionGenerica` rechaza nombres como "Artículo" o "Varios": el nombre
+  es lo que se imprime en el renglón.
+- **Datos del emisor** en `Organizacion` (`RazonSocial`, `Rif`, `DireccionFiscal`, `Telefono`,
+  `ContribuyenteEspecial`), editables en Administración · Organización. Sin
+  `DatosFiscalesCompletos` no se emite nada. **Caja por máquina**: `AjustesApp.CajaCodigo`
+  (Configuración · Aplicación); sin caja tampoco se emite.
+- **RIF** (`Services/Rif.cs`): normaliza a `J-12345678-9` y valida el dígito verificador con
+  módulo 11. Letras: V=1, E=2, J=3, P=4, G=5. La letra se multiplica por 4 y los 8 dígitos por
+  3,2,7,6,5,4,3,2; luego DV = 11 − (suma mod 11), con ≥10 → 0. Se verificó con `G-20000303-0`
+  (SENIAT) y `J-00002961-0`. Una cédula (`V-12345678`, sin DV) se acepta para consumidor final.
+- **`Venta` es un documento fiscal** (`TipoDocumentoVenta`: Factura, NotaCredito, NotaDebito).
+  - **Renglones y pagos:** `VentaLinea` (tabla `VentaLineas`) y `VentaPago` (tabla
+    `VentaPagos`) son `OwnsMany`. Hay pago mixto: los métodos en divisa son `Venta.EsDivisa`
+    (efectivo divisa, Zelle), y para ellos se guarda también el monto en US$.
+  - **Snapshots:** se guardan el cliente (`ClienteRif`/`ClienteNombre`/`ClienteDireccion`;
+    vacío = consumidor final), la tasa, el precio en Bs y US$ y la alícuota y su % de cada
+    renglón, los totales por alícuota, el IGTF, el total y el vuelto.
+  - **Del emisor:** `NumeroFiscal`, `NumeroControl`, `SerialEmisor` y `NumeroZ`.
+  - **Moneda:** los montos van en **Bs**; el US$ es solo referencia.
+- **Cálculo** en `Services/CalculoFiscal.cs`, puro.
+  - **Renglones:** se redondea cada uno a 2 decimales (precio Bs = US$ × tasa; monto; IVA).
+  - **Bases e IVA:** son la suma de sus renglones.
+  - **IGTF:** solo si `ContribuyenteEspecial`. Es el 3 % de lo cobrado en divisas (en Bs), con
+    tope en el total antes del IGTF.
+  - **En vivo:** el editor llama a `VentasService.Preparar`, que es lo mismo que se repite al
+    emitir.
+- **`VentasService`.** El orden es: validar → **emitir en `IEmisorFiscal`** → guardar → mover el
+  almacén.
+  - **Si falla el emisor,** no se guarda nada.
+  - **Si falla el guardado después de emitir,** el documento ya existe para el fisco: se anota
+    en `%AppData%\ASO Adminis\diario-fiscal.jsonl` y se avisa.
+  - **Factura:** genera una `SalidaInventario` de N renglones (`VentaId`).
+  - **Nota de crédito:** devuelve renglones de la factura a sus mismos precios y alícuotas, hasta
+    lo que queda por devolver (`DisponibleParaDevolver`, por artículo + presentación). Reingresa
+    la mercancía con una `EntradaInventario` de tipo **`DevolucionVenta`**, que no genera
+    cuenta por pagar y no se anula.
+  - **Nota de débito:** conceptos libres con alícuota; no mueve el almacén.
+  - **Inmutable:** no hay `Anular`.
+- **Inalterabilidad**: `AsoAdminisDbContext.ProtegerDocumentosFiscales` (en `SaveChanges`) rechaza
+  borrar un `Venta`, o modificar cualquier columna suya, sus renglones o sus pagos.
+  - **Únicas dos excepciones:** `Estado` PendienteTransmitir → Registrada (más
+    `FechaTransmision`), y `NumeroZ` de nulo a un valor.
+  - **Cómo se escriben esas dos:** con `IVentaDataSource.MarcarTransmitido` y `EstamparZ`, que
+    cargan la fila rastreada. `Update` y `Delete` de `SqlVentaDataSource` lanzan, porque un
+    `Update` desprendido marca todas las columnas y la guarda lo rechazaría igual.
+- **Emisor intercambiable** (`Services/Fiscal/`): `IEmisorFiscal` (`Emitir`,
+  `TransmitirContingencia`, `ReporteX`/`ReporteZ`, `TieneReportesXZ`, `EsFiscal`).
+  - **Elección:** se hace en `appsettings(.local).json`, en la sección `EmisorFiscal` (`Tipo`,
+    `Modo`, `Fallar`), a través de `EmisoresFiscales.Crear`.
+  - **Implementación disponible:** hoy solo **`EmisorFiscalSimulado`**.
+    - Puede portarse como máquina (con X/Z) o como imprenta digital.
+    - Lleva sus correlativos en `%AppData%\ASO Adminis\emisor-simulado.json` y escribe cada
+      documento en `...\documentos\`, marcado **SIN VALOR FISCAL**.
+    - Con `Fallar: true` simula un emisor caído.
+  - **PENDIENTE:** escribir el conector real (máquina HKA o API de una imprenta digital) cuando
+    el cliente elija.
+- **Contingencia:** si el emisor no responde, quien tenga `Ventas.Contingencia` registra la factura
+  hecha en papel. Se cargan su n° y su n° de control, que se valida que no se repita. Queda
+  `PendienteTransmitir` hasta que "Transmitir pendientes" la envía.
+- **Retenciones de IVA recibidas** (`RetencionIvaRecibida`, `RetencionesService`): son las del
+  cliente agente de retención, del 75 % o el 100 % del IVA.
+  - **Comprobante:** número de 14 dígitos; una retención por factura; el comprobante no se
+    repite.
+  - **Por qué es una fila aparte:** la factura es inalterable.
+- **Cierre del día** (Ventas · Cierre, `CierreService`):
+  - **Resumen diario:** por alícuota y medio de pago, neto de notas de crédito. Existe siempre.
+  - **Con máquina fiscal:** hay reporte X y **Cierre Z** (`Ventas.CierreZ`). El Z se guarda en
+    `CierreZ`, con lo que dice el sistema al lado ("Cuadra" o "Diferencia"), y se estampa su
+    número en los documentos de la caja que no tenían Z.
+- **Libro de ventas** (Reportes · Libro de ventas, `LibroVentasService`): se lleva por mes, o por
+  quincena si la organización es contribuyente especial.
+  - **Columnas:** las 16 del documento de requisitos, más la alícuota adicional, el tipo de
+    documento y de transacción (01-REG, 02-COMP, 03-ANU), el serial/Z y las retenciones.
+  - **Filas:** los documentos a contribuyentes van una por fila; el consumidor final con Z se
+    consolida en una fila por Z ("RZ"); la contingencia va siempre en su fila. Las notas de
+    crédito salen en negativo.
+  - **Retenciones:** van en la fila de su factura, o en una fila "RET" si el comprobante es de
+    otro período.
+  - **Exportación:** a CSV (`;`, coma decimal, UTF-8 con BOM). Las columnas exactas se confirman
+    con el contador.
+- **Ventas históricas**: las ventas de una sola línea anteriores a `VentasDocumentoFiscal` se
+  migraron como `EsHistorico` (un renglón, un pago si tenían método). No entran al libro.
 - **Tasa BCV**: `TasaCambioService` la trae de DolarAPI al iniciar sesión (sin internet sigue con
-  la última guardada) y se puede forzar en Administración · Organización. La tasa vigente se ve
-  para todos los roles al pie del sidebar; se corrige sola porque `ActualizarDesdeApi` dispara
-  el evento estático `TasaCambioService.TasaActualizada` (el sidebar se desuscribe en
-  `Unloaded`, porque la ventana se reconstruye en cada sesión). Los equivalentes en Bs
-  (`Articulo.PrecioVentaBs`) son propiedades `Ignore()`-adas que rellena el ViewModel, igual que
-  `Existencia`.
-- **Reportes** es de solo lectura: Ventas agrupa por día y por `Articulo.Categoria` (vacía →
-  "Sin categoría"); Gastos son los pagos reales a proveedores.
+  la última guardada) y se puede forzar en Administración · Organización.
+  - **Pie del sidebar:** la tasa vigente se ve allí para todos los roles. Se corrige sola porque
+    `ActualizarDesdeApi` dispara el evento estático `TasaCambioService.TasaActualizada`. El
+    sidebar se desuscribe en `Unloaded`, porque la ventana se reconstruye en cada sesión.
+  - **Equivalentes en Bs** (`Articulo.PrecioVentaBs`): son propiedades `Ignore()`-adas que
+    rellena el ViewModel, igual que `Existencia`.
+- **Reportes · Ventas** es de solo lectura y va en Bs, neto de notas. Agrupa por día y por
+  `Articulo.Categoria` (por renglón) y suma por medio de pago desde `VentaPago`. Gastos son los
+  pagos reales a proveedores.
 
 ## Persistencia
 
@@ -227,7 +305,10 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
   `FacturaProveedor`+`FacturaProveedorLinea`, `CuentaBancaria`, `MovimientoBanco`, `Articulo`,
   `EntradaInventario`+`EntradaInventarioLinea`, `SalidaInventario`+`SalidaInventarioLinea`),
   `AgregarCatalogoMarcasModelos`, `AgregarTasaCambio`, `AgregarVentas`,
-  `QuitarCatalogoMarcasModelos`, `AgregarMetodoPagoVenta` y `AgregarPresentacionesArticulo`
+  `QuitarCatalogoMarcasModelos`, `AgregarMetodoPagoVenta`, `AgregarPresentacionesArticulo`,
+  `AgregarDatosFiscales`, `VentasDocumentoFiscal` (editada a mano: pasa cada venta vieja a un
+  renglón + pago antes de borrar las columnas viejas; su `Down` lanza, no es reversible) y
+  `AgregarCierreZRetenciones`
   (esta última rellena los documentos previos como cargados en unidad base, factor 1). Esta última deshace el enfoque zapatería **sin perder datos**:
   su `Up` está reordenado a mano para pasar el precio de cada modelo a su artículo y repuntar
   `Ventas.ModeloId` → `ArticuloId` antes de borrar `Marcas`/`Modelos`. Si se edita una
@@ -267,8 +348,8 @@ Cuatro roles genéricos (`Models/Rol.cs`), cada uno con un conjunto base en
 
 | Rol | Alcance |
 |---|---|
-| **Operador** | El día a día: crea/edita proveedores y facturas; mantiene el catálogo de artículos y registra entradas y salidas de almacén. No mueve dinero, no anula ni borra nada |
-| **Supervisor** | Todo lo de Operador, más registrar pagos (dispara el asiento en Banco), administrar cuentas bancarias, anular documentos de almacén, eliminar, y resolver peticiones de su dominio |
+| **Operador** | El día a día: emite facturas y mantiene clientes; crea/edita proveedores y facturas de compra; mantiene el catálogo de artículos y registra entradas y salidas de almacén; ve el cierre del día (reporte X). No mueve dinero, no anula ni borra nada |
+| **Supervisor** | Todo lo de Operador, más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; registrar pagos (dispara el asiento en Banco), administrar cuentas bancarias, anular documentos de almacén, eliminar, y resolver peticiones de su dominio |
 | **AdministradorOrganizacion** | Todo dentro de la organización, salvo crear usuarios Desarrollador |
 | **Desarrollador** | Todos los permisos, y es el único que reparte su propio rol |
 
@@ -370,10 +451,14 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
    cuando se conozca la necesidad real — no está prefigurado en el modelo de datos actual.
 4. **Nombre de la empresa / razón social**: el `.csproj` usa "ASO Adminis" como placeholder en
    `Product`/`Company`, a falta de la razón social real del cliente.
-5. **Ventas mínimo**: una venta es de una sola línea, con un único método de pago (no pagos
-   mixtos), el cliente es texto libre y no hay cuentas por cobrar. Es deliberadamente genérico; crecerlo (carrito multi-artículo,
-   padrón de clientes, cobro) con la receta de "Cómo se agrega un submódulo", usando
-   `EntradaInventario` como modelo de documento con líneas editables.
+5. **Ventas fiscal, pendientes**:
+   - **Emisor real:** solo existe el emisor **simulado** (sin valor fiscal). Hay que escribir el
+     conector de la máquina fiscal (p. ej. HKA) o de la imprenta digital que elija el cliente,
+     contra `IEmisorFiscal`.
+   - **Crédito:** no hay cuentas por cobrar ni venta a crédito.
+   - **IGTF en notas:** las notas de crédito no revierten IGTF.
+   - **Por confirmar con el contador:** los porcentajes de IVA, el criterio del IGTF y las
+     columnas exactas del libro de ventas.
 6. **`Solicitables` vacío**: no hay ninguna petición de cambio configurada todavía — ver
    "Peticiones de cambio" arriba. Los dos candidatos naturales ya existen:
    `EntradasInventario.Anular` y `SalidasInventario.Anular`, que hoy un Operador simplemente no
@@ -384,8 +469,8 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
 
 ## Próximo paso sugerido
 
-1. **Ampliar Ventas sin atarlo a un rubro** (varias líneas por venta, clientes, pagos mixtos);
-   lo específico de un cliente (marcas, tallas, colores…) se agrega para ese cliente, no aquí.
+1. **Conector del emisor fiscal real** (máquina fiscal o imprenta digital) en cuanto el cliente
+   elija equipo o proveedor; hasta entonces todo se emite con el simulador, sin valor fiscal.
 2. **Decidir los roles reales** del negocio y reemplazar los cuatro genéricos.
 3. **Elegir el color de marca real** y actualizar lo descrito en "Marca" (y regenerar el `.ico`).
 4. **Llevar la comprobación de permisos a los servicios de dominio** de cada módulo nuevo desde

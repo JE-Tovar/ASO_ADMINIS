@@ -436,9 +436,12 @@ public sealed class PagoVentaEditorViewModel : ViewModelBase
 
     public decimal MontoValor => decimal.TryParse(Monto, out var v) ? v : 0m;
 
-    public string EquivalenteTexto => EsDivisa && _tasa > 0 && MontoValor > 0
-        ? $"= Bs. {MontoValor * _tasa:N2}"
-        : string.Empty;
+    /// <summary>"US$ 40,93 = Bs. 1.637,20" en divisa; "Bs." en bolívares, para que se sepa en qué se escribe.</summary>
+    public string EquivalenteTexto => MetodoSeleccionado is null
+        ? string.Empty
+        : EsDivisa
+            ? (_tasa > 0 && MontoValor > 0 ? $"US$ → Bs. {MontoValor * _tasa:N2}" : "en US$")
+            : "en Bs.";
 
     public VentaPago Construir() => new()
     {

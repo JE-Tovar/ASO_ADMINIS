@@ -64,6 +64,7 @@ public static class MatrizPermisos
         Permisos.Ver(ModuloCatalogo.Configuracion.Clave),
         Permisos.Ver("Ventas.Registro"),
         Permisos.Ver("Ventas.Clientes"),
+        Permisos.Ver("Ventas.Cierre"),
         Permisos.Ver("Reportes.Ventas"),
         Permisos.Ver("Finanzas.CuentasPorPagar"),
         Permisos.Ver("Finanzas.Banco"),
@@ -115,6 +116,9 @@ public static class MatrizPermisos
             Permisos.Ventas.NotaCredito,
             Permisos.Ventas.NotaDebito,
             Permisos.Ventas.Contingencia,
+            Permisos.Ventas.CierreZ,
+            Permisos.Ventas.Retenciones,
+            Permisos.Ver("Reportes.LibroVentas"),
 
             Permisos.Proveedores.Eliminar,
             Permisos.FacturasProveedor.Eliminar,

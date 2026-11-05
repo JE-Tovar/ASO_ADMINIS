@@ -30,6 +30,10 @@
     <views:ContingenciaEditorView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:RetencionEditorViewModel}">
+    <views:RetencionEditorView />
+  </DataTemplate>
+
   <!-- Finanzas · Cuentas por Pagar y Banco -->
 
   <DataTemplate DataType="{x:Type vm:ProveedorEditorViewModel}">

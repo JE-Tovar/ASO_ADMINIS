@@ -65,6 +65,9 @@
             <Button Content="Nota de débito" Style="{StaticResource SecondaryButtonStyle}"
                     ToolTip="Cargo adicional sobre la factura seleccionada"
                     Command="{Binding NotaDebitoCommand}" />
+            <Button Content="Retención IVA" Style="{StaticResource SecondaryButtonStyle}"
+                    ToolTip="Registrar el comprobante de retención que entregó el cliente por la factura seleccionada"
+                    Command="{Binding RetencionCommand}" />
             <Button Content="Transmitir pendientes" Style="{StaticResource SecondaryButtonStyle}"
                     ToolTip="Envía al emisor fiscal los documentos hechos en papel de contingencia"
                     Command="{Binding TransmitirCommand}" />
@@ -87,7 +90,7 @@
               <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoCorto}" Width="6*" MinWidth="44" />
               <controls:ColumnaTexto Header="N° fiscal" Binding="{Binding NumeroFiscalTexto}" Width="11*" MinWidth="90" />
               <controls:ColumnaTexto Header="Control" Binding="{Binding NumeroControl}" Width="11*" MinWidth="86" />
-              <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaHoraTexto}" Width="12*" MinWidth="104" />
+              <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaHoraTexto}" Width="13*" MinWidth="124" />
               <controls:ColumnaTexto Header="Cliente" Binding="{Binding ClienteTexto}" Width="20*" MinWidth="130" />
               <controls:ColumnaTexto Header="Artículos" Binding="{Binding ArticuloTexto}" Width="20*" MinWidth="130" />
               <controls:ColumnaTexto Header="Pago" Binding="{Binding MetodoPagoTexto}" Width="12*" MinWidth="90" />

@@ -1,0 +1,37 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.RetencionEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="380">
+
+  <StackPanel>
+    <TextBlock Text="{Binding FacturaTexto}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+    <controls:FormField Etiqueta="N° de comprobante" Ayuda="14 dígitos: año y mes (AAAAMM) más un correlativo de 8.">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               Text="{Binding NumeroComprobante, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <controls:FormField Grid.Column="0" Etiqueta="Fecha del comprobante">
+        <DatePicker Style="{StaticResource FormDatePickerStyle}" SelectedDate="{Binding Fecha}" />
+      </controls:FormField>
+      <controls:FormField Grid.Column="2" Etiqueta="% retenido">
+        <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                  ItemsSource="{Binding Porcentajes}" SelectedItem="{Binding Porcentaje}"
+                  ItemStringFormat="{}{0:0} %" />
+      </controls:FormField>
+    </Grid>
+
+    <TextBlock Text="{Binding MontoTexto}" Margin="0,12,0,0" Style="{StaticResource FormValorCalculadoStyle}" />
+  </StackPanel>
+</UserControl>

@@ -27,6 +27,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     private readonly VentasService _servicio;
     private readonly TasaCambioService _tasaCambio;
     private readonly IClienteDataSource _clientes;
+    private readonly RetencionesService _retenciones;
 
     private string _filtro = "Todos";
 
@@ -45,6 +46,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
         _dialogos = dialogos;
         _sesionActual = sesion;
         _clientes = DataSourceFactory.CrearClientes();
+        _retenciones = new RetencionesService(DataSourceFactory.CrearRetencionesIva(), sesion);
 
         var articulos = DataSourceFactory.CrearArticulos();
         _inventario = new InventarioService(articulos,
@@ -70,6 +72,9 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
         NotaDebitoCommand = new RelayCommand(() => EmitirNota(TipoDocumentoVenta.NotaDebito),
             () => _servicio.PuedeEmitirNota(SelectedItem) && _sesionActual.Puede(Permisos.Ventas.NotaDebito));
 
+        RetencionCommand = new RelayCommand(RegistrarRetencion,
+            () => _retenciones.PuedeRegistrar(SelectedItem) && _sesionActual.Puede(Permisos.Ventas.Retenciones));
+
         TransmitirCommand = new RelayCommand(Transmitir,
             () => _sesionActual.Puede(Permisos.Ventas.Contingencia) && Items.Any(v => v.Estado == EstadoVenta.PendienteTransmitir));
     }
@@ -78,6 +83,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     public ICommand NotaCreditoCommand { get; }
     public ICommand NotaDebitoCommand { get; }
     public ICommand TransmitirCommand { get; }
+    public ICommand RetencionCommand { get; }
 
     public string EmisorTexto => _servicio.Emisor.EsFiscal
         ? $"Emisor: {_servicio.Emisor.Nombre}"
@@ -199,6 +205,35 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
         Aplicar(() => tipo == TipoDocumentoVenta.NotaCredito
             ? _servicio.EmitirNotaCredito(factura, editor.DevolucionesElegidas, editor.Motivo, usuario)
             : _servicio.EmitirNotaDebito(factura, editor.CargosElegidos, editor.Motivo, usuario));
+    }
+
+    private void RegistrarRetencion()
+    {
+        if (SelectedItem is not { } factura)
+            return;
+
+        if (_retenciones.DeLaFactura(factura.Id) is { } existente)
+        {
+            _dialogos.Informar("Retención ya registrada",
+                $"Comprobante {existente.NumeroComprobante} del {existente.FechaTexto}: Bs. {existente.MontoTexto} ({existente.Porcentaje:0} %).");
+            return;
+        }
+
+        var editor = new RetencionEditorViewModel(factura);
+        if (!_dialogos.MostrarEditor(editor))
+            return;
+
+        try
+        {
+            var r = _retenciones.Registrar(factura, editor.NumeroComprobante, editor.Fecha, editor.Porcentaje,
+                                           _sesionActual.UsuarioActual?.Id ?? 0);
+            _dialogos.Informar("Retención registrada",
+                $"Comprobante {r.NumeroComprobante}: Bs. {r.MontoTexto}. Figurará en el libro de ventas.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _dialogos.Informar("No se pudo registrar la retención", ex.Message);
+        }
     }
 
     private void Transmitir()

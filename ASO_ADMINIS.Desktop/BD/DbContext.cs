@@ -20,6 +20,8 @@ public class AsoAdminisDbContext : DbContext
     public DbSet<TasaCambio> TasasCambio { get; set; }
     public DbSet<Venta> Ventas { get; set; }
     public DbSet<Cliente> Clientes { get; set; }
+    public DbSet<RetencionIvaRecibida> RetencionesIva { get; set; }
+    public DbSet<CierreZ> CierresZ { get; set; }
 
     // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
     public DbSet<Proveedor> Proveedores { get; set; }
@@ -250,6 +252,52 @@ public class AsoAdminisDbContext : DbContext
 
             entity.Ignore(p => p.EstadoTexto);
             entity.Ignore(p => p.Etiqueta);
+        });
+
+        modelBuilder.Entity<RetencionIvaRecibida>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.ToTable("RetencionesIvaRecibidas");
+            entity.Property(r => r.VentaNumeroFiscal).HasMaxLength(30);
+            entity.Property(r => r.ClienteRif).IsRequired().HasMaxLength(15);
+            entity.Property(r => r.ClienteNombre).HasMaxLength(200);
+            entity.Property(r => r.NumeroComprobante).IsRequired().HasMaxLength(20);
+            entity.Property(r => r.Porcentaje).HasColumnType("decimal(5,2)");
+            entity.Property(r => r.IvaFactura).HasColumnType("decimal(18,2)");
+            entity.Property(r => r.MontoRetenido).HasColumnType("decimal(18,2)");
+
+            // Una retención por factura, y un comprobante no se registra dos veces.
+            entity.HasIndex(r => new { r.OrganizacionId, r.VentaId }).IsUnique();
+            entity.HasIndex(r => new { r.OrganizacionId, r.ClienteRif, r.NumeroComprobante }).IsUnique();
+
+            entity.Ignore(r => r.FechaTexto);
+            entity.Ignore(r => r.MontoTexto);
+        });
+
+        modelBuilder.Entity<CierreZ>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.ToTable("CierresZ");
+            entity.Property(c => c.CajaCodigo).HasMaxLength(20);
+            entity.Property(c => c.SerialEmisor).HasMaxLength(40);
+            entity.Property(c => c.CreadoPorNombre).HasMaxLength(150);
+            foreach (var monto in new[]
+                     {
+                         nameof(CierreZ.Exento), nameof(CierreZ.BaseGeneral), nameof(CierreZ.IvaGeneral),
+                         nameof(CierreZ.BaseReducida), nameof(CierreZ.IvaReducida), nameof(CierreZ.BaseAdicional),
+                         nameof(CierreZ.IvaAdicional), nameof(CierreZ.Igtf), nameof(CierreZ.Total),
+                         nameof(CierreZ.TotalSistema)
+                     })
+                entity.Property(monto).HasColumnType("decimal(18,2)");
+
+            entity.HasIndex(c => new { c.OrganizacionId, c.CajaCodigo, c.NumeroZ }).IsUnique();
+
+            foreach (var derivada in new[]
+                     {
+                         nameof(CierreZ.Diferencia), nameof(CierreZ.Cuadra), nameof(CierreZ.FechaTexto),
+                         nameof(CierreZ.TotalTexto), nameof(CierreZ.TotalSistemaTexto), nameof(CierreZ.CuadraTexto)
+                     })
+                entity.Ignore(derivada);
         });
 
         modelBuilder.Entity<Cliente>(entity =>

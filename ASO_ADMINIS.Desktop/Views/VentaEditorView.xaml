@@ -145,7 +145,7 @@
                     IsReadOnly="True" MaxHeight="170"
                     HeadersVisibility="Column" CanUserSortColumns="False">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="Método" Width="30*" MinWidth="130">
+              <DataGridTemplateColumn Header="Método" Width="26*" MinWidth="120">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <ComboBox Style="{StaticResource LineaComboBoxStyle}"
@@ -154,7 +154,7 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Monto" Width="20*" MinWidth="90">
+              <DataGridTemplateColumn Header="Monto (Bs o US$)" Width="18*" MinWidth="100">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <TextBox Style="{StaticResource LineaTextBoxStyle}" TextAlignment="Right"
@@ -163,9 +163,8 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <controls:ColumnaTexto Header="" Binding="{Binding MonedaTexto}" Width="38" />
-              <controls:ColumnaNumero Header="En Bs" Binding="{Binding EquivalenteTexto}" Width="18*" MinWidth="90" />
-              <DataGridTemplateColumn Header="Referencia" Width="18*" MinWidth="80">
+              <controls:ColumnaNumero Header="Equivale" Binding="{Binding EquivalenteTexto}" Width="26*" MinWidth="130" />
+              <DataGridTemplateColumn Header="Referencia" Width="16*" MinWidth="70">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <TextBox Style="{StaticResource LineaTextBoxStyle}"

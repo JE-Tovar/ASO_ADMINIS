@@ -81,6 +81,85 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.ToTable("Articulos");
                 });
 
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.CierreZ", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("BaseAdicional")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseGeneral")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseReducida")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CajaCodigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreadoPorNombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("Documentos")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DocumentosSistema")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Exento")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Igtf")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IvaAdicional")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IvaGeneral")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IvaReducida")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("NumeroZ")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SerialEmisor")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalSistema")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizacionId", "CajaCodigo", "NumeroZ")
+                        .IsUnique();
+
+                    b.ToTable("CierresZ", (string)null);
+                });
+
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Cliente", b =>
                 {
                     b.Property<int>("Id")
@@ -631,6 +710,69 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Proveedores");
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.RetencionIvaRecibida", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClienteNombre")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ClienteRif")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<int>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaComprobante")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("IvaFactura")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoRetenido")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("NumeroComprobante")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Porcentaje")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("VentaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VentaNumeroFiscal")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizacionId", "VentaId")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizacionId", "ClienteRif", "NumeroComprobante")
+                        .IsUnique();
+
+                    b.ToTable("RetencionesIvaRecibidas", (string)null);
                 });
 
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.SalidaInventario", b =>
