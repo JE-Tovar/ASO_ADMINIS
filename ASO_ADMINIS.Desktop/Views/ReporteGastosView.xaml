@@ -31,10 +31,29 @@
         <DatePicker Width="130" VerticalAlignment="Center" Style="{StaticResource FormDatePickerStyle}"
                     SelectedDate="{Binding Hasta}" />
 
+        <controls:FiltroDropdown Style="{StaticResource FiltroDropdownStyle}" SelectedIndex="0"
+                                 Margin="16,0,0,0" VerticalAlignment="Center"
+                                 Command="{Binding CambiarFiltroCommand}">
+          <ComboBoxItem Content="Todos" />
+          <ComboBoxItem Content="Proveedores" />
+          <ComboBoxItem Content="Gastos varios" />
+        </controls:FiltroDropdown>
+
         <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
-          <TextBlock Text="Total pagado" VerticalAlignment="Center" Margin="0,0,8,0"
+          <TextBlock Text="Total Bs" VerticalAlignment="Center" Margin="0,0,8,0"
                      Foreground="{DynamicResource TextSecondaryBrush}" />
           <TextBlock Text="{Binding TotalTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="Proveedores" VerticalAlignment="Center" Margin="0,0,8,0"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Text="{Binding ProveedoresTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+          <TextBlock VerticalAlignment="Center" Margin="0,0,8,0"
+                     Foreground="{DynamicResource TextSecondaryBrush}"
+                     Text="{Binding CantidadVariosTexto, StringFormat='Gastos varios ({0})'}" />
+          <TextBlock Text="{Binding VariosTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
         </StackPanel>
       </WrapPanel>
     </Border>
@@ -46,12 +65,12 @@
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
-      <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}">
-        <oxy:PlotView Model="{Binding GraficoPorMes}" Height="260" Background="Transparent" />
+      <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" MinWidth="260">
+        <oxy:PlotView Model="{Binding GraficoPorMes}" Height="300" Background="Transparent" />
       </Border>
 
-      <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}">
-        <oxy:PlotView Model="{Binding GraficoPorProveedor}" Height="260" Background="Transparent" />
+      <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" MinWidth="260">
+        <oxy:PlotView Model="{Binding GraficoPorCategoria}" Height="300" Background="Transparent" />
       </Border>
     </Grid>
 
@@ -60,17 +79,20 @@
         <DataGrid x:Name="TablaGastos" Style="{StaticResource DataGridStyle}"
                   ItemsSource="{Binding Items}" IsReadOnly="True">
           <DataGrid.Columns>
-            <controls:ColumnaTexto Header="Fecha de pago" Binding="{Binding FechaPago, StringFormat=dd/MM/yyyy}" Width="14*" MinWidth="100" />
-            <controls:ColumnaTexto Header="Proveedor" Binding="{Binding ProveedorNombre}" Width="26*" MinWidth="150" />
-            <controls:ColumnaTexto Header="Documento" Binding="{Binding NumeroDocumento}" Width="16*" MinWidth="100" />
-            <controls:ColumnaTexto Header="Descripción" Binding="{Binding Descripcion}" Width="24*" MinWidth="140" />
-            <controls:ColumnaNumero Header="Monto" Binding="{Binding MontoTexto}" Width="12*" MinWidth="86" />
+            <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="9*" MinWidth="80" />
+            <controls:ColumnaTexto Header="Origen" Binding="{Binding OrigenTexto}" Width="9*" MinWidth="86" />
+            <controls:ColumnaTexto Header="Categoría" Binding="{Binding Categoria}" Width="14*" MinWidth="110" />
+            <controls:ColumnaTexto Header="Beneficiario" Binding="{Binding Beneficiario}" Width="15*" MinWidth="110" />
+            <controls:ColumnaTexto Header="Documento" Binding="{Binding Documento}" Width="10*" MinWidth="86" />
+            <controls:ColumnaTexto Header="Concepto" Binding="{Binding Concepto}" Width="19*" MinWidth="130" />
+            <controls:ColumnaNumero Header="Monto" Binding="{Binding MontoTexto}" Width="11*" MinWidth="90" />
+            <controls:ColumnaNumero Header="Bs" Binding="{Binding MontoBsTexto}" Width="11*" MinWidth="90" />
           </DataGrid.Columns>
         </DataGrid>
 
         <controls:EmptyState Icono="{x:Static controls:Iconos.Reportes}"
                              Titulo="Sin gastos en este período"
-                             Detalle="Ajusta el rango de fechas o registra el pago de una factura en Finanzas · Cuentas por Pagar."
+                             Detalle="Ajusta el rango de fechas, registra el pago de una factura en Finanzas · Cuentas por Pagar o un gasto en Finanzas · Gastos varios."
                              Visibility="{Binding HasItems, ElementName=TablaGastos, Converter={StaticResource SinItemsAVis}}" />
       </Grid>
     </Border>
