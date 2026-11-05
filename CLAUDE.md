@@ -199,12 +199,23 @@ abril de 2027) fija como medios de emisión el portal o la app del SENIAT, las *
 digitales** y las **máquinas fiscales** con autorización previa. El papel queda solo para
 **contingencias**. **El software nunca se asigna el número de control: lo da el emisor.**
 
-- **El artículo ES el producto.** `Articulo` lleva `PrecioVenta` (US$, **sin IVA**), `Categoria`
-  (texto libre) y `Alicuota` (`TipoAlicuota`: Exento/General/Reducida/Adicional, ordinal). Los
-  **porcentajes** no van en el artículo sino en `Organizacion` (`IvaGeneral` 16, `IvaReducida` 8,
-  `IvaAdicional` 31 = 16 + 15 suntuario, `IgtfPorcentaje` 3), porque los decreta el Ejecutivo.
-  `InventarioService.DescripcionGenerica` rechaza nombres como "Artículo" o "Varios": el nombre
-  es lo que se imprime en el renglón.
+- **El artículo ES el producto, y se trabaja por código primero.** `Articulo` se identifica por
+  `Codigo`; no tiene "nombre" sino **`Descripcion`** (hasta 200 caracteres, clara y detallada),
+  que es lo que se imprime en el renglón de la factura.
+  - **Dónde se ve:** en combos y títulos aparece como `Codigo · Descripcion` (`Etiqueta`), y las
+    listas de activos se ordenan por código.
+  - **Genéricos:** `InventarioService.DescripcionGenerica` rechaza descripciones como "Artículo"
+    o "Varios".
+  - **Migración `ArticuloDescripcion`:** renombra la columna `Nombre` → `Descripcion` (editada a
+    mano para no perder datos).
+  - **Snapshots:** los de las líneas de Entradas y Salidas se siguen llamando `ArticuloNombre`,
+    pero guardan la descripción.
+- **Precio, categoría y alícuota.** El artículo lleva además `PrecioVenta` (US$, **sin IVA**),
+  `Categoria` (texto libre) y `Alicuota` (`TipoAlicuota`: Exento/General/Reducida/Adicional,
+  ordinal).
+  - **Porcentajes:** no van en el artículo sino en `Organizacion` (`IvaGeneral` 16, `IvaReducida`
+    8, `IvaAdicional` 31 = 16 + 15 suntuario, `IgtfPorcentaje` 3), porque los decreta el
+    Ejecutivo.
 - **Datos del emisor** en `Organizacion` (`RazonSocial`, `Rif`, `DireccionFiscal`, `Telefono`,
   `ContribuyenteEspecial`), editables en Administración · Organización. Sin
   `DatosFiscalesCompletos` no se emite nada. **Caja por máquina**: `AjustesApp.CajaCodigo`

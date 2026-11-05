@@ -391,7 +391,7 @@ public sealed class LineaSalidaEditorViewModel : ViewModelBase
     {
         ArticuloId = ArticuloSeleccionado!.Id,
         ArticuloCodigo = ArticuloSeleccionado.Codigo,
-        ArticuloNombre = ArticuloSeleccionado.Nombre,
+        ArticuloNombre = ArticuloSeleccionado.Descripcion,
         UnidadTexto = ArticuloSeleccionado.UnidadCorta,
         Cantidad = CantidadValor
     };

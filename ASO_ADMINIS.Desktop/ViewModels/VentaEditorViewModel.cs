@@ -367,7 +367,7 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
     {
         ArticuloId = ArticuloSeleccionado!.Id,
         Codigo = ArticuloSeleccionado.Codigo,
-        Descripcion = ArticuloSeleccionado.Nombre,
+        Descripcion = ArticuloSeleccionado.Descripcion,
         PresentacionNombre = PresentacionSeleccionada?.Nombre ?? ArticuloSeleccionado.UnidadCorta,
         Factor = Factor,
         Cantidad = CantidadValor,

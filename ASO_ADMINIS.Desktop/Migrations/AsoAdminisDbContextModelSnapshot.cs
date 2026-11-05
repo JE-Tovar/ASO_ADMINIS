@@ -46,13 +46,13 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<decimal>("Minimo")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Notas")
                         .IsRequired()

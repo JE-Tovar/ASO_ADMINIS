@@ -30,9 +30,10 @@
       </Grid>
     </controls:FormField>
 
-    <controls:FormField Etiqueta="Nombre del artículo">
-      <TextBox Style="{StaticResource FormTextBoxStyle}"
-               Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" />
+    <controls:FormField Etiqueta="Descripción"
+                        Ayuda="Clara y detallada: es lo que se imprime en la factura (p. ej. &quot;Pintura caucho blanco satinado 1 gal&quot;).">
+      <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="200"
+               Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" />
     </controls:FormField>
 
     <Grid>

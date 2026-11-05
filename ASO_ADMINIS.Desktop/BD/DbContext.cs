@@ -406,7 +406,7 @@ public class AsoAdminisDbContext : DbContext
         {
             entity.HasKey(a => a.Id);
             entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);
-            entity.Property(a => a.Nombre).IsRequired().HasMaxLength(150);
+            entity.Property(a => a.Descripcion).IsRequired().HasMaxLength(200);
             entity.Property(a => a.Categoria).HasMaxLength(60);
             entity.Property(a => a.Ubicacion).HasMaxLength(60);
             entity.Property(a => a.Notas).HasMaxLength(500);

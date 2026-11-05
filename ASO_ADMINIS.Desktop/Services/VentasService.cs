@@ -173,7 +173,7 @@ public sealed class VentasService
             var disponible = _inventario.Existencia(articulo.Id);
             if (pedido > disponible)
             {
-                error = $"No hay existencia suficiente de {articulo.Nombre}: hay {disponible:N2} {articulo.UnidadCorta} " +
+                error = $"No hay existencia suficiente de {articulo.Codigo} · {articulo.Descripcion}: hay {disponible:N2} {articulo.UnidadCorta} " +
                         $"y se piden {pedido:N2} {articulo.UnidadCorta}.";
                 return false;
             }

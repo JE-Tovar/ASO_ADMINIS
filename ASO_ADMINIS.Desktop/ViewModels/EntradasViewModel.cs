@@ -504,7 +504,7 @@ public sealed class LineaEntradaEditorViewModel : ViewModelBase
     {
         ArticuloId = ArticuloSeleccionado!.Id,
         ArticuloCodigo = ArticuloSeleccionado.Codigo,
-        ArticuloNombre = ArticuloSeleccionado.Nombre,
+        ArticuloNombre = ArticuloSeleccionado.Descripcion,
         UnidadTexto = ArticuloSeleccionado.UnidadCorta,
         PresentacionNombre = PresentacionSeleccionada?.Nombre ?? ArticuloSeleccionado.UnidadCorta,
         Factor = Factor,

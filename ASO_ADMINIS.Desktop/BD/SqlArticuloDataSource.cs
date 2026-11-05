@@ -25,5 +25,5 @@ public class SqlArticuloDataSource : SqlAgregadoDataSource<Articulo, int>, IArti
         => destino.Presentaciones = origen.Presentaciones;
 
     public IEnumerable<Articulo> GetActivos()
-        => Consultar(q => Incluir(q).Where(a => a.Activo).OrderBy(a => a.Nombre));
+        => Consultar(q => Incluir(q).Where(a => a.Activo).OrderBy(a => a.Codigo));
 }

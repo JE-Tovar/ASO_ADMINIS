@@ -74,7 +74,7 @@
                     SelectedItem="{Binding SelectedItem}">
             <DataGrid.Columns>
               <controls:ColumnaTexto Header="Código" Binding="{Binding Codigo}" Width="12*" MinWidth="88" />
-              <controls:ColumnaTexto Header="Artículo" Binding="{Binding Nombre}" Width="26*" MinWidth="140" />
+              <controls:ColumnaTexto Header="Descripción" Binding="{Binding Descripcion}" Width="26*" MinWidth="140" />
               <controls:ColumnaTexto Header="Categoría" Binding="{Binding Categoria}" Width="15*" MinWidth="100" />
               <controls:ColumnaTexto Header="Unidad" Binding="{Binding UnidadTexto}" Width="11*" MinWidth="80" />
               <controls:ColumnaTexto Header="IVA" Binding="{Binding AlicuotaTexto}" Width="9*" MinWidth="70" />

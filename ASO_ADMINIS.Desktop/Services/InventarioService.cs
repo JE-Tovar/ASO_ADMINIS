@@ -86,9 +86,9 @@ public sealed class InventarioService
 
     public bool Validar(Articulo articulo, out string? error)
     {
-        if (string.IsNullOrWhiteSpace(articulo.Nombre))
+        if (string.IsNullOrWhiteSpace(articulo.Descripcion))
         {
-            error = "Indique el nombre del artículo.";
+            error = "Indique la descripción del artículo.";
             return false;
         }
 
@@ -100,9 +100,9 @@ public sealed class InventarioService
 
         // El SENIAT prohíbe descripciones genéricas en el documento fiscal, y el nombre del
         // artículo es lo que se imprime en cada renglón.
-        if (DescripcionGenerica(articulo.Nombre))
+        if (DescripcionGenerica(articulo.Descripcion))
         {
-            error = $"\"{articulo.Nombre.Trim()}\" es una descripción genérica: la factura debe decir qué se vende " +
+            error = $"\"{articulo.Descripcion.Trim()}\" es una descripción genérica: la factura debe decir qué se vende " +
                     "(p. ej. \"Pintura caucho blanco 1 gal\", no \"Artículo\" ni \"Varios\").";
             return false;
         }

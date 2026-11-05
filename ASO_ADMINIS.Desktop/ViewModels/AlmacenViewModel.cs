@@ -68,7 +68,7 @@ public sealed class AlmacenViewModel : PantallaCrudViewModel<Articulo, int>
 
     protected override bool CoincideBusqueda(Articulo item, string texto) =>
         item.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
-        || item.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || item.Descripcion.Contains(texto, StringComparison.OrdinalIgnoreCase)
         || item.Categoria.Contains(texto, StringComparison.OrdinalIgnoreCase)
         || item.Ubicacion.Contains(texto, StringComparison.OrdinalIgnoreCase);
 
@@ -132,7 +132,7 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         _tasaCambio = tasaCambio;
 
         Codigo = original.Codigo;
-        Nombre = original.Nombre;
+        Descripcion = original.Descripcion;
         Categoria = original.Categoria;
         Ubicacion = original.Ubicacion;
         Notas = original.Notas;
@@ -162,7 +162,7 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
     }
 
     public override string Titulo =>
-        _original.Id == 0 ? "Nuevo artículo" : $"Editar {_original.Nombre}";
+        _original.Id == 0 ? "Nuevo artículo" : $"Editar {_original.Codigo} · {_original.Descripcion}";
 
     /// <summary>Amplio: lleva la grilla de presentaciones dentro.</summary>
     public override double AnchoEditor => Ancho.Amplio;
@@ -215,11 +215,11 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         set => SetProperty(ref _codigo, value);
     }
 
-    private string _nombre = string.Empty;
-    public string Nombre
+    private string _descripcion = string.Empty;
+    public string Descripcion
     {
-        get => _nombre;
-        set => SetProperty(ref _nombre, value);
+        get => _descripcion;
+        set => SetProperty(ref _descripcion, value);
     }
 
     private string _categoria = string.Empty;
@@ -311,7 +311,7 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
     {
         var articulo = _original.Clonar();
         articulo.Codigo = Codigo.Trim();
-        articulo.Nombre = Nombre.Trim();
+        articulo.Descripcion = Descripcion.Trim();
         articulo.Categoria = Categoria.Trim();
         articulo.Unidad = UnidadSeleccionada;
         articulo.Alicuota = AlicuotaSeleccionada;

@@ -40,7 +40,13 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     /// </summary>
     public string Codigo { get; set; } = string.Empty;
 
-    public string Nombre { get; set; } = string.Empty;
+    /// <summary>
+    /// Descripción clara y detallada del artículo ("Pintura caucho blanco satinado 1 gal"). Es lo
+    /// que se imprime en cada renglón de la factura, así que no admite descripciones genéricas
+    /// (ver <c>InventarioService.DescripcionGenerica</c>). El artículo se trabaja por
+    /// <see cref="Codigo"/> primero y esta descripción después.
+    /// </summary>
+    public string Descripcion { get; set; } = string.Empty;
 
     /// <summary>Agrupación libre (Calzado, Pinturas, Ferretería…); no es un catálogo aparte
     /// mientras no haya una necesidad real de mantenerlo.</summary>
@@ -162,7 +168,7 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
 
     public string PrecioVentaBsTexto => PrecioVentaBs > 0 ? PrecioVentaBs.ToString("N2") : "—";
 
-    public string Etiqueta => $"{Codigo} · {Nombre}";
+    public string Etiqueta => $"{Codigo} · {Descripcion}";
 
     /// <summary>
     /// Copia que también duplica las presentaciones: con un <c>MemberwiseClone</c> a secas la
