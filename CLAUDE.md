@@ -46,6 +46,16 @@ heredar una vez que se quitaron las tablas de los tres módulos eliminados.
 Es escritorio, no web (no hay dev server / puerto). `dotnet run` dentro de
 `ASO_ADMINIS.Desktop`, o F5 en Visual Studio (`ASO_ADMINIS.slnx`).
 
+Pruebas: `dotnet test ASO_ADMINIS.slnx` (proyecto `ASO_ADMINIS.Tests`, xUnit). Usan fuentes de datos
+y emisor en memoria (`Dobles.cs`), así que no tocan SQL Server ni `%AppData%`; cubren `Rif`,
+`CalculoFiscal` y la numeración de `VentasService` (contingencia, choque entre cajas).
+
+Instalación en otra PC: instalador y actualizaciones automáticas con **Velopack** (`Program.cs`,
+`Services/Actualizaciones.cs`; cómo publicar una versión en el README). Instalada, `AppConfig`
+guarda la base y `appsettings.local.json` en `%LocalAppData%\ASO Adminis`, fuera de lo que
+reemplaza cada actualización. Guía para el que instala (una PC o varias cajas contra un SQL
+Server Express): `INSTALACION.md`.
+
 ## Decisiones de arquitectura (heredadas, sin cambios)
 
 - **WPF con MVVM ligero**: `ViewModels/ViewModelBase.cs` (INotifyPropertyChanged). Lógica fuera
@@ -67,7 +77,7 @@ Es escritorio, no web (no hay dev server / puerto). `dotnet run` dentro de
 ## Estructura de módulos
 
 Hoy hay **cuatro módulos de negocio**: **Ventas** (Registro de ventas, Clientes y Cierre del
-día), **Finanzas** (Cuentas por Pagar, Banco y Proveedores), **Inventario** (Almacén, Entradas y
+día), **Finanzas** (Cuentas por Pagar, Gastos varios, Banco y Proveedores), **Inventario** (Almacén, Entradas y
 Salidas) y **Reportes** (Ventas, Gastos y Libro de ventas, de solo lectura), más **cuatro módulos fijados** sin
 submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Administración**
 (usuarios con sus permisos, y los datos de la propia organización) y **Configuración**
@@ -224,6 +234,10 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
   módulo 11. Letras: V=1, E=2, J=3, P=4, G=5. La letra se multiplica por 4 y los 8 dígitos por
   3,2,7,6,5,4,3,2; luego DV = 11 − (suma mod 11), con ≥10 → 0. Se verificó con `G-20000303-0`
   (SENIAT) y `J-00002961-0`. Una cédula (`V-12345678`, sin DV) se acepta para consumidor final.
+  Se aplica en Organización (RIF obligatorio), Clientes y el cliente de cada documento (RIF o
+  cédula) y **Proveedores** (opcional, pero si se escribe tiene que ser RIF con DV; se guarda
+  normalizado y el duplicado se busca normalizado). La letra C (consejos comunales) no está
+  soportada.
 - **`Venta` es un documento fiscal** (`TipoDocumentoVenta`: Factura, NotaCredito, NotaDebito).
   - **Renglones y pagos:** `VentaLinea` (tabla `VentaLineas`) y `VentaPago` (tabla
     `VentaPagos`) son `OwnsMany`. Hay pago mixto: los métodos en divisa son `Venta.EsDivisa`
@@ -304,8 +318,31 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
   - **Equivalentes en Bs** (`Articulo.PrecioVentaBs`): son propiedades `Ignore()`-adas que
     rellena el ViewModel, igual que `Existencia`.
 - **Reportes · Ventas** es de solo lectura y va en Bs, neto de notas. Agrupa por día y por
-  `Articulo.Categoria` (por renglón) y suma por medio de pago desde `VentaPago`. Gastos son los
-  pagos reales a proveedores.
+  `Articulo.Categoria` (por renglón) y suma por medio de pago desde `VentaPago`.
+
+## Gastos varios y Reportes · Gastos (2026-11-05)
+
+- **Finanzas · Gastos varios** (`GastoVario`, `GastosVariosService`): lo que se paga y no es una
+  factura de proveedor (luz, alquiler, fletes…). Documento plano `GAS-000123`; no se edita ni se
+  borra, se **anula** con motivo (`Finanzas.Anular`). Registrar pide `GastosVarios.Crear`
+  (Supervisor en adelante: mueve dinero).
+  - **Moneda Bs o US$.** Si es US$ se congelan `TasaCambio` (la BCV vigente en la fecha del
+    gasto, `GastosVariosService.TasaEn`) y `MontoBs`; el reporte suma `MontoBs` y no se mueve
+    cuando cambia la tasa.
+  - **Categoría** es texto libre con sugerencias (`CategoriasBase` ∪ las ya usadas), combo
+    editable (`EditableComboBoxStyle`).
+  - **Cuenta opcional.** Sin cuenta = efectivo por fuera de Banco. Con cuenta (de la misma
+    moneda, se valida) se escribe su asiento `OrigenMovimiento.GastoVario` con
+    `BancoService.RegistrarGastoVario`; si el asiento falla se retira el gasto. Anular el gasto
+    anula su asiento con `BancoService.AnularDerivados` (composición: no pide `Banco.Anular`).
+- **Reportes · Gastos** (`ReporteGastosService`) junta, en Bs, las facturas de proveedor
+  **pagadas** (por fecha de pago; su moneda es la de la cuenta de su asiento, y si es US$ se
+  convierte con la tasa de ese día) y los gastos varios vigentes. Filtro por origen, totales por
+  origen, barras apiladas por mes y torta por categoría.
+- **Gráficos** (`ViewModels/Graficos.cs`): toda gráfica de Reportes se construye aquí. Toma los
+  colores del tema activo, deja margen para la etiqueta de la barra más larga y la torta lleva
+  el % dentro y los nombres en leyenda (máx. 6 porciones + "Otros"), para que nada se salga de
+  la tarjeta. No crear `PlotModel` "pelados" en un ViewModel.
 
 ## Persistencia
 
@@ -320,7 +357,9 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
   `AgregarDatosFiscales`, `VentasDocumentoFiscal` (editada a mano: pasa cada venta vieja a un
   renglón + pago antes de borrar las columnas viejas; su `Down` lanza, no es reversible) y
   `AgregarCierreZRetenciones`
-  (esta última rellena los documentos previos como cargados en unidad base, factor 1). Esta última deshace el enfoque zapatería **sin perder datos**:
+  (esta última rellena los documentos previos como cargados en unidad base, factor 1).
+  Después vinieron `ArticuloDescripcion` y `AgregarGastosVarios` (tabla nueva, sin datos que
+  migrar). Esta última deshace el enfoque zapatería **sin perder datos**:
   su `Up` está reordenado a mano para pasar el precio de cada modelo a su artículo y repuntar
   `Ventas.ModeloId` → `ArticuloId` antes de borrar `Marcas`/`Modelos`. Si se edita una
   migración generada, revisar el script con `dotnet ef migrations script`.
@@ -360,7 +399,7 @@ Cuatro roles genéricos (`Models/Rol.cs`), cada uno con un conjunto base en
 | Rol | Alcance |
 |---|---|
 | **Operador** | El día a día: emite facturas y mantiene clientes; crea/edita proveedores y facturas de compra; mantiene el catálogo de artículos y registra entradas y salidas de almacén; ve el cierre del día (reporte X). No mueve dinero, no anula ni borra nada |
-| **Supervisor** | Todo lo de Operador, más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; registrar pagos (dispara el asiento en Banco), administrar cuentas bancarias, anular documentos de almacén, eliminar, y resolver peticiones de su dominio |
+| **Supervisor** | Todo lo de Operador, más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; registrar pagos (dispara el asiento en Banco) y gastos varios, administrar cuentas bancarias, anular documentos de almacén, eliminar, y resolver peticiones de su dominio |
 | **AdministradorOrganizacion** | Todo dentro de la organización, salvo crear usuarios Desarrollador |
 | **Desarrollador** | Todos los permisos, y es el único que reparte su propio rol |
 
