@@ -58,7 +58,7 @@ public sealed class CierreService(IVentaDataSource ventas,
                         && v.Estado == EstadoVenta.Registrada)
             .ToList();
 
-        var cierre = cierres.Add(new CierreZ
+        var nuevo = new CierreZ
         {
             NumeroZ = z.NumeroZ,
             CajaCodigo = caja,
@@ -78,10 +78,24 @@ public sealed class CierreService(IVentaDataSource ventas,
             TotalSistema = incluidos.Sum(v => v.Signo * v.Total),
             CreadoPorId = sesion.UsuarioActual?.Id ?? 0,
             CreadoPorNombre = sesion.UsuarioActual?.NombreCompleto ?? string.Empty
-        });
+        };
 
-        if (incluidos.Count > 0)
-            ventas.EstamparZ([.. incluidos.Select(v => v.Id)], z.NumeroZ);
+        // El Z ya se hizo en la máquina y no se repite: si guardarlo falla, queda en el diario
+        // fiscal para registrarlo a mano, igual que un documento emitido sin guardar.
+        CierreZ cierre;
+        try
+        {
+            cierre = cierres.Add(nuevo);
+            if (incluidos.Count > 0)
+                ventas.EstamparZ([.. incluidos.Select(v => v.Id)], z.NumeroZ);
+        }
+        catch (Exception ex)
+        {
+            DiarioFiscal.Anotar("CierreZ", new { Cierre = nuevo, Documentos = incluidos.Select(v => v.Id).ToList() }, ex);
+            throw new InvalidOperationException(
+                $"El reporte Z n° {z.NumeroZ} YA SE HIZO en la máquina, pero no se pudo guardar en la base: {ex.Message}" +
+                $"\n\nQuedó anotado en el diario fiscal ({DiarioFiscal.RutaTexto}) para registrarlo a mano.", ex);
+        }
 
         return cierre;
     }

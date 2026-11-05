@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text.Json;
 using ASO_ADMINIS.Desktop.Models;
 using ASO_ADMINIS.Desktop.Services.Fiscal;
 
@@ -274,6 +272,9 @@ public sealed class VentasService
         factura.SerialEmisor = "CONTINGENCIA";
         factura.EnContingencia = true;
         factura.Estado = EstadoVenta.PendienteTransmitir;
+        // El número interno también hace falta aquí: el índice único (OrganizacionId, Numero)
+        // rechazaría la segunda contingencia si quedara vacío.
+        factura.Numero = SiguienteNumeroVenta();
 
         var guardada = _ventas.Add(factura);
         RegistrarSalida(guardada, usuarioId);
@@ -482,34 +483,42 @@ public sealed class VentasService
         documento.NumeroControl = resultado.NumeroControl;
         documento.SerialEmisor = resultado.SerialEmisor;
         documento.Fecha = resultado.FechaHora;
-        documento.Numero = SiguienteNumeroVenta();
 
-        try
+        // El número interno (VTA-) es "el último + 1" y no es fiscal: si otra caja de la LAN
+        // tomó el mismo número entre la lectura y el guardado, el índice único lo rechaza y se
+        // reintenta con el siguiente. Cualquier otro fallo va al diario.
+        const int intentos = 3;
+        for (var intento = 1; ; intento++)
         {
-            return _ventas.Add(documento);
-        }
-        catch (Exception ex)
-        {
-            AnotarEnDiario(documento, ex);
-            throw new InvalidOperationException(
-                $"El documento {documento.NumeroFiscal} (control {documento.NumeroControl}) YA SE EMITIÓ, " +
-                $"pero no se pudo guardar en la base: {ex.Message}\n\nQuedó anotado en el diario fiscal " +
-                "(%AppData%\\ASO Adminis\\diario-fiscal.jsonl) para registrarlo a mano.", ex);
+            documento.Numero = SiguienteNumeroVenta();
+            try
+            {
+                return _ventas.Add(documento);
+            }
+            catch (Exception) when (intento < intentos && NumeroYaTomado(documento.Numero))
+            {
+                documento.Id = 0;
+            }
+            catch (Exception ex)
+            {
+                DiarioFiscal.Anotar("Documento", documento, ex);
+                throw new InvalidOperationException(
+                    $"El documento {documento.NumeroFiscal} (control {documento.NumeroControl}) YA SE EMITIÓ, " +
+                    $"pero no se pudo guardar en la base: {ex.Message}\n\nQuedó anotado en el diario fiscal " +
+                    $"({DiarioFiscal.RutaTexto}) para registrarlo a mano.", ex);
+            }
         }
     }
 
-    private static void AnotarEnDiario(Venta documento, Exception ex)
+    private bool NumeroYaTomado(string numero)
     {
         try
         {
-            var carpeta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ASO Adminis");
-            Directory.CreateDirectory(carpeta);
-            var linea = JsonSerializer.Serialize(new { Momento = DateTime.Now, Error = ex.Message, Documento = documento });
-            File.AppendAllText(Path.Combine(carpeta, "diario-fiscal.jsonl"), linea + Environment.NewLine);
+            return _ventas.GetAll().Any(v => v.Numero == numero);
         }
         catch (Exception)
         {
-            // El aviso al usuario sale igual; perder el diario no debe tapar el error original.
+            return false;
         }
     }
 
