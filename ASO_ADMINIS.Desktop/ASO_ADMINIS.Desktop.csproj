@@ -12,7 +12,7 @@
     <Product>ASO Adminis</Product>
     <Company>ASO Adminis</Company>
     <Description>Aplicación de gestión — venta de artículos</Description>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <!-- Main propio (Program.cs) en vez del que genera App.xaml: Velopack tiene que correr antes
          que nada de WPF, porque al instalar, actualizar y desinstalar lanza el .exe con
          argumentos suyos y espera que salga sin abrir ventanas. -->
