@@ -91,6 +91,9 @@ public sealed class SalidasViewModel : PantallaCrudViewModel<SalidaInventario, i
 
     protected override bool PuedeEditar(SalidaInventario item) => false;
 
+    /// <summary>Doble clic en una fila que no se edita: su ficha de solo lectura.</summary>
+    protected override CrudEditorViewModelBase? CrearDetalle(SalidaInventario item) => new SalidaDetalleViewModel(item);
+
     protected override bool PuedeEliminar(SalidaInventario item) => false;
 
     protected override SalidaInventario CrearNuevo() => new()

@@ -1,0 +1,126 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.VentaDetalleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="1100">
+
+  <!--
+    Ficha de solo lectura de una factura o nota (doble clic en Ventas · Registro). La ventana abre
+    maximizada: los datos arriba, los renglones con el resto del alto, pagos y totales abajo.
+  -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0">
+      <StackPanel Orientation="Horizontal">
+        <Border DataContext="{Binding Documento}" Style="{StaticResource ChipEstadoVentaStyle}"
+                VerticalAlignment="Center">
+          <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+        </Border>
+        <TextBlock Text="{Binding Documento.FechaHoraTexto}" Margin="12,0,0,0" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+
+      <TextBlock Text="Cliente" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,0" />
+      <UniformGrid Columns="3">
+        <controls:Dato Etiqueta="RIF / C.I." Valor="{Binding ClienteIdentificacion}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Nombre o razón social" Valor="{Binding Documento.ClienteNombre}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Dirección" Valor="{Binding Documento.ClienteDireccion}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Teléfono" Valor="{Binding Documento.ClienteTelefono}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Correo" Valor="{Binding Documento.ClienteCorreo}" Margin="0,0,16,0" />
+      </UniformGrid>
+
+      <TextBlock Text="Documento" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,0" />
+      <UniformGrid Columns="4">
+        <controls:Dato Etiqueta="N° fiscal" Valor="{Binding Documento.NumeroFiscal}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="N° de control" Valor="{Binding Documento.NumeroControl}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="N° interno" Valor="{Binding Documento.Numero}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Caja" Valor="{Binding Documento.CajaCodigo}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Serial del emisor" Valor="{Binding Documento.SerialEmisor}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Reporte Z" Valor="{Binding NumeroZTexto}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Tasa de cambio" Valor="{Binding TasaTexto}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Documento afectado" Valor="{Binding DocumentoAfectadoTexto}" Margin="0,0,16,0" />
+      </UniformGrid>
+      <controls:Dato Etiqueta="Contingencia" Valor="{Binding TransmisionTexto}" />
+      <controls:Dato Etiqueta="Concepto" Valor="{Binding Documento.Concepto}" />
+      <controls:Dato Etiqueta="Anulación" Valor="{Binding AnulacionTexto}" />
+
+      <TextBlock Text="Renglones" Style="{StaticResource CardTitleStyle}" Margin="0,20,0,8" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" MinHeight="140">
+      <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Documento.Lineas}"
+                IsReadOnly="True" VerticalAlignment="Top" HeadersVisibility="Column">
+        <DataGrid.Columns>
+          <controls:ColumnaTexto Header="Código" Binding="{Binding Codigo}" Width="12*" MinWidth="90" />
+          <controls:ColumnaTexto Header="Descripción" Binding="{Binding Descripcion}" Width="34*" MinWidth="180" />
+          <controls:ColumnaNumero Header="Cantidad" Binding="{Binding CantidadTexto}" Width="12*" MinWidth="90" />
+          <controls:ColumnaNumero Header="Precio Bs" Binding="{Binding PrecioUnitarioTexto}" Width="12*" MinWidth="90" />
+          <controls:ColumnaTexto Header="IVA" Binding="{Binding AlicuotaTexto}" Width="7*" MinWidth="56" />
+          <controls:ColumnaNumero Header="Monto Bs" Binding="{Binding MontoTexto}" Width="12*" MinWidth="96" />
+        </DataGrid.Columns>
+      </DataGrid>
+    </Border>
+
+    <Grid Grid.Row="2" Margin="0,16,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="32" />
+        <ColumnDefinition Width="360" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Pagos -->
+      <StackPanel Grid.Column="0" Visibility="{Binding TienePagos, Converter={StaticResource BoolToVis}}">
+        <TextBlock Text="Pagos" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,8" />
+        <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+          <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Documento.Pagos}"
+                    IsReadOnly="True" HeadersVisibility="Column" MaxHeight="180">
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Método" Binding="{Binding MetodoTexto}" Width="16*" MinWidth="110" />
+              <controls:ColumnaNumero Header="Monto Bs" Binding="{Binding MontoBs, StringFormat=N2}" Width="12*" MinWidth="90" />
+              <controls:ColumnaNumero Header="US$" Binding="{Binding MontoDivisa, StringFormat=N2}" Width="10*" MinWidth="70" />
+              <controls:ColumnaTexto Header="Referencia" Binding="{Binding Referencia}" Width="16*" MinWidth="100" />
+            </DataGrid.Columns>
+          </DataGrid>
+        </Border>
+      </StackPanel>
+
+      <!-- Totales -->
+      <StackPanel Grid.Column="2">
+        <ItemsControl ItemsSource="{Binding Totales}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid Margin="0,2">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Concepto}" Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding MontoTexto}" HorizontalAlignment="Right" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,6" />
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="Total Bs" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Grid.Column="1" Text="{Binding Documento.TotalBsTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+        </Grid>
+        <TextBlock HorizontalAlignment="Right" Margin="0,2,0,0" FontSize="{StaticResource FsCaption}"
+                   Foreground="{DynamicResource TextMutedBrush}"
+                   Text="{Binding Documento.TotalUsdTexto, StringFormat='Ref. US$ {0}'}" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -89,6 +89,9 @@ public sealed class GastosVariosViewModel : PantallaCrudViewModel<GastoVario, in
 
     protected override bool PuedeEditar(GastoVario item) => false;
 
+    /// <summary>Doble clic en una fila que no se edita: su ficha de solo lectura.</summary>
+    protected override CrudEditorViewModelBase? CrearDetalle(GastoVario item) => new GastoVarioDetalleViewModel(item);
+
     protected override bool PuedeEliminar(GastoVario item) => false;
 
     protected override GastoVario CrearNuevo() => new()

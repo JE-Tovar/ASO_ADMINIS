@@ -150,7 +150,8 @@
 
         <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
           <Grid>
-            <DataGrid x:Name="TablaMovimientos" Style="{StaticResource DataGridStyle}"
+            <DataGrid x:Name="TablaMovimientos" controls:DobleClicFila.Comando="{Binding AbrirCommand}"
+                      Style="{StaticResource DataGridStyle}"
                       ItemsSource="{Binding ItemsView}"
                       SelectedItem="{Binding SelectedItem}">
               <DataGrid.Columns>
@@ -241,7 +242,8 @@
 
         <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
           <Grid>
-            <DataGrid x:Name="TablaCuentas" Style="{StaticResource DataGridStyle}"
+            <DataGrid x:Name="TablaCuentas" controls:DobleClicFila.Comando="{Binding AbrirCommand}"
+                      Style="{StaticResource DataGridStyle}"
                       ItemsSource="{Binding ItemsView}"
                       SelectedItem="{Binding SelectedItem}">
               <DataGrid.Columns>

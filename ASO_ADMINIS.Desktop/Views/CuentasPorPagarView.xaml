@@ -121,7 +121,8 @@
 
       <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
         <Grid>
-          <DataGrid x:Name="Tabla1" Style="{StaticResource DataGridStyle}"
+          <DataGrid x:Name="Tabla1" controls:DobleClicFila.Comando="{Binding AbrirCommand}"
+                    Style="{StaticResource DataGridStyle}"
                     ItemsSource="{Binding ItemsView}"
                     SelectedItem="{Binding SelectedItem}">
             <DataGrid.RowStyle>

@@ -69,7 +69,8 @@
 
       <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
         <Grid>
-          <DataGrid x:Name="TablaArticulos" Style="{StaticResource DataGridStyle}"
+          <DataGrid x:Name="TablaArticulos" controls:DobleClicFila.Comando="{Binding AbrirCommand}"
+                    Style="{StaticResource DataGridStyle}"
                     ItemsSource="{Binding ItemsView}"
                     SelectedItem="{Binding SelectedItem}">
             <DataGrid.Columns>

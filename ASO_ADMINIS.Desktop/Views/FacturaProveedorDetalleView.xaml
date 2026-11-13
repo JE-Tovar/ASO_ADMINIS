@@ -1,0 +1,53 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.FacturaProveedorDetalleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="900">
+
+  <!-- Ficha de solo lectura de una factura de proveedor pagada o anulada (doble clic en
+       Finanzas · Cuentas por pagar). Las pendientes abren su editor. -->
+  <StackPanel>
+    <StackPanel Orientation="Horizontal">
+      <Border DataContext="{Binding Documento}" Style="{StaticResource ChipEstadoFacturaProveedorStyle}"
+              VerticalAlignment="Center">
+        <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+      </Border>
+      <TextBlock Text="{Binding Documento.PlazoTexto}" Margin="12,0,0,0" VerticalAlignment="Center"
+                 Foreground="{DynamicResource TextSecondaryBrush}" />
+    </StackPanel>
+
+    <UniformGrid Columns="4" Margin="0,4,0,0">
+      <controls:Dato Etiqueta="Proveedor" Valor="{Binding Documento.ProveedorNombre}" Margin="0,0,16,0" />
+      <controls:Dato Etiqueta="Nº de documento" Valor="{Binding Documento.NumeroDocumento}" Margin="0,0,16,0" />
+      <controls:Dato Etiqueta="Emisión" Valor="{Binding EmisionTexto}" Margin="0,0,16,0" />
+      <controls:Dato Etiqueta="Vencimiento" Valor="{Binding Documento.VencimientoTexto}" Margin="0,0,16,0" />
+    </UniformGrid>
+    <controls:Dato Etiqueta="Descripción" Valor="{Binding Documento.Descripcion}" />
+
+    <StackPanel Visibility="{Binding TieneLineas, Converter={StaticResource BoolToVis}}">
+      <TextBlock Text="Detalle" Style="{StaticResource CardTitleStyle}" Margin="0,20,0,8" />
+      <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+        <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Documento.Lineas}"
+                  IsReadOnly="True" HeadersVisibility="Column" MaxHeight="320">
+          <DataGrid.Columns>
+            <controls:ColumnaTexto Header="Destino" Binding="{Binding DestinoTexto}" Width="34*" MinWidth="180" />
+            <controls:ColumnaNumero Header="Cantidad" Binding="{Binding CantidadTexto}" Width="14*" MinWidth="100" />
+            <controls:ColumnaNumero Header="Precio" Binding="{Binding PrecioUnitarioTexto}" Width="12*" MinWidth="90" />
+            <controls:ColumnaNumero Header="Subtotal" Binding="{Binding SubtotalTexto}" Width="12*" MinWidth="90" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <TextBlock Text="Monto" VerticalAlignment="Center" Margin="0,0,12,0"
+                 Foreground="{DynamicResource TextSecondaryBrush}" />
+      <TextBlock Text="{Binding Documento.MontoTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
+    </StackPanel>
+
+    <controls:Dato Etiqueta="Anulación" Valor="{Binding AnulacionTexto}" />
+  </StackPanel>
+</UserControl>

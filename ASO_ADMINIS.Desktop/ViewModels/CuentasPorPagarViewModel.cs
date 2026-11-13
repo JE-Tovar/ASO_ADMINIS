@@ -75,6 +75,9 @@ public sealed class FacturasProveedorCrudViewModel : CrudViewModelBase<FacturaPr
 
     protected override bool PuedeEditar(FacturaProveedor item) => _servicio.PuedeEditar(item);
 
+    /// <summary>Doble clic en una fila que no se edita: su ficha de solo lectura.</summary>
+    protected override CrudEditorViewModelBase? CrearDetalle(FacturaProveedor item) => new FacturaProveedorDetalleViewModel(item);
+
     protected override bool PuedeEliminar(FacturaProveedor item) => _servicio.PuedeEliminar(item);
 
     protected override FacturaProveedor CrearNuevo() => new()

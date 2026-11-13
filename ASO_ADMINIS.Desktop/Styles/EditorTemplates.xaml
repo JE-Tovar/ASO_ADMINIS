@@ -82,6 +82,28 @@
     <views:SalidaEditorView />
   </DataTemplate>
 
+  <!-- Fichas de solo lectura (doble clic en una fila; ver ViewModels/DetalleViewModels.cs) -->
+
+  <DataTemplate DataType="{x:Type vm:VentaDetalleViewModel}">
+    <views:VentaDetalleView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:EntradaDetalleViewModel}">
+    <views:EntradaDetalleView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:SalidaDetalleViewModel}">
+    <views:SalidaDetalleView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:GastoVarioDetalleViewModel}">
+    <views:GastoVarioDetalleView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:FacturaProveedorDetalleViewModel}">
+    <views:FacturaProveedorDetalleView />
+  </DataTemplate>
+
   <!-- Armazón -->
 
   <DataTemplate DataType="{x:Type vm:UsuarioEditorViewModel}">

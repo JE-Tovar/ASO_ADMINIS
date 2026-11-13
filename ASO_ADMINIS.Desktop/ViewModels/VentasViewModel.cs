@@ -133,6 +133,9 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     };
 
     protected override bool PuedeEditar(Venta item) => false;
+
+    /// <summary>Doble clic en una fila que no se edita: su ficha de solo lectura.</summary>
+    protected override CrudEditorViewModelBase? CrearDetalle(Venta item) => new VentaDetalleViewModel(item);
     protected override bool PuedeEliminar(Venta item) => false;
 
     protected override Venta CrearNuevo() => new() { Tipo = TipoDocumentoVenta.Factura };

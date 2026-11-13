@@ -101,6 +101,9 @@ public sealed class EntradasViewModel : PantallaCrudViewModel<EntradaInventario,
     /// <summary>Un documento no se corrige ni se borra: se anula, y eso deja constancia.</summary>
     protected override bool PuedeEditar(EntradaInventario item) => false;
 
+    /// <summary>Doble clic en una fila que no se edita: su ficha de solo lectura.</summary>
+    protected override CrudEditorViewModelBase? CrearDetalle(EntradaInventario item) => new EntradaDetalleViewModel(item);
+
     protected override bool PuedeEliminar(EntradaInventario item) => false;
 
     protected override EntradaInventario CrearNuevo() => new()

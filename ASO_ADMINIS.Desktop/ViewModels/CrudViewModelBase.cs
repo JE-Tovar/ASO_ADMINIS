@@ -37,6 +37,7 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
         AgregarCommand = new RelayCommand(Agregar, () => _sesion.Puede($"{ModuloPermiso}.Crear"));
         EditarCommand = new RelayCommand(Editar, () => SelectedItem is { } e && PuedeEditar(e) && _sesion.Puede($"{ModuloPermiso}.Editar"));
         EliminarCommand = new RelayCommand(Eliminar, () => SelectedItem is { } b && PuedeEliminar(b) && _sesion.Puede($"{ModuloPermiso}.Eliminar"));
+        AbrirCommand = new RelayCommand(Abrir, () => SelectedItem is not null);
     }
 
     private T? _selectedItem;
@@ -61,6 +62,13 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
     public ICommand EditarCommand { get; }
     public ICommand EliminarCommand { get; }
 
+    /// <summary>
+    /// Doble clic (o Enter) sobre una fila, ver <c>Controls/DobleClicFila</c>. Si la fila se
+    /// puede editar, hace lo mismo que el botón Editar; si no, abre su ficha de solo lectura
+    /// (<see cref="CrearDetalle"/>), que solo pide acceso a la pantalla, no el permiso de editar.
+    /// </summary>
+    public ICommand AbrirCommand { get; }
+
     /// <summary>Prefijo de permiso RBAC del módulo, p. ej. "Empleados" (→ "Empleados.Crear").</summary>
     protected abstract string ModuloPermiso { get; }
 
@@ -80,6 +88,13 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
     /// al confirmarse. Por defecto todo es editable (comportamiento de un maestro simple).
     /// </summary>
     protected virtual bool PuedeEditar(T item) => true;
+
+    /// <summary>
+    /// Ficha de solo lectura del elemento, para lo que no se puede editar: un documento emitido
+    /// (factura, entrada, boleto) solo se ve entero aquí. Por defecto ninguna: en un maestro el
+    /// doble clic abre el editor, y sin permiso de editar no hace nada.
+    /// </summary>
+    protected virtual CrudEditorViewModelBase? CrearDetalle(T item) => null;
 
     /// <summary>¿El elemento admite borrado? Ver <see cref="PuedeEditar"/>.</summary>
     protected virtual bool PuedeEliminar(T item) => true;
@@ -130,6 +145,22 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
         var actualizado = editor.ObtenerResultado();
         _source.Update(actualizado);
         _idASeleccionar = actualizado.Id;
+    }
+
+    /// <summary>
+    /// Pasa por <see cref="EditarCommand"/> y no por <see cref="Editar"/> directo: así respeta el
+    /// permiso y las pantallas que redefinen Editar para ir por su servicio.
+    /// </summary>
+    private void Abrir()
+    {
+        if (EditarCommand.CanExecute(null))
+        {
+            EditarCommand.Execute(null);
+            return;
+        }
+
+        if (SelectedItem is { } actual && CrearDetalle(actual) is { } detalle)
+            _dialogo.MostrarEditor(detalle);
     }
 
     /// <summary>

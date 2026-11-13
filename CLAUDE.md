@@ -107,6 +107,16 @@ submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Ad
   - **Qué cambia en ese modo:** `CrudEditorWindow` apaga su scroll vertical para que las filas
     `*` del formulario llenen la ventana, y cada grilla lleva su propio scroll. Los mínimos
     (1000×640) los fija `ServicioDialogo`.
+  - **Doble clic en una fila** (2026-11-13): `controls:DobleClicFila.Comando="{Binding
+    AbrirCommand}"` en el `DataGrid` del listado (también responde a Enter). `AbrirCommand` de
+    `CrudViewModelBase` hace lo mismo que Editar si la fila se puede editar; si no, muestra la
+    ficha de solo lectura que devuelva `CrearDetalle(item)` (por defecto ninguna).
+    - **Fichas:** `ViewModels/DetalleViewModels.cs` (`DetalleViewModelBase<T>`: botón
+      "Cerrar", sin Cancelar, Esc cierra) y `Views/<X>DetalleView.xaml`, en la misma
+      `CrudEditorWindow`. Hoy: venta (factura y notas), entrada, salida, gasto vario y factura
+      de proveedor pagada o anulada. Los datos opcionales van con `controls:Dato`, que se oculta
+      si el valor está vacío.
+    - **Permiso:** ver la ficha solo pide acceso a la pantalla, no `…Editar`.
 
 ## Cómo se agrega un submódulo (receta)
 
@@ -128,9 +138,10 @@ Archivos a **modificar** siempre: `Configuration/DataSourceFactory.cs` (campo ca
 `BD/DbContext.cs` (`DbSet` + configuración en `OnModelCreating`), la tabla `Pantallas` de
 `MainWindow.xaml.cs` (una línea por clave de submódulo), `Styles/PantallaTemplates.xaml` (un
 `DataTemplate` por pantalla, o el área de contenido muestra el nombre del tipo del ViewModel),
-`Styles/EditorTemplates.xaml` (un `DataTemplate` por editor, o la ventana sale vacía) y
+`Styles/EditorTemplates.xaml` (un `DataTemplate` por editor o ficha, o la ventana sale vacía) y
 `Styles/Theme.xaml` (un `Chip…Style` por enum de estado nuevo, con
-`BasedOn="{StaticResource ChipBaseStyle}"`). Después, `dotnet ef migrations add`.
+`BasedOn="{StaticResource ChipBaseStyle}"`). Después, `dotnet ef migrations add`. Si es un
+documento que no se edita, darle su ficha (`CrearDetalle`) y poner `DobleClicFila` en su grilla.
 
 El permiso de navegación **no se declara**: `Submodulo.Permiso` lo deriva de la clave
 (`Ver.<clave>`), así que basta con dar de alta el submódulo en `ModuloCatalogo`. Lo que sí hay
