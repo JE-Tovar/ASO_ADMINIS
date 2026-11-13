@@ -44,7 +44,7 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         BajarClienteCommand = new RelayCommand(() => MoverSugerencia(+1));
         SubirClienteCommand = new RelayCommand(() => MoverSugerencia(-1));
         CerrarSugerenciasCommand = new RelayCommand(() => MostrarSugerencias = false);
-        ConsumidorFinalCommand = new RelayCommand(LimpiarCliente);
+        LimpiarClienteCommand = new RelayCommand(LimpiarCliente);
 
         Lineas.CollectionChanged += AlCambiarColeccion;
         Pagos.CollectionChanged += AlCambiarColeccion;
@@ -85,7 +85,7 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
 
     private readonly ClientesService _clientes;
 
-    /// <summary>El cliente de la lista cuyos datos se cargaron (null = nuevo o consumidor final).</summary>
+    /// <summary>El cliente de la lista cuyos datos se cargaron (null = nuevo o sin escribir).</summary>
     private Cliente? _clienteCargado;
 
     public ICommand ElegirClienteCommand { get; }
@@ -93,7 +93,7 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     public ICommand BajarClienteCommand { get; }
     public ICommand SubirClienteCommand { get; }
     public ICommand CerrarSugerenciasCommand { get; }
-    public ICommand ConsumidorFinalCommand { get; }
+    public ICommand LimpiarClienteCommand { get; }
 
     public ObservableCollection<Cliente> Sugerencias { get; } = [];
 
@@ -158,10 +158,10 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     }
 
     public string ClienteRifAyuda => string.IsNullOrWhiteSpace(ClienteRif)
-        ? "Escriba la cédula, el RIF o el nombre. Vacío = consumidor final."
+        ? "Obligatorio. Escriba la cédula, el RIF o el nombre para buscarlo."
         : Rif.Normalizar(ClienteRif) is null
             ? "Buscando por nombre: elija de la lista o escriba la identificación."
-            : Rif.Error(ClienteRif) ?? (Rif.EsCedula(ClienteRif) ? "✓ Cédula" : "✓ RIF válido: la dirección fiscal es obligatoria");
+            : Rif.Error(ClienteRif) ?? (Rif.EsCedula(ClienteRif) ? "✓ Cédula" : "✓ RIF válido");
 
     private string _clienteNombre = string.Empty;
     public string ClienteNombre
@@ -204,7 +204,7 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     public bool EsClienteNuevo => !EsConsumidorFinal && _clienteCargado is null && Rif.Normalizar(ClienteRif) is not null;
 
     public string EstadoClienteTexto => EsConsumidorFinal
-        ? "Consumidor final"
+        ? "Faltan los datos del cliente"
         : EsClienteRegistrado
             ? "Cliente registrado"
             : EsClienteNuevo
@@ -337,8 +337,7 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         }
 
         var suma = cantidad ?? 1m;
-        var existente = Lineas.FirstOrDefault(l => l.ArticuloSeleccionado?.Id == articulo.Id
-                                                   && l.PresentacionSeleccionada == l.Presentaciones.FirstOrDefault());
+        var existente = Lineas.FirstOrDefault(l => l.ArticuloSeleccionado?.Id == articulo.Id);
         if (existente is not null)
         {
             var actual = decimal.TryParse(existente.Cantidad, out var c) ? c : 0m;
@@ -533,34 +532,18 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
             if (!SetProperty(ref _articuloSeleccionado, value))
                 return;
 
-            Presentaciones = value?.OpcionesDePresentacion() ?? [];
-            OnPropertyChanged(nameof(Presentaciones));
             OnPropertyChanged(nameof(AlicuotaTexto));
-            PresentacionSeleccionada = Presentaciones.FirstOrDefault();
+            OnPropertyChanged(nameof(UnidadTexto));
+            // El precio es el del catálogo y no se edita aquí: quien factura no lo cambia.
+            OnPropertyChanged(nameof(PrecioUnitario));
             if (string.IsNullOrWhiteSpace(Cantidad) && value is not null)
                 Cantidad = "1";
             Avisar();
         }
     }
 
-    public IReadOnlyList<OpcionPresentacion> Presentaciones { get; private set; } = [];
-
-    private OpcionPresentacion? _presentacionSeleccionada;
-    public OpcionPresentacion? PresentacionSeleccionada
-    {
-        get => _presentacionSeleccionada;
-        set
-        {
-            if (!SetProperty(ref _presentacionSeleccionada, value))
-                return;
-
-            // El precio es el del catálogo y no se edita aquí: quien factura no lo cambia.
-            OnPropertyChanged(nameof(PrecioUnitario));
-            Avisar();
-        }
-    }
-
-    private decimal Factor => PresentacionSeleccionada?.Factor ?? 1m;
+    /// <summary>Unidad base del artículo ("pza", "kg", "serv"): se vende solo en ella.</summary>
+    public string UnidadTexto => ArticuloSeleccionado?.UnidadCorta ?? string.Empty;
 
     private string _cantidad = string.Empty;
     public string Cantidad
@@ -581,13 +564,13 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
     }
 
     /// <summary>Precio US$ sin IVA del catálogo, de solo lectura.</summary>
-    public string PrecioUnitario => PresentacionSeleccionada is null
+    public string PrecioUnitario => ArticuloSeleccionado is null
         ? string.Empty
         : PrecioValor > 0 ? PrecioValor.ToString("N2") : "Sin precio";
 
     public bool CantidadEsValida => decimal.TryParse(Cantidad, out var v) && v > 0;
     private decimal CantidadValor => decimal.TryParse(Cantidad, out var v) ? v : 0m;
-    private decimal PrecioValor => PresentacionSeleccionada?.PrecioVenta ?? 0m;
+    private decimal PrecioValor => ArticuloSeleccionado?.PrecioVenta ?? 0m;
 
     public string AlicuotaTexto => ArticuloSeleccionado is { } a ? Alicuotas.Marca(a.Alicuota) : string.Empty;
 
@@ -599,7 +582,7 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
     };
 
     /// <summary>Se pinta en rojo si se pide más de lo disponible; el servicio lo vuelve a comprobar.</summary>
-    public bool SePasa => ArticuloSeleccionado is { EsServicio: false } a && CantidadValor * Factor > a.Existencia;
+    public bool SePasa => ArticuloSeleccionado is { EsServicio: false } a && CantidadValor > a.Existencia;
 
     private string _montoTexto = string.Empty;
     public string MontoTexto
@@ -617,8 +600,8 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
         EsServicio = ArticuloSeleccionado.EsServicio,
         Codigo = ArticuloSeleccionado.Codigo,
         Descripcion = ArticuloSeleccionado.Descripcion,
-        PresentacionNombre = PresentacionSeleccionada?.Nombre ?? ArticuloSeleccionado.UnidadCorta,
-        Factor = Factor,
+        PresentacionNombre = ArticuloSeleccionado.UnidadCorta,
+        Factor = 1m,
         Cantidad = CantidadValor,
         PrecioUnitarioUsd = PrecioValor,
         Alicuota = ArticuloSeleccionado.Alicuota

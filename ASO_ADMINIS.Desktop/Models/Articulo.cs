@@ -122,43 +122,6 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     public decimal PrecioVentaBs { get; set; }
 
     /// <summary>
-    /// Otras medidas en que se compra o se vende el artículo (galón, cuñete, caja de 12…), cada
-    /// una con cuánto contiene de <see cref="Unidad"/>. La existencia se sigue contando SIEMPRE
-    /// en la unidad base: los documentos guardan la presentación elegida y su factor como
-    /// snapshot y convierten al registrar. Vacía si el artículo solo se maneja en su unidad.
-    ///
-    /// Es un dato por artículo y no un miembro más de <see cref="UnidadMedida"/> a propósito:
-    /// así cada rubro tiene sus medidas sin alargar la lista de unidades de todos.
-    /// </summary>
-    public List<PresentacionArticulo> Presentaciones { get; set; } = [];
-
-    /// <summary>
-    /// Lo que se ofrece al elegir cómo se compra o se vende: primero la unidad base (factor 1,
-    /// precio <see cref="PrecioVenta"/>), que nunca hace falta dar de alta, y luego las
-    /// presentaciones. El precio de una presentación sin precio propio es factor × precio base.
-    /// Un servicio tiene una sola opción ("serv", factor 1): no se mide ni se presenta.
-    /// </summary>
-    public IReadOnlyList<OpcionPresentacion> OpcionesDePresentacion()
-    {
-        if (EsServicio)
-            return [new OpcionPresentacion(UnidadCorta, 1m, PrecioVenta, "Servicio")];
-
-        return
-        [
-            new OpcionPresentacion(UnidadCorta, 1m, PrecioVenta, $"{UnidadTexto} (unidad base)"),
-            .. Presentaciones.Select(p => new OpcionPresentacion(
-                p.Nombre, p.Factor,
-                p.PrecioVenta > 0 ? p.PrecioVenta : Math.Round(p.Factor * PrecioVenta, 2),
-                $"{p.Nombre} ({p.Factor:0.####} {UnidadCorta})"))
-        ];
-    }
-
-    /// <summary>"Galón · Cuñete" para la grilla del almacén.</summary>
-    public string PresentacionesTexto => Presentaciones.Count == 0
-        ? "—"
-        : string.Join(" · ", Presentaciones.Select(p => p.Nombre));
-
-    /// <summary>
     /// NO se persiste (va con <c>Ignore</c> en el DbContext): depende de dos tablas enteras y el
     /// modelo no tiene acceso a la base. La rellena <c>InventarioService.RellenarExistencias</c>
     /// antes de mostrar la lista, igual que <see cref="CuentaBancaria.SaldoActual"/>.
@@ -222,39 +185,5 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
 
     public string Etiqueta => $"{Codigo} · {Descripcion}";
 
-    /// <summary>
-    /// Copia que también duplica las presentaciones: con un <c>MemberwiseClone</c> a secas la
-    /// lista sería la misma en el original y en la copia, y editar la copia mutaría lo que está
-    /// en pantalla — mismo criterio que <see cref="EntradaInventario.Clonar"/>.
-    /// </summary>
-    public Articulo Clonar()
-    {
-        var copia = (Articulo)MemberwiseClone();
-        copia.Presentaciones = Presentaciones.Select(p => p.Clonar()).ToList();
-        return copia;
-    }
+    public Articulo Clonar() => (Articulo)MemberwiseClone();
 }
-
-/// <summary>
-/// Una medida en que se compra o se vende un <see cref="Articulo"/>: "Galón" = 3,785 litros.
-/// Hija del artículo (se guarda con él, sin identidad propia de dominio), igual que las líneas
-/// de un documento.
-/// </summary>
-public class PresentacionArticulo
-{
-    public string Nombre { get; set; } = string.Empty;
-
-    /// <summary>Cuánto de la unidad base del artículo contiene. Siempre mayor que cero.</summary>
-    public decimal Factor { get; set; }
-
-    /// <summary>Precio de venta propio, en US$. Cero = factor × precio base del artículo.</summary>
-    public decimal PrecioVenta { get; set; }
-
-    public PresentacionArticulo Clonar() => (PresentacionArticulo)MemberwiseClone();
-}
-
-/// <summary>
-/// Una opción del combo "presentación" de Ventas y Entradas. <see cref="Nombre"/> es lo que se
-/// guarda como snapshot en el documento; <see cref="Texto"/> es lo que se lee en el combo.
-/// </summary>
-public sealed record OpcionPresentacion(string Nombre, decimal Factor, decimal PrecioVenta, string Texto);

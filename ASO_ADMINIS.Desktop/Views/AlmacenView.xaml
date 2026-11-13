@@ -62,7 +62,7 @@
             <Button Content="Eliminar" Style="{StaticResource SecondaryButtonStyle}"
                     Foreground="{DynamicResource DangerTextBrush}"
                     Command="{Binding EliminarCommand}"
-                    ToolTip="Solo se puede eliminar un artículo que nunca se movió; el resto se desactiva." />
+                    ToolTip="Un artículo con movimientos se puede eliminar si está inactivo y sin existencia; sus movimientos se conservan." />
           </StackPanel>
         </Grid>
       </Border>
@@ -74,11 +74,10 @@
                     SelectedItem="{Binding SelectedItem}">
             <DataGrid.Columns>
               <controls:ColumnaTexto Header="Código" Binding="{Binding Codigo}" Width="12*" MinWidth="88" />
-              <controls:ColumnaTexto Header="Descripción" Binding="{Binding Descripcion}" Width="26*" MinWidth="140" />
+              <controls:ColumnaTexto Header="Descripción" Binding="{Binding Descripcion}" Width="40*" MinWidth="140" />
               <controls:ColumnaTexto Header="Categoría" Binding="{Binding Categoria}" Width="15*" MinWidth="100" />
               <controls:ColumnaTexto Header="Unidad" Binding="{Binding UnidadTexto}" Width="11*" MinWidth="80" />
               <controls:ColumnaTexto Header="IVA" Binding="{Binding AlicuotaTexto}" Width="9*" MinWidth="70" />
-              <controls:ColumnaTexto Header="Presentaciones" Binding="{Binding PresentacionesTexto}" Width="14*" MinWidth="100" />
               <controls:ColumnaNumero Header="Existencia" Binding="{Binding ExistenciaTexto}" Width="12*" MinWidth="90">
                 <controls:ColumnaNumero.ElementStyle>
                   <Style TargetType="TextBlock">

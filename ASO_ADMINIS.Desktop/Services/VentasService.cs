@@ -157,12 +157,6 @@ public sealed class VentasService
                 return false;
             }
 
-            if (linea.Factor <= 0)
-            {
-                error = $"Elija la presentación de {linea.Descripcion}.";
-                return false;
-            }
-
             // La columna guarda 3 decimales: con más, la factura guardada no cuadraría con su monto.
             if (decimal.Round(linea.Cantidad, 3) != linea.Cantidad)
             {
@@ -185,9 +179,8 @@ public sealed class VentasService
             }
         }
 
-        // Existencia: se suma por artículo, porque el mismo artículo puede ir en dos renglones
-        // (en presentaciones distintas) y lo que sale del almacén es la suma. Un servicio no
-        // tiene existencia.
+        // Existencia: se suma por artículo, porque el mismo artículo puede ir en dos renglones y
+        // lo que sale del almacén es la suma. Un servicio no tiene existencia.
         foreach (var grupo in factura.Lineas.Where(l => l.ArticuloId is not null && !l.EsServicio).GroupBy(l => l.ArticuloId!.Value))
         {
             var articulo = _articulos.GetById(grupo.Key);
@@ -230,33 +223,41 @@ public sealed class VentasService
         return true;
     }
 
+    /// <summary>
+    /// Toda factura lleva cliente (2026-11-13): RIF o cédula, nombre y dirección son
+    /// obligatorios; teléfono y correo, opcionales. Ya no se emite a consumidor final sin datos.
+    /// Las notas no pasan por aquí: copian el cliente de su factura, que puede ser anterior.
+    /// </summary>
     private static bool ValidarCliente(Venta documento, out string? error)
     {
-        if (!string.IsNullOrWhiteSpace(documento.ClienteRif))
+        if (string.IsNullOrWhiteSpace(documento.ClienteRif))
         {
-            if (Rif.Error(documento.ClienteRif) is { } errorRif)
-            {
-                error = errorRif;
-                return false;
-            }
+            error = "Indique el RIF o la cédula del cliente.";
+            return false;
+        }
 
-            if (string.IsNullOrWhiteSpace(documento.ClienteNombre))
-            {
-                error = "Indique el nombre o razón social del cliente.";
-                return false;
-            }
+        if (Rif.Error(documento.ClienteRif) is { } errorRif)
+        {
+            error = errorRif;
+            return false;
+        }
 
-            if (Rif.EsRifValido(documento.ClienteRif) && string.IsNullOrWhiteSpace(documento.ClienteDireccion))
-            {
-                error = "Un cliente con RIF necesita su dirección fiscal en la factura.";
-                return false;
-            }
+        if (string.IsNullOrWhiteSpace(documento.ClienteNombre))
+        {
+            error = "Indique el nombre o razón social del cliente.";
+            return false;
+        }
 
-            if (!ClientesService.CorreoValido(documento.ClienteCorreo))
-            {
-                error = $"El correo \"{documento.ClienteCorreo.Trim()}\" no tiene la forma nombre@dominio.com.";
-                return false;
-            }
+        if (string.IsNullOrWhiteSpace(documento.ClienteDireccion))
+        {
+            error = "Indique la dirección del cliente.";
+            return false;
+        }
+
+        if (!ClientesService.CorreoValido(documento.ClienteCorreo))
+        {
+            error = $"El correo \"{documento.ClienteCorreo.Trim()}\" no tiene la forma nombre@dominio.com.";
+            return false;
         }
 
         error = null;
@@ -508,17 +509,13 @@ public sealed class VentasService
             if (!articulo.Activo)
                 throw new InvalidOperationException($"{articulo.Etiqueta} está inactivo y no se puede facturar.");
 
-            var opcion = articulo.OpcionesDePresentacion()
-                .FirstOrDefault(o => string.Equals(o.Nombre, linea.PresentacionNombre, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException(
-                    $"La presentación \"{linea.PresentacionNombre}\" ya no existe para {articulo.Etiqueta}; vuelva a elegirla.");
-
+            // Se vende solo en la unidad base: factor 1 y el precio del artículo.
             linea.Codigo = articulo.Codigo;
             linea.Descripcion = articulo.Descripcion;
             linea.EsServicio = articulo.EsServicio;
-            linea.PresentacionNombre = opcion.Nombre;
-            linea.Factor = opcion.Factor;
-            linea.PrecioUnitarioUsd = opcion.PrecioVenta;
+            linea.PresentacionNombre = articulo.UnidadCorta;
+            linea.Factor = 1m;
+            linea.PrecioUnitarioUsd = articulo.PrecioVenta;
             linea.Alicuota = articulo.Alicuota;
         }
     }

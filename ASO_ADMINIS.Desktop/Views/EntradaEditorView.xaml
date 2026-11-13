@@ -140,18 +140,7 @@
           </controls:ColumnaTexto>
           <controls:ColumnaTexto Header="Descripción" Binding="{Binding ArticuloSeleccionado.Descripcion}" Width="22*" MinWidth="150" />
 
-          <!-- La unidad base o una presentación del artículo (galón, cuñete…): convierte sola. -->
-          <DataGridTemplateColumn Header="Presentación" Width="16*" MinWidth="120">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <ComboBox Style="{StaticResource LineaComboBoxStyle}"
-                          ItemsSource="{Binding Presentaciones}"
-                          DisplayMemberPath="Nombre"
-                          SelectedItem="{Binding PresentacionSeleccionada, UpdateSourceTrigger=PropertyChanged}"
-                          ToolTip="{Binding PresentacionSeleccionada.Texto}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
+          <controls:ColumnaTexto Header="Unidad" Binding="{Binding ArticuloSeleccionado.UnidadCorta}" Width="8*" MinWidth="60" />
           <controls:ColumnaNumero Header="Existencia" Binding="{Binding ExistenciaTexto}" Width="12*" MinWidth="86" />
 
           <DataGridTemplateColumn Header="Cantidad" Width="12*" MinWidth="90">
@@ -164,8 +153,6 @@
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
 
-          <!-- Lo que entra al almacén en unidad base; vacío si se carga en la unidad base. -->
-          <controls:ColumnaNumero Header="Entra" Binding="{Binding EquivalenteTexto}" Width="11*" MinWidth="80" />
 
           <DataGridTemplateColumn Header="Precio" Width="12*" MinWidth="90"
                                   Visibility="{Binding Datos.MuestraPrecios, Source={StaticResource Puente},

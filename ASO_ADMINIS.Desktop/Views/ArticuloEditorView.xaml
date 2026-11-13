@@ -7,11 +7,6 @@
              mc:Ignorable="d"
              d:DesignWidth="460">
 
-  <UserControl.Resources>
-    <!-- Las columnas del DataGrid no heredan DataContext; ver Controls/PuenteDeDatos.cs -->
-    <controls:PuenteDeDatos x:Key="Puente" Datos="{Binding}" />
-  </UserControl.Resources>
-
   <StackPanel>
     <controls:FormField Etiqueta="Código"
                         Ayuda="Si lo dejas vacío se genera uno automáticamente al guardar.">
@@ -116,67 +111,6 @@
       <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="13"
                Text="{Binding CodigoBalanza, UpdateSourceTrigger=PropertyChanged}" />
     </controls:FormField>
-
-    <!-- Presentaciones: medidas propias del rubro, sin alargar la lista de unidades. -->
-    <TextBlock Text="Presentaciones" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,4" />
-    <TextBlock Text="Otras medidas en que se compra o se vende, p. ej. Galón = 3,785 litros. La existencia se sigue contando en la unidad base. Déjalo vacío si el artículo solo se maneja en su unidad; el precio vacío se calcula con el precio base."
-               FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
-               Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8" />
-
-    <Border Style="{StaticResource SectionCardStyle}" Padding="0">
-      <DataGrid Style="{StaticResource DataGridStyle}"
-                ItemsSource="{Binding Presentaciones}"
-                IsReadOnly="True"
-                MaxHeight="180"
-                HeadersVisibility="Column"
-                CanUserSortColumns="False">
-        <DataGrid.Columns>
-          <DataGridTemplateColumn Header="Nombre" Width="30*" MinWidth="120">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <TextBox Style="{StaticResource LineaTextBoxStyle}"
-                         Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-
-          <DataGridTemplateColumn Header="{Binding Datos.EncabezadoFactor, Source={StaticResource Puente}}"
-                                  Width="20*" MinWidth="100">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <TextBox Style="{StaticResource LineaTextBoxStyle}" TextAlignment="Right"
-                         Text="{Binding Factor, UpdateSourceTrigger=PropertyChanged}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-
-          <DataGridTemplateColumn Header="Precio US$ (opcional)" Width="22*" MinWidth="120">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <TextBox Style="{StaticResource LineaTextBoxStyle}" TextAlignment="Right"
-                         Text="{Binding PrecioVenta, UpdateSourceTrigger=PropertyChanged}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-
-          <DataGridTemplateColumn Width="56">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <Button Content="{x:Static controls:Iconos.Limpiar}"
-                        Style="{StaticResource LineaBotonQuitarStyle}"
-                        ToolTip="Quitar esta presentación"
-                        Command="{Binding Datos.QuitarPresentacionCommand, Source={StaticResource Puente}}"
-                        CommandParameter="{Binding}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-        </DataGrid.Columns>
-      </DataGrid>
-    </Border>
-
-    <Button Content="Agregar presentación" HorizontalAlignment="Left" Margin="0,8,0,0"
-            Style="{StaticResource SecondaryButtonStyle}"
-            Command="{Binding AgregarPresentacionCommand}" />
 
     <controls:FormField Etiqueta="Notas">
       <TextBox Style="{StaticResource FormTextBoxStyle}"

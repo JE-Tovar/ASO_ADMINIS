@@ -69,7 +69,7 @@
 
         <controls:EmptyState Icono="{x:Static controls:Iconos.Usuarios}"
                              Titulo="No hay clientes"
-                             Detalle="Da de alta a los clientes que piden factura con su RIF. Al consumidor final no hace falta registrarlo."
+                             Detalle="Toda factura lleva cliente: se da de alta solo al emitir, o puedes registrarlo aquí."
                              Visibility="{Binding HasItems, ElementName=Tabla, Converter={StaticResource SinItemsAVis}}" />
       </Grid>
     </Border>

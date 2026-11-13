@@ -158,24 +158,19 @@ llega) y **Salidas** (boletos de salida). Las decisiones que no se deducen del c
   cambió; el precio a pagar es que **hay que refrescar la vista a mano** tras rellenarla, porque
   los modelos no notifican cambios (ver `AlmacenViewModel.Recargar`). El cálculo es una pasada por
   cada tabla sobre un diccionario, no una consulta por artículo.
-- **Unidad base vs presentación.** `UnidadMedida` (enum, ordinal) es la unidad en que se cuenta
-  la existencia y **no se alarga por rubro**. Las medidas propias de cada negocio (galón,
-  cuñete, saco de 42,5 kg, caja de 12) son `Articulo.Presentaciones`: filas hijas del artículo
-  (`OwnsMany`, tabla `PresentacionArticulo`) con nombre, factor (cuánto de la unidad base
-  contiene) y precio opcional (0 = factor × precio base). `Articulo.OpcionesDePresentacion()`
-  ofrece siempre primero la unidad base, que no se da de alta.
-  - **El kardex no sabe nada de presentaciones**: `EntradaInventarioLinea.Cantidad` y
-    `SalidaInventarioLinea.Cantidad` siguen en unidad base (`decimal(18,4)` para no redondear
-    3 × 0,946 L). La línea de entrada guarda además `PresentacionNombre`, `Factor` y
-    `CantidadPresentacion` como snapshot; precio y subtotal van por presentación ("2 cuñetes a
-    40 $"), así la factura de Finanzas cuadra con la del proveedor. `EntradasInventarioService`
-    comprueba que `Cantidad = CantidadPresentacion × Factor`.
-  - **`Venta.Cantidad` y el precio van en la presentación vendida**; su salida vinculada
-    descuenta `Venta.CantidadBase` (cantidad × factor).
-  - Las **latas cerradas con existencia propia** (galón de blanco ≠ cuñete de blanco) no usan
-    presentaciones: son artículos distintos en `Pieza`. Las presentaciones son para granel o
-    para "compro por caja, vendo por pieza".
-  - Las salidas manuales (boletos) siguen solo en unidad base.
+- **Solo unidad base, sin presentaciones** (2026-11-13). `UnidadMedida` (enum, ordinal) es la
+  unidad en que se cuenta la existencia, se compra y se vende, y **no se alarga por rubro**. La
+  medida comercial (galón, cuñete, caja de 12) va escrita en la descripción, y si tiene
+  existencia propia es otro artículo ("Pintura blanca galón" ≠ "Pintura blanca cuñete").
+  - **Antes había presentaciones** (`Articulo.Presentaciones`, tabla `PresentacionArticulo`:
+    nombre, factor y precio). La migración `QuitarPresentacionesArticulo` borró la tabla.
+  - **Lo que queda en los renglones:** `PresentacionNombre`, `Factor` y `CantidadPresentacion`
+    (entradas) y `PresentacionNombre`/`Factor` (ventas) se conservan porque los documentos
+    viejos los usan y las ventas son inalterables. Los nuevos se escriben con la unidad corta y
+    factor 1. No quitarlos: `DisponibleParaDevolver` agrupa por `(ArticuloId,
+    PresentacionNombre)`, y la devolución de una factura vieja reingresa con su factor.
+  - **El kardex** suma `Cantidad`, que siempre estuvo en unidad base (`decimal(18,4)`).
+    `EntradasInventarioService` sigue comprobando `Cantidad = CantidadPresentacion × Factor`.
 - **El stock inicial se carga con una entrada de tipo `Ajuste`**, que es el único tipo que no
   genera cuenta por pagar. Un ajuste negativo es una salida con motivo `Merma` o `Traslado`; no
   hay entradas con cantidad negativa.
@@ -194,6 +189,13 @@ llega) y **Salidas** (boletos de salida). Las decisiones que no se deducen del c
 - **Anular una entrada** exige dos cosas, comprobadas antes de escribir nada: que el almacén no
   quede en negativo, y que su factura no esté ya pagada (eso se deshace con una nota de crédito).
   Anular una salida no exige nada: la existencia vuelve sola porque el kardex ignora lo anulado.
+- **Borrar un artículo** (2026-11-13, `InventarioService.PuedeEliminar`): sin movimientos,
+  siempre; con movimientos, solo si está inactivo y con existencia cero. El historial no se
+  toca: los renglones de entradas, salidas y facturas guardan su snapshot de código y
+  descripción. Se pierde solo lo que se lee del catálogo vivo: Reportes · Ventas agrupa esas
+  ventas en "Sin categoría". Si no se puede, Almacén explica el motivo en vez de dejar el botón
+  gris. Los servicios siguen la misma regla (`PuedeEliminarServicio`): uno ya facturado se
+  borra si está inactivo; no hay existencia que comprobar.
 - **Los correlativos** (`ENT-000123`, `SAL-000123`) los asigna el servicio al registrar, con
   "el último + 1", y el índice único `(OrganizacionId, Numero)` es la red por si dos puestos
   coincidieran. Se persisten, no se derivan del `Id`, porque la descripción de la cuenta por pagar
@@ -263,8 +265,8 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
     pero guardan la descripción.
 - **El precio es fijo (2026-11-12).** Quien factura no puede cambiarlo: la columna de precio
   del editor es de solo lectura y `VentasService.FijarDesdeCatalogo` (en `EmitirFactura` y
-  `RegistrarEnContingencia`, antes de `Preparar`) vuelve a leer de la base el precio de la
-  presentación elegida, la alícuota, el código, la descripción y `EsServicio`, ignorando lo que
+  `RegistrarEnContingencia`, antes de `Preparar`) vuelve a leer de la base el precio del
+  artículo (en su unidad base, factor 1), la alícuota, el código, la descripción y `EsServicio`, ignorando lo que
   mande la pantalla. Un artículo con precio 0 no se factura, y un renglón de factura sin
   `ArticuloId` se rechaza (los conceptos libres son solo de la nota de débito). No hay
   descuentos ni permiso para saltarse esto: el precio se cambia en el catálogo.
@@ -272,15 +274,15 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
   batería) es un `Articulo` con `Tipo = TipoArticulo.Servicio`, no una entidad aparte, para
   que `VentaLinea.ArticuloId`, las notas de crédito, Reportes · Ventas por categoría y el código
   único sirvan igual.
-  - **Sin existencia:** `UnidadCorta` es "serv", tiene una sola presentación, y no entra en
+  - **Sin existencia:** `UnidadCorta` es "serv" y no entra en
     Almacén (`PasaFiltroExtra`), Entradas/Salidas (`InventarioService.ActivosConExistencia`
     solo devuelve bienes) ni en los contadores del panel de Inventario. El editor de facturas usa
     `InventarioService.ParaVender()` (bienes + servicios).
   - **En la factura:** `VentaLinea.EsServicio` es snapshot. Esos renglones no exigen existencia,
     no generan `SalidaInventario` y, en una nota de crédito, no reingresan nada.
   - **Catálogo:** `ServiciosViewModel`/`ServicioEditorViewModel`, permisos `Servicios.*` (mismo
-    nivel que `Articulos.*`). El precio es obligatorio (> 0). Un servicio ya facturado no se
-    borra, se desactiva.
+    nivel que `Articulos.*`). El precio es obligatorio (> 0). Un servicio ya facturado solo
+    se borra si antes se desactivó; sus facturas conservan el snapshot.
   - **SENIAT:** mismo documento fiscal que los bienes: descripción no genérica (se sumaron
     "Servicio", "Mano de obra", "Trabajo"…), cantidad, precio y alícuota (General salvo los
     exentos del art. 19 LIVA). Bienes y servicios pueden ir en la misma factura.
@@ -295,6 +297,11 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
     Ejecutivo.
 - **Cliente de la factura** (2026-11-12): la factura pide RIF/C.I., nombre, dirección,
   teléfono y correo.
+  - **Obligatorio** (2026-11-13): RIF o cédula, nombre y dirección (`VentasService.ValidarCliente`,
+    también en contingencia); teléfono y correo son opcionales. Ya no se factura a consumidor
+    final sin datos; el botón del editor es "Limpiar". Las notas no se validan así porque
+    copian el cliente de su factura, que puede ser anterior. Consecuencia en el libro de
+    ventas: solo las facturas viejas sin RIF se consolidan por Z; las nuevas van una por fila.
   - **Autocompletado:** el campo RIF/C.I. sugiere de la lista por identificación (sin guiones ni
     puntos) o por nombre (`ClientesService.Sugerencias`). Con la identificación exacta se
     autocompleta solo (`PorIdentificacion`: "v12345678" = "V-12.345.678").
@@ -329,7 +336,7 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
     `VentaPagos`) son `OwnsMany`. Hay pago mixto: los métodos en divisa son `Venta.EsDivisa`
     (efectivo divisa, Zelle), y para ellos se guarda también el monto en US$.
   - **Snapshots:** se guardan el cliente (`ClienteRif`/`ClienteNombre`/`ClienteDireccion`;
-    vacío = consumidor final), la tasa, el precio en Bs y US$ y la alícuota y su % de cada
+    vacío = consumidor final, solo en documentos anteriores al 2026-11-13), la tasa, el precio en Bs y US$ y la alícuota y su % de cada
     renglón, los totales por alícuota, el IGTF, el total y el vuelto.
   - **Del emisor:** `NumeroFiscal`, `NumeroControl`, `SerialEmisor` y `NumeroZ`.
   - **Moneda:** los montos van en **Bs**; el US$ es solo referencia.
@@ -447,8 +454,9 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
   Después vinieron `ArticuloDescripcion`, `AgregarGastosVarios` (tabla nueva, sin datos que
   migrar), `AgregarServicios` (`Articulos.Tipo` = 0/Bien y `VentaLineas.EsServicio` = false
   para lo existente) `VentaGranel` (`VentaLineas.Cantidad` a `decimal(18,3)`, agrandar sin
-  pérdida; `Articulos.CodigoBalanza`) y `VentaContactoCliente` (`Ventas.ClienteTelefono` y
-  `ClienteCorreo`, vacíos para lo existente). `QuitarCatalogoMarcasModelos` deshace el enfoque zapatería **sin perder datos**:
+  pérdida; `Articulos.CodigoBalanza`), `VentaContactoCliente` (`Ventas.ClienteTelefono` y
+  `ClienteCorreo`, vacíos para lo existente) y `QuitarPresentacionesArticulo` (borra la tabla
+  `PresentacionArticulo`; los snapshots de los renglones se quedan). `QuitarCatalogoMarcasModelos` deshace el enfoque zapatería **sin perder datos**:
   su `Up` está reordenado a mano para pasar el precio de cada modelo a su artículo y repuntar
   `Ventas.ModeloId` → `ArticuloId` antes de borrar `Marcas`/`Modelos`. Si se edita una
   migración generada, revisar el script con `dotnet ef migrations script`.

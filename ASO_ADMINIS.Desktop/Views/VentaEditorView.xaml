@@ -73,10 +73,10 @@
                     VerticalAlignment="Center">
               <TextBlock Text="{Binding EstadoClienteTexto}" FontSize="{StaticResource FsCaption}" />
             </Border>
-            <Button DockPanel.Dock="Right" Content="Consumidor final" Margin="0"
+            <Button DockPanel.Dock="Right" Content="Limpiar" Margin="0"
                     Style="{StaticResource SecondaryButtonStyle}"
-                    ToolTip="Vacía los datos: la factura sale a consumidor final"
-                    Command="{Binding ConsumidorFinalCommand}" />
+                    ToolTip="Vacía los datos del cliente para escribir otro"
+                    Command="{Binding LimpiarClienteCommand}" />
           </DockPanel>
 
           <Grid>
@@ -204,16 +204,7 @@
               </controls:ColumnaTexto>
               <controls:ColumnaTexto Header="Descripción" Binding="{Binding ArticuloSeleccionado.Descripcion}" Width="30*" MinWidth="180" />
 
-              <DataGridTemplateColumn Header="Presentación" Width="13*" MinWidth="110">
-                <DataGridTemplateColumn.CellTemplate>
-                  <DataTemplate>
-                    <ComboBox Style="{StaticResource LineaComboBoxStyle}"
-                              ItemsSource="{Binding Presentaciones}" DisplayMemberPath="Nombre"
-                              SelectedItem="{Binding PresentacionSeleccionada, UpdateSourceTrigger=PropertyChanged}"
-                              ToolTip="{Binding PresentacionSeleccionada.Texto}" />
-                  </DataTemplate>
-                </DataGridTemplateColumn.CellTemplate>
-              </DataGridTemplateColumn>
+              <controls:ColumnaTexto Header="Unidad" Binding="{Binding UnidadTexto}" Width="8*" MinWidth="60" />
 
               <controls:ColumnaNumero Header="Existencia" Binding="{Binding ExistenciaTexto}" Width="11*" MinWidth="84" />
 

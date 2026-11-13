@@ -349,7 +349,7 @@
     </Style.Triggers>
   </Style>
 
-  <!-- Cliente de la factura (VentaEditorViewModel): consumidor final (neutro), registrado o nuevo. -->
+  <!-- Cliente de la factura (VentaEditorViewModel): sin datos (neutro), registrado o nuevo. -->
   <Style x:Key="ChipEstadoClienteStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
     <Style.Triggers>
       <DataTrigger Binding="{Binding EsClienteRegistrado}" Value="True">

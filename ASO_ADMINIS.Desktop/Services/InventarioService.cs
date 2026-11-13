@@ -126,9 +126,6 @@ public sealed class InventarioService
             return false;
         }
 
-        if (!ValidarPresentaciones(articulo, out error))
-            return false;
-
         if (!ValidarCodigoBalanza(articulo, out error))
             return false;
 
@@ -141,50 +138,6 @@ public sealed class InventarioService
         {
             error = $"Ya hay un artículo con el código {articulo.Codigo.Trim()}.";
             return false;
-        }
-
-        error = null;
-        return true;
-    }
-
-    /// <summary>
-    /// Cada presentación necesita nombre propio (no repetido, ni igual a la unidad base, que ya
-    /// se ofrece sola) y un factor positivo: con factor cero una venta no descontaría nada.
-    /// </summary>
-    private static bool ValidarPresentaciones(Articulo articulo, out string? error)
-    {
-        var vistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            articulo.UnidadTexto, articulo.UnidadCorta
-        };
-
-        foreach (var presentacion in articulo.Presentaciones)
-        {
-            var nombre = presentacion.Nombre.Trim();
-
-            if (nombre.Length == 0)
-            {
-                error = "Hay una presentación sin nombre.";
-                return false;
-            }
-
-            if (!vistos.Add(nombre))
-            {
-                error = $"La presentación \"{nombre}\" está repetida o coincide con la unidad base.";
-                return false;
-            }
-
-            if (presentacion.Factor <= 0)
-            {
-                error = $"Indique cuántos {articulo.UnidadCorta} contiene la presentación \"{nombre}\".";
-                return false;
-            }
-
-            if (presentacion.PrecioVenta < 0)
-            {
-                error = $"El precio de la presentación \"{nombre}\" no puede ser negativo.";
-                return false;
-            }
         }
 
         error = null;
@@ -229,12 +182,59 @@ public sealed class InventarioService
     }
 
     /// <summary>
-    /// Un artículo que ya se movió no se borra: se desactiva. Borrarlo dejaría las líneas de los
-    /// documentos apuntando a un artículo que no existe y el kardex sin poder cuadrarse.
+    /// ¿Se puede borrar el artículo? Uno que nunca se movió, siempre. Uno con movimientos, solo
+    /// si antes se desactivó y no le queda existencia.
+    ///
+    /// Borrar uno con movimientos no toca su historial: cada renglón de entrada, salida y factura
+    /// guarda su propio snapshot de código y descripción, y el kardex suma por <c>ArticuloId</c>
+    /// sin leer el catálogo. Lo que sí se pierde es lo que se lee del catálogo vivo: la categoría
+    /// con que Reportes · Ventas agrupa sus ventas pasadas (salen en "Sin categoría").
+    ///
+    /// La existencia tiene que estar en cero porque, borrado el artículo, la mercancía que quedara
+    /// seguiría contando en el kardex sin aparecer en ningún sitio para darle salida.
     /// </summary>
-    public bool PuedeEliminar(Articulo articulo)
-        => !_entradas.GetAll().Any(e => e.Lineas.Any(l => l.ArticuloId == articulo.Id))
-           && !_salidas.GetAll().Any(s => s.Lineas.Any(l => l.ArticuloId == articulo.Id));
+    public bool PuedeEliminar(Articulo articulo, out string? motivo)
+    {
+        var tieneMovimientos =
+            _entradas.GetAll().Any(e => e.Lineas.Any(l => l.ArticuloId == articulo.Id))
+            || _salidas.GetAll().Any(s => s.Lineas.Any(l => l.ArticuloId == articulo.Id));
+
+        if (tieneMovimientos && articulo.Activo)
+        {
+            motivo = $"{articulo.Etiqueta} tiene movimientos en el almacén. Para eliminarlo, primero "
+                     + "edítelo y desmarque \"Activo\".";
+            return false;
+        }
+
+        var existencia = tieneMovimientos ? Existencia(articulo.Id) : 0m;
+        if (existencia != 0)
+        {
+            motivo = $"{articulo.Etiqueta} todavía tiene {existencia:N2} {articulo.UnidadCorta} en existencia. "
+                     + "Dele salida (por ejemplo, como merma) antes de eliminarlo.";
+            return false;
+        }
+
+        motivo = null;
+        return true;
+    }
+
+    /// <summary>
+    /// La misma regla para un servicio (Ventas · Servicios), donde "movimiento" es haber salido
+    /// en una factura: sin facturar, siempre; facturado, solo si antes se desactivó. No hay
+    /// existencia que comprobar. Las facturas no se tocan: el renglón guarda su snapshot.
+    /// </summary>
+    public static bool PuedeEliminarServicio(Articulo servicio, bool facturado, out string? motivo)
+    {
+        if (facturado && servicio.Activo)
+        {
+            motivo = $"{servicio.Etiqueta} ya se facturó. Para eliminarlo, primero edítelo y "
+                     + "desmarque \"Activo\".";
+            return false;
+        }
+
+        motivo = null;
+        return true;
+    }
 
     // --- Kardex ---
 

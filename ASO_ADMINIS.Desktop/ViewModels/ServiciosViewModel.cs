@@ -22,6 +22,7 @@ public sealed class ServiciosViewModel : PantallaCrudViewModel<Articulo, int>
     private readonly InventarioService _inventario;
     private readonly TasaCambioService _tasaCambio;
     private readonly IVentaDataSource _ventas;
+    private readonly IServicioDialogo _dialogos;
 
     public ServiciosViewModel(Modulo modulo, Submodulo submodulo)
         : this(modulo, submodulo, DataSourceFactory.CrearArticulos(),
@@ -36,6 +37,7 @@ public sealed class ServiciosViewModel : PantallaCrudViewModel<Articulo, int>
                                ISesionActual sesion)
         : base(modulo, submodulo, articulos, dialogos, sesion)
     {
+        _dialogos = dialogos;
         _inventario = new InventarioService(articulos,
                                             DataSourceFactory.CrearEntradasInventario(),
                                             DataSourceFactory.CrearSalidasInventario());
@@ -56,9 +58,30 @@ public sealed class ServiciosViewModel : PantallaCrudViewModel<Articulo, int>
 
     protected override bool PasaFiltroExtra(Articulo item) => item.EsServicio;
 
-    /// <summary>Un servicio que ya salió en una factura no se borra: se desactiva.</summary>
-    protected override bool PuedeEliminar(Articulo item) =>
-        !_ventas.GetAll().Any(v => v.Lineas.Any(l => l.ArticuloId == item.Id));
+    /// <summary>
+    /// El botón queda activo con cualquier servicio seleccionado: si no se puede borrar,
+    /// <see cref="Eliminar"/> explica por qué.
+    /// </summary>
+    protected override bool PuedeEliminar(Articulo item) => true;
+
+    protected override void Eliminar()
+    {
+        if (SelectedItem is not { } servicio)
+            return;
+
+        var facturado = _ventas.GetAll().Any(v => v.Lineas.Any(l => l.ArticuloId == servicio.Id));
+        if (!InventarioService.PuedeEliminarServicio(servicio, facturado, out var motivo))
+        {
+            _dialogos.Informar("No se puede eliminar el servicio", motivo!);
+            return;
+        }
+
+        base.Eliminar();
+    }
+
+    protected override string MensajeConfirmarEliminar(Articulo item) =>
+        $"¿Eliminar {item.Etiqueta} del catálogo? Esta acción no se puede deshacer.\n\n"
+        + "Las facturas y notas donde aparece se conservan tal cual, con su código y descripción.";
 
     protected override Articulo CrearNuevo() =>
         new() { Activo = true, Tipo = TipoArticulo.Servicio, Categoria = "Servicios" };
@@ -213,11 +236,10 @@ public sealed class ServicioEditorViewModel : CrudEditorViewModelBase<Articulo>
         articulo.Notas = Notas.Trim();
         articulo.Activo = Activo;
 
-        // Sin unidad, mínimo, ubicación ni presentaciones: no se mide ni se guarda.
+        // Sin unidad, mínimo ni ubicación: no se mide ni se guarda.
         articulo.Unidad = UnidadMedida.Pieza;
         articulo.Minimo = 0m;
         articulo.Ubicacion = string.Empty;
-        articulo.Presentaciones = [];
         return articulo;
     }
 }

@@ -84,6 +84,10 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
     /// <summary>¿El elemento admite borrado? Ver <see cref="PuedeEditar"/>.</summary>
     protected virtual bool PuedeEliminar(T item) => true;
 
+    /// <summary>Texto de la confirmación antes de borrar; se redefine para decir qué se conserva.</summary>
+    protected virtual string MensajeConfirmarEliminar(T item) =>
+        "¿Eliminar el registro seleccionado? Esta acción no se puede deshacer.";
+
     private bool FiltrarItem(object obj)
         => obj is T item
            && (string.IsNullOrWhiteSpace(TextoBusqueda) || CoincideBusqueda(item, TextoBusqueda.Trim()))
@@ -137,7 +141,7 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
         if (SelectedItem is not { } actual)
             return;
 
-        if (!_dialogo.Confirmar("Eliminar", "¿Eliminar el registro seleccionado? Esta acción no se puede deshacer."))
+        if (!_dialogo.Confirmar("Eliminar", MensajeConfirmarEliminar(actual)))
             return;
 
         _source.Delete(actual.Id);

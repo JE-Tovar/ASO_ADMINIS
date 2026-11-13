@@ -38,7 +38,7 @@
           <Button Content="Eliminar" Style="{StaticResource SecondaryButtonStyle}"
                   Foreground="{DynamicResource DangerTextBrush}"
                   Command="{Binding EliminarCommand}"
-                  ToolTip="Solo se puede eliminar un servicio que nunca se facturó; el resto se desactiva." />
+                  ToolTip="Un servicio ya facturado se puede eliminar si está inactivo; sus facturas se conservan." />
         </StackPanel>
       </Grid>
     </Border>

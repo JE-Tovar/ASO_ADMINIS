@@ -6,7 +6,7 @@ namespace ASO_ADMINIS.Tests;
 
 public class ClientesServiceTests
 {
-    private static Venta FacturaA(string rif, string nombre, string telefono = "", string correo = "", string direccion = "")
+    private static Venta FacturaA(string rif, string nombre, string telefono = "", string correo = "", string direccion = "Caracas")
     {
         var f = Escenario.Borrador();
         f.ClienteRif = rif;
@@ -69,14 +69,29 @@ public class ClientesServiceTests
         Assert.Equal("V-12345678", factura.ClienteRif);
     }
 
-    [Fact]
-    public void Consumidor_final_no_crea_cliente()
+    [Theory]
+    [InlineData("", "María Pérez", "Caracas", "RIF o la cédula")]
+    [InlineData("V-12345678", "", "Caracas", "nombre")]
+    [InlineData("V-12345678", "María Pérez", "", "dirección")]
+    public void Sin_datos_del_cliente_no_se_emite(string rif, string nombre, string direccion, string falta)
     {
         var m = Escenario.Montar(new VentasEnMemoria());
 
-        m.Ventas.EmitirFactura(Escenario.Borrador(), usuarioId: 1);
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            m.Ventas.EmitirFactura(FacturaA(rif, nombre, direccion: direccion), usuarioId: 1));
 
+        Assert.Contains(falta, ex.Message);
         Assert.Empty(m.ClientesFuente.GetAll());
+    }
+
+    [Fact]
+    public void Telefono_y_correo_son_opcionales()
+    {
+        var m = Escenario.Montar(new VentasEnMemoria());
+
+        var factura = m.Ventas.EmitirFactura(FacturaA("V-12345678", "María Pérez"), usuarioId: 1);
+
+        Assert.Equal("María Pérez", factura.ClienteNombre);
     }
 
     [Fact]

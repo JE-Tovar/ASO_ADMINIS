@@ -479,18 +479,6 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(a => a.CategoriaTexto);
             entity.Ignore(a => a.MinimoTexto);
             entity.Ignore(a => a.Etiqueta);
-            entity.Ignore(a => a.PresentacionesTexto);
-
-            // Medidas propias del rubro (galón, cuñete…): hijas del artículo, se guardan con él.
-            entity.OwnsMany(a => a.Presentaciones, presentacion =>
-            {
-                presentacion.WithOwner().HasForeignKey("ArticuloId");
-                presentacion.Property<int>("Id");
-                presentacion.HasKey("Id");
-                presentacion.Property(x => x.Nombre).IsRequired().HasMaxLength(40);
-                presentacion.Property(x => x.Factor).HasColumnType("decimal(18,4)");
-                presentacion.Property(x => x.PrecioVenta).HasColumnType("decimal(18,2)");
-            });
         });
 
         modelBuilder.Entity<EntradaInventario>(entity =>

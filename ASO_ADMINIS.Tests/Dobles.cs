@@ -214,6 +214,9 @@ internal static class Escenario
     public static Venta Borrador() => new()
     {
         TasaCambioUsada = 40m,
+        ClienteRif = "V-11111111",
+        ClienteNombre = "Cliente de prueba",
+        ClienteDireccion = "Caracas",
         Lineas = [Renglon(ServicioMezclaId, "serv", 1)],
         Pagos = [new VentaPago { Metodo = MetodoPago.EfectivoBs, MontoBs = 400m }]
     };

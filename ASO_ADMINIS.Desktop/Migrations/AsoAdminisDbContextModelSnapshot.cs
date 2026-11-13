@@ -1194,43 +1194,6 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.ToTable("Ventas");
                 });
 
-            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Articulo", b =>
-                {
-                    b.OwnsMany("ASO_ADMINIS.Desktop.Models.PresentacionArticulo", "Presentaciones", b1 =>
-                        {
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("int");
-
-                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
-
-                            b1.Property<int>("ArticuloId")
-                                .HasColumnType("int");
-
-                            b1.Property<decimal>("Factor")
-                                .HasColumnType("decimal(18,4)");
-
-                            b1.Property<string>("Nombre")
-                                .IsRequired()
-                                .HasMaxLength(40)
-                                .HasColumnType("nvarchar(40)");
-
-                            b1.Property<decimal>("PrecioVenta")
-                                .HasColumnType("decimal(18,2)");
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("ArticuloId");
-
-                            b1.ToTable("PresentacionArticulo");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ArticuloId");
-                        });
-
-                    b.Navigation("Presentaciones");
-                });
-
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.EntradaInventario", b =>
                 {
                     b.OwnsMany("ASO_ADMINIS.Desktop.Models.EntradaInventarioLinea", "Lineas", b1 =>

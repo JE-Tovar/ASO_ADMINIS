@@ -72,25 +72,24 @@ public sealed class EntradasInventarioService
             return false;
         }
 
-        // La cantidad base es la que lee el kardex: tiene que ser exactamente la tecleada por su
-        // factor, venga de donde venga la línea.
+        // Las entradas nuevas van en unidad base (factor 1). El factor sigue en el renglón porque
+        // las devoluciones de facturas anteriores a quitar las presentaciones reingresan con el
+        // suyo; en cualquier caso la cantidad base es la que lee el kardex y tiene que cuadrar.
         if (entrada.Lineas.Any(l => l.Factor <= 0
                                     || l.Cantidad != Math.Round(l.CantidadPresentacion * l.Factor, 4)))
         {
-            error = "Hay una línea con una presentación inválida; vuelva a elegirla.";
+            error = "Hay una línea con una cantidad inválida; vuelva a escribirla.";
             return false;
         }
 
-        // El mismo artículo sí puede venir en dos presentaciones (cuñetes y galones), pero no dos
-        // veces en la misma: eso son dos líneas que deberían ser una.
+        // Dos líneas del mismo artículo deberían ser una.
         var repetido = entrada.Lineas
             .GroupBy(l => (l.ArticuloId, l.PresentacionNombre))
             .FirstOrDefault(g => g.Count() > 1);
 
         if (repetido is not null)
         {
-            error = $"El artículo {repetido.First().ArticuloNombre} ({repetido.Key.PresentacionNombre}) " +
-                    "está en más de una línea; júntelas en una sola.";
+            error = $"El artículo {repetido.First().ArticuloNombre} está en más de una línea; júntelas en una sola.";
             return false;
         }
 
