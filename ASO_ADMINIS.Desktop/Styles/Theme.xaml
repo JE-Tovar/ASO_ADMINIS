@@ -349,6 +349,22 @@
     </Style.Triggers>
   </Style>
 
+  <!-- Cliente de la factura (VentaEditorViewModel): consumidor final (neutro), registrado o nuevo. -->
+  <Style x:Key="ChipEstadoClienteStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding EsClienteRegistrado}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding EsClienteNuevo}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
   <!-- Estado del cobro en el editor de factura (VentaEditorViewModel): falta, vuelto o completo. -->
   <Style x:Key="ChipEstadoCobroStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
     <Setter Property="Padding" Value="10,4" />

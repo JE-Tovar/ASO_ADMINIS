@@ -84,7 +84,7 @@ public sealed class ClienteEditorViewModel : CrudEditorViewModelBase<Cliente>
 
     protected override bool Validar(out string? error)
     {
-        return ClienteValidacion.Validar(ObtenerResultado(), _clientes, out error);
+        return ClientesService.Validar(ObtenerResultado(), _clientes, out error);
     }
 
     public override Cliente ObtenerResultado()
@@ -97,46 +97,5 @@ public sealed class ClienteEditorViewModel : CrudEditorViewModelBase<Cliente>
         cliente.Correo = Correo.Trim();
         cliente.Activo = Activo;
         return cliente;
-    }
-}
-
-/// <summary>
-/// Reglas del cliente, compartidas por el editor del padrón y el alta rápida desde una venta.
-/// </summary>
-public static class ClienteValidacion
-{
-    public static bool Validar(Cliente cliente, IClienteDataSource clientes, out string? error)
-    {
-        if (Rif.Error(cliente.Rif) is { } errorRif)
-        {
-            error = errorRif;
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(cliente.Nombre))
-        {
-            error = "Indique el nombre y apellido, o la razón social.";
-            return false;
-        }
-
-        // Un contribuyente (RIF completo) necesita la dirección fiscal en la factura para
-        // poder usarla como crédito fiscal.
-        if (Rif.EsRifValido(cliente.Rif) && string.IsNullOrWhiteSpace(cliente.DireccionFiscal))
-        {
-            error = "Un cliente con RIF necesita su dirección fiscal: figura en la factura.";
-            return false;
-        }
-
-        var repetido = clientes.GetAll()
-            .Any(c => c.Id != cliente.Id
-                      && string.Equals(c.Rif, cliente.Rif, StringComparison.OrdinalIgnoreCase));
-        if (repetido)
-        {
-            error = $"Ya existe un cliente con la identificación {cliente.Rif}.";
-            return false;
-        }
-
-        error = null;
-        return true;
     }
 }

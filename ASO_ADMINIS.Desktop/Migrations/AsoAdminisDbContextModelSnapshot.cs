@@ -1045,6 +1045,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("ClienteCorreo")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<string>("ClienteDireccion")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -1062,6 +1067,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .IsRequired()
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("ClienteTelefono")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("Concepto")
                         .IsRequired()

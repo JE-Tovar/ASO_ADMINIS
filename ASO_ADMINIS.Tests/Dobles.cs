@@ -100,6 +100,8 @@ internal sealed class VentasEnMemoria : FuenteEnMemoria<Venta>, IVentaDataSource
     }
 }
 
+internal sealed class ClientesEnMemoria : FuenteEnMemoria<Cliente>, IClienteDataSource;
+
 internal sealed class ArticulosEnMemoria : FuenteEnMemoria<Articulo>, IArticuloDataSource
 {
     public IEnumerable<Articulo> GetActivos() => GetAll();
@@ -113,14 +115,16 @@ internal sealed class EntradasEnMemoria : FuenteEnMemoria<EntradaInventario>, IE
         GetAll().Where(e => e.FacturaProveedorId == facturaProveedorId);
 }
 
-/// <summary>Sesión que lo puede todo: las pruebas de permisos no son el objetivo aquí.</summary>
+/// <summary>Sesión que lo puede todo salvo los permisos de <see cref="Negados"/>.</summary>
 internal sealed class SesionTotal : ISesionActual
 {
+    public HashSet<string> Negados { get; } = [];
+
     public Usuario? UsuarioActual { get; } = new() { Id = 1, NombreCompleto = "Pruebas" };
     public bool EstaAutenticado => true;
     public void IniciarSesion(Usuario usuario, IEnumerable<PermisoUsuario>? ajustes = null) { }
     public void CerrarSesion() { }
-    public bool Puede(string permiso) => true;
+    public bool Puede(string permiso) => !Negados.Contains(permiso);
     public bool PuedeSolicitar(string permiso) => true;
 }
 
@@ -163,7 +167,8 @@ internal static class Escenario
     public const int AceiteId = 2;
 
     public sealed record Montaje(VentasService Ventas, ArticulosEnMemoria Articulos,
-                                 SalidasEnMemoria Salidas, EntradasEnMemoria Entradas);
+                                 SalidasEnMemoria Salidas, EntradasEnMemoria Entradas,
+                                 ClientesEnMemoria ClientesFuente, ClientesService Clientes, SesionTotal Sesion);
 
     public static VentasService Servicio(VentasEnMemoria ventas) => Montar(ventas).Ventas;
 
@@ -191,11 +196,15 @@ internal static class Escenario
         });
 
         var org = Organizacion();
+        var sesion = new SesionTotal();
+        var fuenteClientes = new ClientesEnMemoria();
+        var clientes = new ClientesService(fuenteClientes, sesion);
         var servicio = new VentasService(ventas, articulos, salidas, entradas,
                                          new InventarioService(articulos, entradas, salidas),
-                                         new SesionTotal(), new EmisorDePrueba(),
-                                         organizacion: () => org, caja: () => "CAJA-01");
-        return new Montaje(servicio, articulos, salidas, entradas);
+                                         sesion, new EmisorDePrueba(),
+                                         organizacion: () => org, caja: () => "CAJA-01",
+                                         clientes: clientes);
+        return new Montaje(servicio, articulos, salidas, entradas, fuenteClientes, clientes, sesion);
     }
 
     /// <summary>

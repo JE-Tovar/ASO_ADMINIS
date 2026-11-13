@@ -27,6 +27,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     private readonly VentasService _servicio;
     private readonly TasaCambioService _tasaCambio;
     private readonly IClienteDataSource _clientes;
+    private readonly ClientesService _servicioClientes;
     private readonly RetencionesService _retenciones;
 
     private string _filtro = "Todos";
@@ -53,9 +54,11 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
                                             DataSourceFactory.CrearEntradasInventario(),
                                             DataSourceFactory.CrearSalidasInventario());
 
+        _servicioClientes = new ClientesService(_clientes, sesion);
         _servicio = new VentasService(ventas, articulos, DataSourceFactory.CrearSalidasInventario(),
                                       DataSourceFactory.CrearEntradasInventario(), _inventario, sesion,
-                                      DataSourceFactory.CrearEmisorFiscal());
+                                      DataSourceFactory.CrearEmisorFiscal(),
+                                      clientes: _servicioClientes);
 
         _tasaCambio = new TasaCambioService(
             DataSourceFactory.CrearTasasCambio(), DataSourceFactory.CrearProveedorTasaCambio());
@@ -139,7 +142,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     /// cachean: mismo criterio que <c>SalidasViewModel.CrearEditor</c>.
     /// </summary>
     protected override CrudEditorViewModelBase<Venta> CrearEditor(Venta item) =>
-        new VentaEditorViewModel(item, _inventario.ParaVender(), [.. _clientes.GetAll()],
+        new VentaEditorViewModel(item, _inventario.ParaVender(), _servicioClientes,
                                  _servicio, _tasaCambio.Actual()?.Valor, FormatoEtiqueta.Vigente());
 
     /// <summary>Emitir factura: por el servicio, que habla con el emisor y descuenta el almacén.</summary>

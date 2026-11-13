@@ -27,7 +27,7 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
 
     public VentaEditorViewModel(Venta original,
                                 IReadOnlyList<Articulo> articulos,
-                                IReadOnlyList<Cliente> clientes,
+                                ClientesService clientes,
                                 VentasService servicio,
                                 decimal? tasaCambio,
                                 FormatoEtiqueta? etiquetas = null)
@@ -37,8 +37,14 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         _tasa = tasaCambio ?? 0m;
 
         Articulos = articulos;
-        Clientes = [ConsumidorFinal, .. clientes.Where(c => c.Activo).OrderBy(c => c.Nombre)];
-        _clienteSeleccionado = ConsumidorFinal;
+        _clientes = clientes;
+
+        ElegirClienteCommand = new RelayCommand<Cliente>(c => { if (c is not null) UsarCliente(c); });
+        ConfirmarClienteCommand = new RelayCommand(ConfirmarCliente);
+        BajarClienteCommand = new RelayCommand(() => MoverSugerencia(+1));
+        SubirClienteCommand = new RelayCommand(() => MoverSugerencia(-1));
+        CerrarSugerenciasCommand = new RelayCommand(() => MostrarSugerencias = false);
+        ConsumidorFinalCommand = new RelayCommand(LimpiarCliente);
 
         Lineas.CollectionChanged += AlCambiarColeccion;
         Pagos.CollectionChanged += AlCambiarColeccion;
@@ -71,25 +77,41 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         : $"Se emitirá por: {_servicio.Emisor.Nombre} — SIN VALOR FISCAL";
 
     // ---------------------------------------------------------------- Cliente
+    //
+    // Los cinco datos se escriben aquí. El campo RIF/C.I. sugiere clientes de la lista mientras se
+    // escribe (por identificación o por nombre) y autocompleta si lo escrito es exactamente la
+    // identificación de uno. Al emitir, VentasService da de alta al cliente nuevo o pone al día
+    // su ficha (ClientesService.RegistrarDesdeFactura).
 
-    private static readonly Cliente ConsumidorFinal = new() { Id = 0, Nombre = "Consumidor final", Rif = string.Empty };
+    private readonly ClientesService _clientes;
 
-    public IReadOnlyList<Cliente> Clientes { get; }
+    /// <summary>El cliente de la lista cuyos datos se cargaron (null = nuevo o consumidor final).</summary>
+    private Cliente? _clienteCargado;
 
-    private Cliente _clienteSeleccionado;
-    public Cliente ClienteSeleccionado
+    public ICommand ElegirClienteCommand { get; }
+    public ICommand ConfirmarClienteCommand { get; }
+    public ICommand BajarClienteCommand { get; }
+    public ICommand SubirClienteCommand { get; }
+    public ICommand CerrarSugerenciasCommand { get; }
+    public ICommand ConsumidorFinalCommand { get; }
+
+    public ObservableCollection<Cliente> Sugerencias { get; } = [];
+
+    private Cliente? _sugerenciaSeleccionada;
+    public Cliente? SugerenciaSeleccionada
     {
-        get => _clienteSeleccionado;
-        set
-        {
-            if (!SetProperty(ref _clienteSeleccionado, value ?? ConsumidorFinal))
-                return;
-
-            ClienteRif = _clienteSeleccionado.Rif;
-            ClienteNombre = _clienteSeleccionado.Id == 0 ? string.Empty : _clienteSeleccionado.Nombre;
-            ClienteDireccion = _clienteSeleccionado.DireccionFiscal;
-        }
+        get => _sugerenciaSeleccionada;
+        set => SetProperty(ref _sugerenciaSeleccionada, value);
     }
+
+    private bool _mostrarSugerencias;
+    public bool MostrarSugerencias
+    {
+        get => _mostrarSugerencias;
+        set => SetProperty(ref _mostrarSugerencias, value);
+    }
+
+    private bool _cargando;
 
     private string _clienteRif = string.Empty;
     public string ClienteRif
@@ -97,14 +119,49 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         get => _clienteRif;
         set
         {
-            if (SetProperty(ref _clienteRif, value))
-                OnPropertyChanged(nameof(ClienteRifAyuda));
+            if (!SetProperty(ref _clienteRif, value ?? string.Empty))
+                return;
+            OnPropertyChanged(nameof(ClienteRifAyuda));
+            if (_cargando)
+                return;
+
+            // Si cambió la identificación, el cliente cargado ya no es el de esta factura. Lo que se
+            // había autocompletado y nadie tocó se borra: al teclear una cédula, "V-1234567" puede
+            // ser otra persona a medio camino de "V-12345678", y sus datos no deben quedarse.
+            if (_clienteCargado is { } anterior && !ClientesService.MismaIdentificacion(anterior.Rif, _clienteRif))
+            {
+                _clienteCargado = null;
+                _cargando = true;
+                try
+                {
+                    if (ClienteNombre == anterior.Nombre) ClienteNombre = string.Empty;
+                    if (ClienteDireccion == anterior.DireccionFiscal) ClienteDireccion = string.Empty;
+                    if (ClienteTelefono == anterior.Telefono) ClienteTelefono = string.Empty;
+                    if (ClienteCorreo == anterior.Correo) ClienteCorreo = string.Empty;
+                }
+                finally
+                {
+                    _cargando = false;
+                }
+            }
+
+            // Identificación exacta de alguien de la lista: se carga en el acto.
+            if (_clienteCargado is null && _clientes.PorIdentificacion(_clienteRif) is { } exacto)
+            {
+                UsarCliente(exacto);
+                return;
+            }
+
+            ActualizarSugerencias();
+            AvisarEstadoCliente();
         }
     }
 
     public string ClienteRifAyuda => string.IsNullOrWhiteSpace(ClienteRif)
-        ? "Vacío = consumidor final."
-        : Rif.Error(ClienteRif) ?? (Rif.EsCedula(ClienteRif) ? "✓ Cédula" : "✓ RIF válido: la dirección fiscal es obligatoria");
+        ? "Escriba la cédula, el RIF o el nombre. Vacío = consumidor final."
+        : Rif.Normalizar(ClienteRif) is null
+            ? "Buscando por nombre: elija de la lista o escriba la identificación."
+            : Rif.Error(ClienteRif) ?? (Rif.EsCedula(ClienteRif) ? "✓ Cédula" : "✓ RIF válido: la dirección fiscal es obligatoria");
 
     private string _clienteNombre = string.Empty;
     public string ClienteNombre
@@ -118,6 +175,130 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     {
         get => _clienteDireccion;
         set => SetProperty(ref _clienteDireccion, value);
+    }
+
+    private string _clienteTelefono = string.Empty;
+    public string ClienteTelefono
+    {
+        get => _clienteTelefono;
+        set => SetProperty(ref _clienteTelefono, value);
+    }
+
+    private string _clienteCorreo = string.Empty;
+    public string ClienteCorreo
+    {
+        get => _clienteCorreo;
+        set
+        {
+            if (SetProperty(ref _clienteCorreo, value))
+                OnPropertyChanged(nameof(ClienteCorreoAyuda));
+        }
+    }
+
+    public string ClienteCorreoAyuda => ClientesService.CorreoValido(ClienteCorreo)
+        ? "Opcional."
+        : "No parece un correo (nombre@dominio.com).";
+
+    public bool EsConsumidorFinal => string.IsNullOrWhiteSpace(ClienteRif);
+    public bool EsClienteRegistrado => _clienteCargado is not null;
+    public bool EsClienteNuevo => !EsConsumidorFinal && _clienteCargado is null && Rif.Normalizar(ClienteRif) is not null;
+
+    public string EstadoClienteTexto => EsConsumidorFinal
+        ? "Consumidor final"
+        : EsClienteRegistrado
+            ? "Cliente registrado"
+            : EsClienteNuevo
+                ? "Cliente nuevo: se agregará a la lista al emitir"
+                : "Identificación incompleta";
+
+    private void AvisarEstadoCliente()
+    {
+        OnPropertyChanged(nameof(EsConsumidorFinal));
+        OnPropertyChanged(nameof(EsClienteRegistrado));
+        OnPropertyChanged(nameof(EsClienteNuevo));
+        OnPropertyChanged(nameof(EstadoClienteTexto));
+    }
+
+    /// <summary>Rellena los cinco campos con la ficha del cliente (y normaliza su RIF a la vista).</summary>
+    public void UsarCliente(Cliente cliente)
+    {
+        _cargando = true;
+        try
+        {
+            _clienteCargado = cliente;
+            ClienteRif = cliente.Rif;
+            ClienteNombre = cliente.Nombre;
+            ClienteDireccion = cliente.DireccionFiscal;
+            ClienteTelefono = cliente.Telefono;
+            ClienteCorreo = cliente.Correo;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+
+        Sugerencias.Clear();
+        MostrarSugerencias = false;
+        AvisarEstadoCliente();
+    }
+
+    private void LimpiarCliente()
+    {
+        _cargando = true;
+        try
+        {
+            _clienteCargado = null;
+            ClienteRif = string.Empty;
+            ClienteNombre = string.Empty;
+            ClienteDireccion = string.Empty;
+            ClienteTelefono = string.Empty;
+            ClienteCorreo = string.Empty;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+
+        Sugerencias.Clear();
+        MostrarSugerencias = false;
+        AvisarEstadoCliente();
+    }
+
+    private void ActualizarSugerencias()
+    {
+        Sugerencias.Clear();
+        foreach (var c in _clientes.Sugerencias(ClienteRif))
+            Sugerencias.Add(c);
+        SugerenciaSeleccionada = Sugerencias.FirstOrDefault();
+        MostrarSugerencias = Sugerencias.Count > 0;
+    }
+
+    /// <summary>Enter en el campo RIF/C.I.: elige la sugerencia resaltada, o normaliza lo escrito.</summary>
+    public void ConfirmarCliente()
+    {
+        if (MostrarSugerencias && SugerenciaSeleccionada is { } elegido)
+        {
+            UsarCliente(elegido);
+            return;
+        }
+
+        MostrarSugerencias = false;
+        if (Rif.Normalizar(ClienteRif) is { } normal && normal != ClienteRif)
+            ClienteRif = normal;
+    }
+
+    private void MoverSugerencia(int paso)
+    {
+        if (Sugerencias.Count == 0)
+            return;
+        if (!MostrarSugerencias)
+        {
+            MostrarSugerencias = true;
+            return;
+        }
+
+        var i = SugerenciaSeleccionada is null ? -1 : Sugerencias.IndexOf(SugerenciaSeleccionada);
+        SugerenciaSeleccionada = Sugerencias[Math.Clamp(i + paso, 0, Sugerencias.Count - 1)];
     }
 
     // ---------------------------------------------------------------- Renglones y pagos
@@ -290,10 +471,13 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         var venta = _original.Clonar();
         venta.Tipo = TipoDocumentoVenta.Factura;
         venta.TasaCambioUsada = _tasa;
-        venta.ClienteId = ClienteSeleccionado.Id == 0 ? null : ClienteSeleccionado.Id;
-        venta.ClienteRif = ClienteRif.Trim();
+        // El servicio lo confirma (o lo da de alta) al emitir.
+        venta.ClienteId = _clienteCargado?.Id;
+        venta.ClienteRif = (Rif.Normalizar(ClienteRif) ?? ClienteRif).Trim();
         venta.ClienteNombre = ClienteNombre.Trim();
         venta.ClienteDireccion = ClienteDireccion.Trim();
+        venta.ClienteTelefono = ClienteTelefono.Trim();
+        venta.ClienteCorreo = ClienteCorreo.Trim();
         venta.Lineas = [.. Lineas.Where(l => l.ArticuloSeleccionado is not null).Select(l => l.Construir())];
         venta.Pagos = [.. Pagos.Where(p => p.MetodoSeleccionado is not null && p.MontoValor > 0).Select(p => p.Construir())];
         return venta;

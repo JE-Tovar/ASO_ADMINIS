@@ -63,40 +63,109 @@
                    Foreground="{DynamicResource TextMutedBrush}" />
       </WrapPanel>
 
-      <!-- Cliente -->
+      <!-- Cliente: la factura pide todos sus datos y, al emitir, lo da de alta o pone al día su
+           ficha. El campo RIF/C.I. sugiere de la lista y autocompleta con la identificación exacta. -->
       <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Margin="0,0,0,16">
         <StackPanel>
-          <TextBlock Text="Cliente" Style="{StaticResource EncabezadoTarjeta}" Margin="0,0,0,4" />
+          <DockPanel Margin="0,0,0,4" LastChildFill="False">
+            <TextBlock DockPanel.Dock="Left" Text="Cliente" Style="{StaticResource EncabezadoTarjeta}" />
+            <Border DockPanel.Dock="Left" Style="{StaticResource ChipEstadoClienteStyle}" Margin="12,0,0,0"
+                    VerticalAlignment="Center">
+              <TextBlock Text="{Binding EstadoClienteTexto}" FontSize="{StaticResource FsCaption}" />
+            </Border>
+            <Button DockPanel.Dock="Right" Content="Consumidor final" Margin="0"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    ToolTip="Vacía los datos: la factura sale a consumidor final"
+                    Command="{Binding ConsumidorFinalCommand}" />
+          </DockPanel>
+
           <Grid>
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="2*" />
-              <ColumnDefinition Width="12" />
-              <ColumnDefinition Width="1.3*" />
+              <ColumnDefinition Width="1.4*" />
               <ColumnDefinition Width="12" />
               <ColumnDefinition Width="2.4*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="1.2*" />
             </Grid.ColumnDefinitions>
 
-            <controls:FormField Grid.Column="0" Etiqueta="Del padrón" Ayuda="O escriba los datos a la derecha.">
-              <ComboBox Style="{StaticResource FormComboBoxStyle}"
-                        ItemsSource="{Binding Clientes}" DisplayMemberPath="Nombre"
-                        SelectedItem="{Binding ClienteSeleccionado}" />
+            <controls:FormField Grid.Column="0" Etiqueta="RIF, C.I. o nombre" Ayuda="{Binding ClienteRifAyuda}">
+              <Grid>
+                <TextBox x:Name="CajaRif" Style="{StaticResource FormTextBoxStyle}"
+                         Text="{Binding ClienteRif, UpdateSourceTrigger=PropertyChanged}"
+                         PreviewKeyDown="CajaRif_PreviewKeyDown" />
+
+                <!-- Sugerencias del padrón, flotando bajo el campo. -->
+                <Popup PlacementTarget="{Binding ElementName=CajaRif}" Placement="Bottom"
+                       AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade"
+                       IsOpen="{Binding MostrarSugerencias, Mode=TwoWay}">
+                  <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                          BorderThickness="1" CornerRadius="{StaticResource RadSm}" Padding="2"
+                          Margin="0,4,8,8" MinWidth="420"
+                          Effect="{DynamicResource SombraFlotante}">
+                    <ListBox x:Name="ListaClientes" MaxHeight="280" BorderThickness="0" Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                             ItemsSource="{Binding Sugerencias}"
+                             SelectedItem="{Binding SugerenciaSeleccionada}"
+                             PreviewMouseLeftButtonUp="ListaClientes_PreviewMouseLeftButtonUp">
+                      <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                          <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                          <Setter Property="Focusable" Value="False" />
+                          <Setter Property="Cursor" Value="Hand" />
+                        </Style>
+                      </ListBox.ItemContainerStyle>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Grid Margin="8,4">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="120" />
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Rif}" FontWeight="{StaticResource FwMedium}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Nombre}" Margin="0,0,8,0" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Grid.Column="2" Text="{Binding Telefono}" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Border>
+                </Popup>
+              </Grid>
             </controls:FormField>
 
-            <controls:FormField Grid.Column="2" Etiqueta="RIF o C.I." Ayuda="{Binding ClienteRifAyuda}">
-              <TextBox Style="{StaticResource FormTextBoxStyle}"
-                       Text="{Binding ClienteRif, UpdateSourceTrigger=PropertyChanged}" />
-            </controls:FormField>
-
-            <controls:FormField Grid.Column="4" Etiqueta="Nombre o razón social">
+            <controls:FormField Grid.Column="2" Etiqueta="Nombre o razón social">
               <TextBox Style="{StaticResource FormTextBoxStyle}"
                        Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" />
             </controls:FormField>
+
+            <controls:FormField Grid.Column="4" Etiqueta="Teléfono" Ayuda="Opcional.">
+              <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="40"
+                       Text="{Binding ClienteTelefono, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
           </Grid>
 
-          <controls:FormField Etiqueta="Dirección fiscal" Ayuda="Obligatoria si el cliente tiene RIF (la necesita para el crédito fiscal).">
-            <TextBox Style="{StaticResource FormTextBoxStyle}"
-                     Text="{Binding ClienteDireccion, UpdateSourceTrigger=PropertyChanged}" />
-          </controls:FormField>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="3.8*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="1.6*" />
+            </Grid.ColumnDefinitions>
+
+            <controls:FormField Grid.Column="0" Etiqueta="Dirección fiscal"
+                                Ayuda="Obligatoria si el cliente tiene RIF (la necesita para el crédito fiscal).">
+              <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="300"
+                       Text="{Binding ClienteDireccion, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+
+            <controls:FormField Grid.Column="2" Etiqueta="Correo" Ayuda="{Binding ClienteCorreoAyuda}">
+              <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="120"
+                       Text="{Binding ClienteCorreo, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+          </Grid>
         </StackPanel>
       </Border>
 

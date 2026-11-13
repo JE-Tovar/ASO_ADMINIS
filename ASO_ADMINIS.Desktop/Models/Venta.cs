@@ -93,6 +93,11 @@ public class Venta : IEntidad<int>, IDeOrganizacion
     public string ClienteNombre { get; set; } = string.Empty;
     public string ClienteDireccion { get; set; } = string.Empty;
 
+    /// <summary>Contacto al emitir (snapshot). No lo exige el SENIAT; el correo es por donde una
+    /// imprenta digital envía la factura al cliente.</summary>
+    public string ClienteTelefono { get; set; } = string.Empty;
+    public string ClienteCorreo { get; set; } = string.Empty;
+
     /// <summary>Bs por US$ al momento de emitir, snapshot.</summary>
     public decimal TasaCambioUsada { get; set; }
 

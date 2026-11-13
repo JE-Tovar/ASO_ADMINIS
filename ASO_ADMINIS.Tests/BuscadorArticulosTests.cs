@@ -109,7 +109,7 @@ public class BuscadorArticulosTests
         var montaje = Escenario.Montar(new VentasEnMemoria());
         var filtro = new Articulo { Id = 98, Codigo = "FIL-01", Descripcion = "Filtro de aceite tipo 1",
                                     Unidad = UnidadMedida.Pieza, PrecioVenta = 4m, Activo = true };
-        var editor = new VentaEditorViewModel(new Venta(), [filtro], [], montaje.Ventas, 40m);
+        var editor = new VentaEditorViewModel(new Venta(), [filtro], montaje.Clientes, montaje.Ventas, 40m);
 
         editor.AgregarArticulo(filtro);
         editor.AgregarArticulo(filtro);
@@ -182,7 +182,7 @@ public class BuscadorArticulosTests
         var montaje = Escenario.Montar(new VentasEnMemoria());
         var clavos = new Articulo { Id = 99, Codigo = "CLA-2P", Descripcion = "Clavos de acero 2 pulgadas",
                                     Unidad = UnidadMedida.Kilogramo, PrecioVenta = 3m, Activo = true };
-        var editor = new VentaEditorViewModel(new Venta(), [clavos], [], montaje.Ventas, 40m);
+        var editor = new VentaEditorViewModel(new Venta(), [clavos], montaje.Clientes, montaje.Ventas, 40m);
 
         editor.AgregarArticulo(clavos);
         editor.AgregarArticulo(clavos);

@@ -35,6 +35,7 @@ public sealed class VentasService
     private readonly IEmisorFiscal _emisor;
     private readonly Func<Organizacion?> _organizacion;
     private readonly Func<string> _caja;
+    private readonly ClientesService? _clientes;
 
     public VentasService(IVentaDataSource ventas,
                          IArticuloDataSource articulos,
@@ -44,7 +45,8 @@ public sealed class VentasService
                          ISesionActual sesion,
                          IEmisorFiscal emisor,
                          Func<Organizacion?>? organizacion = null,
-                         Func<string>? caja = null)
+                         Func<string>? caja = null,
+                         ClientesService? clientes = null)
     {
         _ventas = ventas;
         _articulos = articulos;
@@ -55,6 +57,7 @@ public sealed class VentasService
         _emisor = emisor;
         _organizacion = organizacion ?? (() => Ambito.Actual);
         _caja = caja ?? (() => Ajustes.Actual.CajaCodigo);
+        _clientes = clientes;
     }
 
     public IEmisorFiscal Emisor => _emisor;
@@ -248,6 +251,12 @@ public sealed class VentasService
                 error = "Un cliente con RIF necesita su dirección fiscal en la factura.";
                 return false;
             }
+
+            if (!ClientesService.CorreoValido(documento.ClienteCorreo))
+            {
+                error = $"El correo \"{documento.ClienteCorreo.Trim()}\" no tiene la forma nombre@dominio.com.";
+                return false;
+            }
         }
 
         error = null;
@@ -268,6 +277,7 @@ public sealed class VentasService
         if (!Validar(factura, out var error))
             throw new InvalidOperationException(error);
 
+        RegistrarCliente(factura);
         var guardada = EmitirYGuardar(factura);
         RegistrarSalida(guardada, usuarioId);
         return guardada;
@@ -296,6 +306,7 @@ public sealed class VentasService
         if (!Validar(factura, out var error))
             throw new InvalidOperationException(error);
 
+        RegistrarCliente(factura);
         factura.NumeroFiscal = numeroDocumento.Trim();
         factura.NumeroControl = control;
         factura.SerialEmisor = "CONTINGENCIA";
@@ -473,6 +484,8 @@ public sealed class VentasService
         nota.ClienteRif = factura.ClienteRif;
         nota.ClienteNombre = factura.ClienteNombre;
         nota.ClienteDireccion = factura.ClienteDireccion;
+        nota.ClienteTelefono = factura.ClienteTelefono;
+        nota.ClienteCorreo = factura.ClienteCorreo;
         nota.TasaCambioUsada = factura.TasaCambioUsada;
         return nota;
     }
@@ -524,7 +537,34 @@ public sealed class VentasService
         documento.ClienteRif = Rif.Normalizar(documento.ClienteRif) ?? documento.ClienteRif.Trim();
         documento.ClienteNombre = documento.ClienteNombre.Trim();
         documento.ClienteDireccion = documento.ClienteDireccion.Trim();
+        documento.ClienteTelefono = documento.ClienteTelefono.Trim();
+        documento.ClienteCorreo = documento.ClienteCorreo.Trim();
+        // Consumidor final: sin identificación no hay ficha que enlazar.
+        if (documento.EsConsumidorFinal)
+            documento.ClienteId = null;
         return documento;
+    }
+
+    /// <summary>
+    /// Da de alta al cliente (o pone al día su ficha) y enlaza la factura con él. Va después de
+    /// validar y ANTES de emitir porque la factura es inalterable: el ClienteId tiene que estar
+    /// puesto al guardarla. Si luego el emisor falla, el cliente queda en el padrón, que es
+    /// inocuo. Nunca impide facturar (ver <see cref="ClientesService.RegistrarDesdeFactura"/>).
+    /// </summary>
+    private void RegistrarCliente(Venta factura)
+    {
+        if (_clientes is null || factura.EsConsumidorFinal)
+            return;
+
+        try
+        {
+            factura.ClienteId = _clientes.RegistrarDesdeFactura(factura) ?? factura.ClienteId;
+        }
+        catch (Exception)
+        {
+            // Un fallo del padrón (base ocupada, choque con otra caja) no detiene la venta: la
+            // factura lleva su snapshot del cliente igual.
+        }
     }
 
     private Venta EmitirYGuardar(Venta documento)

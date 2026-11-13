@@ -293,6 +293,25 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
   - **Porcentajes:** no van en el artículo sino en `Organizacion` (`IvaGeneral` 16, `IvaReducida`
     8, `IvaAdicional` 31 = 16 + 15 suntuario, `IgtfPorcentaje` 3), porque los decreta el
     Ejecutivo.
+- **Cliente de la factura** (2026-11-12): la factura pide RIF/C.I., nombre, dirección,
+  teléfono y correo.
+  - **Autocompletado:** el campo RIF/C.I. sugiere de la lista por identificación (sin guiones ni
+    puntos) o por nombre (`ClientesService.Sugerencias`). Con la identificación exacta se
+    autocompleta solo (`PorIdentificacion`: "v12345678" = "V-12.345.678").
+    - Si luego deja de coincidir, se borra lo autocompletado que nadie tocó: al teclear una
+      cédula, "V-1234567" puede ser otra persona a medio camino.
+  - **Al emitir** (`ClientesService.RegistrarDesdeFactura`, llamado por `VentasService`):
+    - un cliente nuevo se da de alta (`Clientes.Crear`);
+    - uno existente se pone al día y se reactiva (`Clientes.Editar`); el teléfono y el correo
+      vacíos no borran los de la ficha.
+  - **Cuándo se registra:** después de validar y antes de emitir, porque la factura es
+    inalterable y el `ClienteId` tiene que ir puesto al guardarla.
+  - **Nunca impide facturar:** sin permiso, o si falla, la factura sale con su snapshot igual.
+  - **Snapshots nuevos:** `Venta.ClienteTelefono` y `ClienteCorreo`. El correo es por donde una
+    imprenta digital enviará la factura. Si se escribe un correo, tiene que tener forma de
+    correo.
+  - **Validación del padrón:** está en `ClientesService.Validar` (antes `ClienteValidacion`,
+    en el ViewModel).
 - **Datos del emisor** en `Organizacion` (`RazonSocial`, `Rif`, `DireccionFiscal`, `Telefono`,
   `ContribuyenteEspecial`), editables en Administración · Organización. Sin
   `DatosFiscalesCompletos` no se emite nada. **Caja por máquina**: `AjustesApp.CajaCodigo`
@@ -427,8 +446,9 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
   (esta última rellena los documentos previos como cargados en unidad base, factor 1).
   Después vinieron `ArticuloDescripcion`, `AgregarGastosVarios` (tabla nueva, sin datos que
   migrar), `AgregarServicios` (`Articulos.Tipo` = 0/Bien y `VentaLineas.EsServicio` = false
-  para lo existente) y `VentaGranel` (`VentaLineas.Cantidad` a `decimal(18,3)`, agrandar sin
-  pérdida; `Articulos.CodigoBalanza`). `QuitarCatalogoMarcasModelos` deshace el enfoque zapatería **sin perder datos**:
+  para lo existente) `VentaGranel` (`VentaLineas.Cantidad` a `decimal(18,3)`, agrandar sin
+  pérdida; `Articulos.CodigoBalanza`) y `VentaContactoCliente` (`Ventas.ClienteTelefono` y
+  `ClienteCorreo`, vacíos para lo existente). `QuitarCatalogoMarcasModelos` deshace el enfoque zapatería **sin perder datos**:
   su `Up` está reordenado a mano para pasar el precio de cada modelo a su artículo y repuntar
   `Ventas.ModeloId` → `ArticuloId` antes de borrar `Marcas`/`Modelos`. Si se edita una
   migración generada, revisar el script con `dotnet ef migrations script`.

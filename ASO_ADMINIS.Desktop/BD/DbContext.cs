@@ -156,6 +156,9 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(v => v.ClienteRif).HasMaxLength(15);
             entity.Property(v => v.ClienteNombre).HasMaxLength(200);
             entity.Property(v => v.ClienteDireccion).HasMaxLength(300);
+            // Contacto del cliente al emitir (snapshot, como la dirección). Mismas longitudes que Clientes.
+            entity.Property(v => v.ClienteTelefono).HasMaxLength(40);
+            entity.Property(v => v.ClienteCorreo).HasMaxLength(120);
             entity.Property(v => v.MotivoAnulacion).HasMaxLength(500);
             entity.Property(v => v.NumeroFiscal).HasMaxLength(30);
             entity.Property(v => v.NumeroControl).HasMaxLength(30);
@@ -312,7 +315,7 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(c => c.Telefono).HasMaxLength(40);
             entity.Property(c => c.Correo).HasMaxLength(120);
 
-            // Respaldo del "no repetir RIF" de ClienteValidacion.
+            // Respaldo del "no repetir RIF" de ClientesService.Validar.
             entity.HasIndex(c => new { c.OrganizacionId, c.Rif }).IsUnique();
 
             entity.Ignore(c => c.EstadoTexto);
