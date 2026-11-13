@@ -99,9 +99,11 @@ submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Ad
   `DataSourceFactory`).
   - **Tamaño de la ventana de edición:** cada editor elige uno de los tres anchos de `Ancho`, y
     el alto se ajusta al contenido.
-  - **`AbreMaximizado`:** un editor puede pedir ventana maximizada y redimensionable. Hoy solo lo
-    hace **Emitir factura**, con distribución de punto de venta: renglones a todo el alto a la
-    izquierda y un panel de cobro de 400 px a la derecha.
+  - **`AbreMaximizado`:** un editor puede pedir ventana maximizada y redimensionable. Lo hacen
+    los editores de mucho uso: **Emitir factura** (distribución de punto de venta: renglones a
+    todo el alto a la izquierda y un panel de cobro de 400 px a la derecha), **Registrar entrada**,
+    **Boleto de salida** y la **nota de crédito/débito** (cabecera arriba, grilla de líneas en
+    la fila `*`, total y observaciones abajo). La ventana principal también abre maximizada (`MainWindow.xaml`).
   - **Qué cambia en ese modo:** `CrudEditorWindow` apaga su scroll vertical para que las filas
     `*` del formulario llenen la ventana, y cada grilla lleva su propio scroll. Los mínimos
     (1000×640) los fija `ServicioDialogo`.

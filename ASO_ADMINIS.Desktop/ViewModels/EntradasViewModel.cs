@@ -213,6 +213,9 @@ public sealed class EntradaEditorViewModel : CrudEditorViewModelBase<EntradaInve
     /// <summary>Amplio: lleva una grilla de líneas dentro.</summary>
     public override double AnchoEditor => Ancho.Amplio;
 
+    /// <summary>Documento de inventario: abre maximizada, con la grilla de líneas a todo el alto.</summary>
+    public override bool AbreMaximizado => true;
+
     public override string TextoAccion => "Registrar entrada";
 
     public IReadOnlyList<Proveedor> Proveedores { get; }

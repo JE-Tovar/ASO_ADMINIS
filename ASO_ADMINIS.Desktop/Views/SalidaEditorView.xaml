@@ -12,7 +12,16 @@
     <controls:PuenteDeDatos x:Key="Puente" Datos="{Binding}" />
   </UserControl.Resources>
 
-  <StackPanel>
+  <!-- La ventana abre maximizada (AbreMaximizado): la cabecera y el pie toman su alto y la
+       grilla de líneas se queda con el resto, con su propio scroll. -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+  <StackPanel Grid.Row="0">
 
     <TextBlock Text="El número del boleto se asigna al emitirlo."
                FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
@@ -90,10 +99,12 @@
     <!-- Se agrega buscando: Enter o clic agrega; si ya está, le suma 1. -->
     <controls:BuscadorArticulos Margin="0,0,0,8" DataContext="{Binding Buscador}" />
 
-    <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+  </StackPanel>
+
+    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" MinHeight="160">
       <Grid>
       <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
       <TextBlock Grid.Row="1" Margin="16,14" HorizontalAlignment="Center" TextAlignment="Center"
@@ -103,7 +114,7 @@
       <DataGrid Style="{StaticResource DataGridStyle}"
                 ItemsSource="{Binding Lineas}"
                 IsReadOnly="True"
-                MaxHeight="260"
+                VerticalAlignment="Top"
                 HeadersVisibility="Column"
                 CanUserSortColumns="False">
         <DataGrid.Columns>
@@ -160,6 +171,7 @@
       </Grid>
     </Border>
 
+  <StackPanel Grid.Row="2">
     <Grid Margin="0,12,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" />
@@ -181,4 +193,5 @@
                Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" />
     </controls:FormField>
   </StackPanel>
+  </Grid>
 </UserControl>

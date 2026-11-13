@@ -11,6 +11,7 @@
         Height="800" Width="1280"
         MinHeight="640" MinWidth="1024"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         Background="{DynamicResource BackgroundBrush}"
         FontFamily="{StaticResource AppFont}">
 

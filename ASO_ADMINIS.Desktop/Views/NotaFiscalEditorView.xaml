@@ -11,18 +11,32 @@
     <controls:PuenteDeDatos x:Key="Puente" Datos="{Binding}" />
   </UserControl.Resources>
 
-  <StackPanel>
-    <TextBlock Text="{Binding FacturaTexto}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+  <!-- La ventana abre maximizada (AbreMaximizado): la factura arriba y el pie toman su alto, y la
+       grilla de la nota (devoluciones o cargos) se queda con el resto, con su propio scroll. -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="{Binding FacturaTexto}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
                Foreground="{DynamicResource TextSecondaryBrush}" />
 
     <!-- Nota de crédito: qué se devuelve de cada renglón -->
-    <StackPanel Visibility="{Binding EsCredito, Converter={StaticResource BoolToVis}}">
-      <TextBlock Text="Qué se devuelve" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,4" />
-      <TextBlock Text="A los mismos precios y alícuotas de la factura. La mercancía vuelve al almacén."
+    <Grid Grid.Row="1" Visibility="{Binding EsCredito, Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <TextBlock Grid.Row="0" Text="Qué se devuelve" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,4" />
+      <TextBlock Grid.Row="1" Text="A los mismos precios y alícuotas de la factura. La mercancía vuelve al almacén."
                  FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8" />
-      <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+      <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0" MinHeight="160">
         <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Devoluciones}"
-                  IsReadOnly="True" MaxHeight="260" HeadersVisibility="Column" CanUserSortColumns="False">
+                  IsReadOnly="True" VerticalAlignment="Top" HeadersVisibility="Column" CanUserSortColumns="False">
           <DataGrid.Columns>
             <controls:ColumnaTexto Header="Artículo" Binding="{Binding Linea.Descripcion}" Width="34*" MinWidth="180" />
             <controls:ColumnaTexto Header="Facturado" Binding="{Binding FacturadoTexto}" Width="14*" MinWidth="90" />
@@ -41,16 +55,21 @@
           </DataGrid.Columns>
         </DataGrid>
       </Border>
-      <Button Content="Devolver todo" Margin="0,8,0,0" HorizontalAlignment="Left"
+      <Button Grid.Row="3" Content="Devolver todo" Margin="0,8,0,0" HorizontalAlignment="Left"
               Style="{StaticResource SecondaryButtonStyle}" Command="{Binding DevolverTodoCommand}" />
-    </StackPanel>
+    </Grid>
 
     <!-- Nota de débito: cargos adicionales -->
-    <StackPanel Visibility="{Binding EsDebito, Converter={StaticResource BoolToVis}}">
-      <TextBlock Text="Cargos adicionales" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,8" />
-      <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+    <Grid Grid.Row="1" Visibility="{Binding EsDebito, Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <TextBlock Grid.Row="0" Text="Cargos adicionales" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,8" />
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" MinHeight="160">
         <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Cargos}"
-                  IsReadOnly="True" MaxHeight="220" HeadersVisibility="Column" CanUserSortColumns="False">
+                  IsReadOnly="True" VerticalAlignment="Top" HeadersVisibility="Column" CanUserSortColumns="False">
           <DataGrid.Columns>
             <DataGridTemplateColumn Header="Descripción" Width="44*" MinWidth="200">
               <DataGridTemplateColumn.CellTemplate>
@@ -91,10 +110,11 @@
           </DataGrid.Columns>
         </DataGrid>
       </Border>
-      <Button Content="Agregar cargo" Margin="0,8,0,0" HorizontalAlignment="Left"
+      <Button Grid.Row="2" Content="Agregar cargo" Margin="0,8,0,0" HorizontalAlignment="Left"
               Style="{StaticResource SecondaryButtonStyle}" Command="{Binding AgregarCargoCommand}" />
-    </StackPanel>
+    </Grid>
 
+    <StackPanel Grid.Row="2">
     <TextBlock Text="{Binding TotalTexto}" Margin="0,12,0,0" HorizontalAlignment="Right"
                Style="{StaticResource FormValorCalculadoStyle}" />
 
@@ -103,5 +123,6 @@
                AcceptsReturn="True" MinLines="2" TextWrapping="Wrap" VerticalContentAlignment="Top"
                Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" />
     </controls:FormField>
-  </StackPanel>
+    </StackPanel>
+  </Grid>
 </UserControl>

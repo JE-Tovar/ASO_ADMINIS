@@ -59,6 +59,9 @@ public sealed class NotaFiscalEditorViewModel : CrudEditorViewModelBase
     public override string TextoAccion => $"Emitir {Venta.TextoDe(Tipo).ToLowerInvariant()}";
     public override double AnchoEditor => Ancho.Amplio;
 
+    /// <summary>Documento fiscal con grilla: abre maximizada, con las líneas a todo el alto.</summary>
+    public override bool AbreMaximizado => true;
+
     public string FacturaTexto =>
         $"Factura {_factura.NumeroFiscal} (control {_factura.NumeroControl}) del {_factura.FechaHoraTexto} · " +
         $"{_factura.ClienteTexto} · Total Bs. {_factura.TotalTexto}";
