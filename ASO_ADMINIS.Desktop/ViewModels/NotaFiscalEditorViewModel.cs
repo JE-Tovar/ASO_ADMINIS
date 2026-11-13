@@ -47,7 +47,7 @@ public sealed class NotaFiscalEditorViewModel : CrudEditorViewModelBase
         DevolverTodoCommand = new RelayCommand(() =>
         {
             foreach (var d in Devoluciones)
-                d.Cantidad = d.Disponible.ToString("0.##");
+                d.Cantidad = d.Disponible.ToString("0.###");
         });
     }
 
@@ -120,7 +120,7 @@ public sealed class NotaFiscalEditorViewModel : CrudEditorViewModelBase
 
             if (Devoluciones.FirstOrDefault(d => d.CantidadValor > d.Disponible) is { } excedida)
             {
-                error = $"De {excedida.Linea.Descripcion} solo quedan {excedida.Disponible:N2} por devolver.";
+                error = $"De {excedida.Linea.Descripcion} solo quedan {excedida.Disponible:#,0.###} por devolver.";
                 return false;
             }
 
@@ -148,7 +148,7 @@ public sealed class DevolucionEditorViewModel(VentaLinea linea, decimal disponib
     public decimal Disponible { get; } = disponible;
 
     public string FacturadoTexto => Linea.CantidadTexto;
-    public string DisponibleTexto => Disponible.ToString("N2");
+    public string DisponibleTexto => Disponible.ToString("#,0.###");
 
     private string _cantidad = string.Empty;
     public string Cantidad

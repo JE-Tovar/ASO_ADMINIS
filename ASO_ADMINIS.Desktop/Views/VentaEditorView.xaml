@@ -5,245 +5,337 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
              mc:Ignorable="d"
-             d:DesignWidth="900">
+             d:DesignWidth="1280" d:DesignHeight="720">
+
+  <!--
+    Distribución de punto de venta. La ventana abre maximizada (AbreMaximizado) y le da a este
+    control su alto completo, así que la grilla de renglones (fila "*") llena la pantalla y lleva
+    su propio scroll. A la derecha, un panel de ancho fijo con lo que mira el cajero al cobrar:
+    total, estado del cobro, desglose fiscal y pagos.
+  -->
 
   <UserControl.Resources>
     <!-- Las columnas del DataGrid no heredan DataContext; ver Controls/PuenteDeDatos.cs -->
     <controls:PuenteDeDatos x:Key="Puente" Datos="{Binding}" />
+
+    <!-- Filas del desglose: etiqueta a la izquierda, monto a la derecha. -->
+    <Style x:Key="DesgloseEtiqueta" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+    </Style>
+    <Style x:Key="DesgloseMonto" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontSize" Value="{StaticResource FsBody}" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+    <Style x:Key="DesgloseNota" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+      <Setter Property="FontSize" Value="{StaticResource FsCaption}" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style x:Key="EncabezadoTarjeta" TargetType="TextBlock" BasedOn="{StaticResource CardTitleStyle}">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
   </UserControl.Resources>
 
-  <StackPanel>
-    <TextBlock Text="{Binding EmisorTexto}" FontSize="{StaticResource FsCaption}"
-               Foreground="{DynamicResource TextMutedBrush}" />
-    <TextBlock Text="{Binding TasaTexto}" FontSize="{StaticResource FsCaption}"
-               Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0" />
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" MinWidth="560" />
+      <ColumnDefinition Width="24" />
+      <ColumnDefinition Width="400" />
+    </Grid.ColumnDefinitions>
 
-    <!-- Cliente -->
-    <TextBlock Text="Cliente" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,4" />
-    <Grid>
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="2*" />
-        <ColumnDefinition Width="12" />
-        <ColumnDefinition Width="1.3*" />
-        <ColumnDefinition Width="12" />
-        <ColumnDefinition Width="2*" />
-      </Grid.ColumnDefinitions>
+    <!-- ================================================================ Izquierda -->
+    <Grid Grid.Column="0">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
 
-      <controls:FormField Grid.Column="0" Etiqueta="Del padrón" Ayuda="O escriba los datos a la derecha.">
-        <ComboBox Style="{StaticResource FormComboBoxStyle}"
-                  ItemsSource="{Binding Clientes}" DisplayMemberPath="Nombre"
-                  SelectedItem="{Binding ClienteSeleccionado}" />
-      </controls:FormField>
+      <!-- Contexto: quién emite y a qué tasa. -->
+      <WrapPanel Grid.Row="0" Margin="0,0,0,12">
+        <Border Style="{StaticResource ChipContextoStyle}">
+          <TextBlock Text="{Binding EmisorTexto}" FontSize="{StaticResource FsCaption}" />
+        </Border>
+        <TextBlock Text="{Binding TasaTexto}" FontSize="{StaticResource FsCaption}" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextMutedBrush}" />
+      </WrapPanel>
 
-      <controls:FormField Grid.Column="2" Etiqueta="RIF o C.I." Ayuda="{Binding ClienteRifAyuda}">
-        <TextBox Style="{StaticResource FormTextBoxStyle}"
-                 Text="{Binding ClienteRif, UpdateSourceTrigger=PropertyChanged}" />
-      </controls:FormField>
+      <!-- Cliente -->
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Margin="0,0,0,16">
+        <StackPanel>
+          <TextBlock Text="Cliente" Style="{StaticResource EncabezadoTarjeta}" Margin="0,0,0,4" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="2*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="1.3*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="2.4*" />
+            </Grid.ColumnDefinitions>
 
-      <controls:FormField Grid.Column="4" Etiqueta="Nombre o razón social">
-        <TextBox Style="{StaticResource FormTextBoxStyle}"
-                 Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" />
-      </controls:FormField>
-    </Grid>
+            <controls:FormField Grid.Column="0" Etiqueta="Del padrón" Ayuda="O escriba los datos a la derecha.">
+              <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                        ItemsSource="{Binding Clientes}" DisplayMemberPath="Nombre"
+                        SelectedItem="{Binding ClienteSeleccionado}" />
+            </controls:FormField>
 
-    <controls:FormField Etiqueta="Dirección fiscal" Ayuda="Obligatoria si el cliente tiene RIF (la necesita para el crédito fiscal).">
-      <TextBox Style="{StaticResource FormTextBoxStyle}"
-               Text="{Binding ClienteDireccion, UpdateSourceTrigger=PropertyChanged}" />
-    </controls:FormField>
+            <controls:FormField Grid.Column="2" Etiqueta="RIF o C.I." Ayuda="{Binding ClienteRifAyuda}">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       Text="{Binding ClienteRif, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
 
-    <!-- Renglones -->
-    <TextBlock Text="Artículos" Style="{StaticResource CardTitleStyle}" Margin="0,16,0,8" />
-    <Border Style="{StaticResource SectionCardStyle}" Padding="0">
-      <DataGrid Style="{StaticResource DataGridStyle}"
-                ItemsSource="{Binding Lineas}"
-                IsReadOnly="True" MaxHeight="230"
-                HeadersVisibility="Column" CanUserSortColumns="False">
-        <DataGrid.Columns>
-          <DataGridTemplateColumn Header="Artículo" Width="34*" MinWidth="200">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <ComboBox Style="{StaticResource LineaComboBoxStyle}"
-                          ItemsSource="{Binding Articulos}" DisplayMemberPath="Etiqueta"
-                          SelectedItem="{Binding ArticuloSeleccionado, UpdateSourceTrigger=PropertyChanged}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
+            <controls:FormField Grid.Column="4" Etiqueta="Nombre o razón social">
+              <TextBox Style="{StaticResource FormTextBoxStyle}"
+                       Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" />
+            </controls:FormField>
+          </Grid>
 
-          <DataGridTemplateColumn Header="Presentación" Width="14*" MinWidth="110">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <ComboBox Style="{StaticResource LineaComboBoxStyle}"
-                          ItemsSource="{Binding Presentaciones}" DisplayMemberPath="Nombre"
-                          SelectedItem="{Binding PresentacionSeleccionada, UpdateSourceTrigger=PropertyChanged}"
-                          ToolTip="{Binding PresentacionSeleccionada.Texto}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
+          <controls:FormField Etiqueta="Dirección fiscal" Ayuda="Obligatoria si el cliente tiene RIF (la necesita para el crédito fiscal).">
+            <TextBox Style="{StaticResource FormTextBoxStyle}"
+                     Text="{Binding ClienteDireccion, UpdateSourceTrigger=PropertyChanged}" />
+          </controls:FormField>
+        </StackPanel>
+      </Border>
 
-          <controls:ColumnaNumero Header="Existencia" Binding="{Binding ExistenciaTexto}" Width="11*" MinWidth="80" />
+      <!-- Renglones: se estiran hasta abajo, con su propio scroll. -->
+      <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
 
-          <DataGridTemplateColumn Header="Cantidad" Width="10*" MinWidth="76">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <TextBox TextAlignment="Right" Text="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}">
-                  <TextBox.Style>
-                    <Style TargetType="TextBox" BasedOn="{StaticResource LineaTextBoxStyle}">
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding SePasa}" Value="True">
-                          <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
-                          <Setter Property="ToolTip" Value="No hay tanta existencia de este artículo." />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </TextBox.Style>
-                </TextBox>
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
+          <TextBlock Grid.Row="0" Margin="16,12,16,8" Text="Artículos y servicios" Style="{StaticResource EncabezadoTarjeta}" />
 
-          <DataGridTemplateColumn Header="Precio US$" Width="10*" MinWidth="80">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <TextBox Style="{StaticResource LineaTextBoxStyle}" TextAlignment="Right"
-                         Text="{Binding PrecioUnitario, UpdateSourceTrigger=PropertyChanged}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
+          <!-- Se agrega buscando: Enter o clic agrega; si ya está, le suma 1. -->
+          <controls:BuscadorArticulos Grid.Row="1" Margin="16,0,16,12" DataContext="{Binding Buscador}" />
 
-          <controls:ColumnaTexto Header="IVA" Binding="{Binding AlicuotaTexto}" Width="5*" MinWidth="40" />
-          <controls:ColumnaNumero Header="Monto Bs" Binding="{Binding MontoTexto}" Width="12*" MinWidth="90" />
+          <TextBlock Grid.Row="2" Margin="16,48,16,0" HorizontalAlignment="Center" TextAlignment="Center"
+                     Text="Busca un artículo o servicio arriba para agregarlo a la factura."
+                     Foreground="{DynamicResource TextMutedBrush}" IsHitTestVisible="False" Panel.ZIndex="1"
+                     Visibility="{Binding SinLineas, Converter={StaticResource BoolToVis}}" />
 
-          <DataGridTemplateColumn Width="48">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <Button Content="{x:Static controls:Iconos.Limpiar}"
-                        Style="{StaticResource LineaBotonQuitarStyle}" ToolTip="Quitar este artículo"
-                        Command="{Binding Datos.QuitarLineaCommand, Source={StaticResource Puente}}"
-                        CommandParameter="{Binding}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-        </DataGrid.Columns>
-      </DataGrid>
-    </Border>
-    <Button Content="Agregar artículo" Margin="0,8,0,0" HorizontalAlignment="Left"
-            Style="{StaticResource SecondaryButtonStyle}" Command="{Binding AgregarLineaCommand}" />
-
-    <!-- Pagos y desglose, lado a lado -->
-    <Grid Margin="0,16,0,0">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="3*" />
-        <ColumnDefinition Width="16" />
-        <ColumnDefinition Width="2*" />
-      </Grid.ColumnDefinitions>
-
-      <StackPanel Grid.Column="0">
-        <TextBlock Text="Pagos" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,8" />
-        <Border Style="{StaticResource SectionCardStyle}" Padding="0">
-          <DataGrid Style="{StaticResource DataGridStyle}"
-                    ItemsSource="{Binding Pagos}"
-                    IsReadOnly="True" MaxHeight="170"
+          <DataGrid Grid.Row="2" Style="{StaticResource DataGridStyle}"
+                    ItemsSource="{Binding Lineas}"
+                    IsReadOnly="True"
+                    VerticalScrollBarVisibility="Auto"
                     HeadersVisibility="Column" CanUserSortColumns="False">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="Método" Width="26*" MinWidth="120">
+              <controls:ColumnaTexto Header="Código" Binding="{Binding ArticuloSeleccionado.Codigo}" Width="12*" MinWidth="96">
+                <controls:ColumnaTexto.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                  </Style>
+                </controls:ColumnaTexto.ElementStyle>
+              </controls:ColumnaTexto>
+              <controls:ColumnaTexto Header="Descripción" Binding="{Binding ArticuloSeleccionado.Descripcion}" Width="30*" MinWidth="180" />
+
+              <DataGridTemplateColumn Header="Presentación" Width="13*" MinWidth="110">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <ComboBox Style="{StaticResource LineaComboBoxStyle}"
-                              ItemsSource="{Binding MetodosPago}" DisplayMemberPath="Texto"
-                              SelectedItem="{Binding MetodoSeleccionado, UpdateSourceTrigger=PropertyChanged}" />
+                              ItemsSource="{Binding Presentaciones}" DisplayMemberPath="Nombre"
+                              SelectedItem="{Binding PresentacionSeleccionada, UpdateSourceTrigger=PropertyChanged}"
+                              ToolTip="{Binding PresentacionSeleccionada.Texto}" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Monto (Bs o US$)" Width="18*" MinWidth="100">
+
+              <controls:ColumnaNumero Header="Existencia" Binding="{Binding ExistenciaTexto}" Width="11*" MinWidth="84" />
+
+              <DataGridTemplateColumn Header="Cantidad" Width="9*" MinWidth="76">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <TextBox Style="{StaticResource LineaTextBoxStyle}" TextAlignment="Right"
-                             ToolTip="{Binding MonedaTexto}"
-                             Text="{Binding Monto, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox TextAlignment="Right" controls:Enfoque.AlCargar="{Binding PideCantidad}"
+                         Text="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}">
+                      <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource LineaTextBoxStyle}">
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding SePasa}" Value="True">
+                              <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+                              <Setter Property="ToolTip" Value="No hay tanta existencia de este artículo." />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBox.Style>
+                    </TextBox>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <controls:ColumnaNumero Header="Equivale" Binding="{Binding EquivalenteTexto}" Width="26*" MinWidth="130" />
-              <DataGridTemplateColumn Header="Referencia" Width="16*" MinWidth="70">
-                <DataGridTemplateColumn.CellTemplate>
-                  <DataTemplate>
-                    <TextBox Style="{StaticResource LineaTextBoxStyle}"
-                             Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged}" />
-                  </DataTemplate>
-                </DataGridTemplateColumn.CellTemplate>
-              </DataGridTemplateColumn>
+
+              <!-- De solo lectura: el precio es el del catálogo (lo vuelve a fijar VentasService). -->
+              <controls:ColumnaNumero Header="Precio US$" Binding="{Binding PrecioUnitario}" Width="10*" MinWidth="84" />
+
+              <controls:ColumnaTexto Header="IVA" Binding="{Binding AlicuotaTexto}" Width="6*" MinWidth="48" />
+
+              <controls:ColumnaNumero Header="Monto Bs" Binding="{Binding MontoTexto}" Width="12*" MinWidth="100">
+                <controls:ColumnaNumero.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+                    <Setter Property="HorizontalAlignment" Value="Right" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                  </Style>
+                </controls:ColumnaNumero.ElementStyle>
+              </controls:ColumnaNumero>
+
               <DataGridTemplateColumn Width="48">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <Button Content="{x:Static controls:Iconos.Limpiar}"
-                            Style="{StaticResource LineaBotonQuitarStyle}" ToolTip="Quitar este pago"
-                            Command="{Binding Datos.QuitarPagoCommand, Source={StaticResource Puente}}"
+                            Style="{StaticResource LineaBotonQuitarStyle}" ToolTip="Quitar este renglón"
+                            Command="{Binding Datos.QuitarLineaCommand, Source={StaticResource Puente}}"
                             CommandParameter="{Binding}" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
             </DataGrid.Columns>
           </DataGrid>
-        </Border>
-        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-          <Button Content="Agregar pago" Margin="0" Style="{StaticResource SecondaryButtonStyle}"
-                  Command="{Binding AgregarPagoCommand}" />
-          <Button Content="Cobrar el resto" Style="{StaticResource SecondaryButtonStyle}"
-                  ToolTip="Pone en el último pago lo que falta por cobrar"
-                  Command="{Binding CobrarRestoCommand}" />
-        </StackPanel>
-      </StackPanel>
-
-      <!-- Desglose fiscal -->
-      <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" VerticalAlignment="Top">
-        <StackPanel>
-          <TextBlock Text="Desglose" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,8" />
-
-          <DockPanel Visibility="{Binding HayExento, Converter={StaticResource BoolToVis}}">
-            <TextBlock Text="Exento (E)" Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="{Binding ExentoTexto}" HorizontalAlignment="Right" Foreground="{DynamicResource TextPrimaryBrush}" />
-          </DockPanel>
-          <DockPanel>
-            <TextBlock Text="Base general (G)" Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="{Binding BaseGeneralTexto}" HorizontalAlignment="Right" Foreground="{DynamicResource TextPrimaryBrush}" />
-          </DockPanel>
-          <TextBlock Text="{Binding IvaGeneralTexto}" HorizontalAlignment="Right" FontSize="{StaticResource FsCaption}"
-                     Foreground="{DynamicResource TextMutedBrush}" />
-          <StackPanel Visibility="{Binding HayReducida, Converter={StaticResource BoolToVis}}">
-            <DockPanel>
-              <TextBlock Text="Base reducida (R)" Foreground="{DynamicResource TextSecondaryBrush}" />
-              <TextBlock Text="{Binding BaseReducidaTexto}" HorizontalAlignment="Right" Foreground="{DynamicResource TextPrimaryBrush}" />
-            </DockPanel>
-            <TextBlock Text="{Binding IvaReducidaTexto}" HorizontalAlignment="Right" FontSize="{StaticResource FsCaption}"
-                       Foreground="{DynamicResource TextMutedBrush}" />
-          </StackPanel>
-          <StackPanel Visibility="{Binding HayAdicional, Converter={StaticResource BoolToVis}}">
-            <DockPanel>
-              <TextBlock Text="Base adicional (A)" Foreground="{DynamicResource TextSecondaryBrush}" />
-              <TextBlock Text="{Binding BaseAdicionalTexto}" HorizontalAlignment="Right" Foreground="{DynamicResource TextPrimaryBrush}" />
-            </DockPanel>
-            <TextBlock Text="{Binding IvaAdicionalTexto}" HorizontalAlignment="Right" FontSize="{StaticResource FsCaption}"
-                       Foreground="{DynamicResource TextMutedBrush}" />
-          </StackPanel>
-          <TextBlock Text="{Binding IgtfTexto}" HorizontalAlignment="Right" FontSize="{StaticResource FsCaption}"
-                     Foreground="{DynamicResource TextMutedBrush}"
-                     Visibility="{Binding HayIgtf, Converter={StaticResource BoolToVis}}" />
-
-          <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,8" />
-          <DockPanel>
-            <TextBlock Text="Total" FontWeight="{StaticResource FwBold}" Foreground="{DynamicResource TextPrimaryBrush}" />
-            <TextBlock Text="{Binding TotalTexto}" HorizontalAlignment="Right" Style="{StaticResource FormValorCalculadoStyle}" />
-          </DockPanel>
-          <TextBlock Text="{Binding TotalUsdTexto}" HorizontalAlignment="Right" FontSize="{StaticResource FsCaption}"
-                     Foreground="{DynamicResource TextMutedBrush}" />
-          <DockPanel Margin="0,8,0,0">
-            <TextBlock Text="Pagado" Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="{Binding PagadoTexto}" HorizontalAlignment="Right" Foreground="{DynamicResource TextPrimaryBrush}" />
-          </DockPanel>
-          <TextBlock Text="{Binding PendienteTexto}" HorizontalAlignment="Right" FontWeight="{StaticResource FwBold}"
-                     Foreground="{DynamicResource TextPrimaryBrush}" />
-        </StackPanel>
+        </Grid>
       </Border>
     </Grid>
-  </StackPanel>
+
+    <!-- ================================================================ Derecha: cobro -->
+    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel>
+
+        <!-- Total y estado del cobro -->
+        <Border Style="{StaticResource SectionCardStyle}" Margin="0,0,0,16">
+          <StackPanel>
+            <TextBlock Text="Total a pagar" FontSize="{StaticResource FsCaption}"
+                       FontWeight="{StaticResource FwMedium}" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding TotalTexto}" FontSize="{StaticResource FsMetric}"
+                       FontWeight="{StaticResource FwBold}" Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding TotalUsdTexto}" FontSize="{StaticResource FsBody}"
+                       Foreground="{DynamicResource TextMutedBrush}" />
+            <Border Style="{StaticResource ChipEstadoCobroStyle}" Margin="0,12,0,0">
+              <TextBlock Text="{Binding PendienteTexto}" FontSize="{StaticResource FsBody}"
+                         FontWeight="{StaticResource FwMedium}" />
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- Desglose fiscal -->
+        <Border Style="{StaticResource SectionCardStyle}" Margin="0,0,0,16">
+          <StackPanel>
+            <TextBlock Text="Desglose" Style="{StaticResource EncabezadoTarjeta}" Margin="0,0,0,8" />
+
+            <DockPanel Margin="0,0,0,4" Visibility="{Binding HayExento, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="Exento (E)" Style="{StaticResource DesgloseEtiqueta}" />
+              <TextBlock Text="{Binding ExentoTexto}" Style="{StaticResource DesgloseMonto}" />
+            </DockPanel>
+
+            <DockPanel>
+              <TextBlock Text="Base general (G)" Style="{StaticResource DesgloseEtiqueta}" />
+              <TextBlock Text="{Binding BaseGeneralTexto}" Style="{StaticResource DesgloseMonto}" />
+            </DockPanel>
+            <TextBlock Text="{Binding IvaGeneralTexto}" Style="{StaticResource DesgloseNota}" />
+
+            <StackPanel Visibility="{Binding HayReducida, Converter={StaticResource BoolToVis}}">
+              <DockPanel>
+                <TextBlock Text="Base reducida (R)" Style="{StaticResource DesgloseEtiqueta}" />
+                <TextBlock Text="{Binding BaseReducidaTexto}" Style="{StaticResource DesgloseMonto}" />
+              </DockPanel>
+              <TextBlock Text="{Binding IvaReducidaTexto}" Style="{StaticResource DesgloseNota}" />
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding HayAdicional, Converter={StaticResource BoolToVis}}">
+              <DockPanel>
+                <TextBlock Text="Base adicional (A)" Style="{StaticResource DesgloseEtiqueta}" />
+                <TextBlock Text="{Binding BaseAdicionalTexto}" Style="{StaticResource DesgloseMonto}" />
+              </DockPanel>
+              <TextBlock Text="{Binding IvaAdicionalTexto}" Style="{StaticResource DesgloseNota}" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding IgtfTexto}" Style="{StaticResource DesgloseNota}"
+                       Visibility="{Binding HayIgtf, Converter={StaticResource BoolToVis}}" />
+
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,8" />
+
+            <DockPanel>
+              <TextBlock Text="Pagado" Style="{StaticResource DesgloseEtiqueta}" />
+              <TextBlock Text="{Binding PagadoTexto}" Style="{StaticResource DesgloseMonto}"
+                         FontWeight="{StaticResource FwMedium}" />
+            </DockPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Pagos: una mini-tarjeta por pago (la grilla de cinco columnas no cabía en el panel). -->
+        <Border Style="{StaticResource SectionCardStyle}">
+          <StackPanel>
+            <TextBlock Text="Pagos" Style="{StaticResource EncabezadoTarjeta}" Margin="0,0,0,8" />
+
+            <ItemsControl ItemsSource="{Binding Pagos}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="{StaticResource BdFino}"
+                          CornerRadius="{StaticResource RadSm}" Padding="10" Margin="0,0,0,8">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0" Style="{StaticResource FormComboBoxStyle}"
+                                  ItemsSource="{Binding MetodosPago}" DisplayMemberPath="Texto"
+                                  SelectedItem="{Binding MetodoSeleccionado, UpdateSourceTrigger=PropertyChanged}"
+                                  ToolTip="Método de pago" />
+                        <Button Grid.Column="1" Content="{x:Static controls:Iconos.Limpiar}" Margin="6,0,0,0"
+                                Style="{StaticResource LineaBotonQuitarStyle}" ToolTip="Quitar este pago"
+                                Command="{Binding Datos.QuitarPagoCommand, Source={StaticResource Puente}}"
+                                CommandParameter="{Binding}" />
+                      </Grid>
+
+                      <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="8" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                          <TextBlock Text="{Binding MonedaTexto, StringFormat='Monto ({0})'}" Margin="0,0,0,2"
+                                     FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+                          <TextBox Style="{StaticResource FormTextBoxStyle}" TextAlignment="Right"
+                                   Text="{Binding Monto, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                          <TextBlock Text="Referencia" Margin="0,0,0,2"
+                                     FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+                          <TextBox Style="{StaticResource FormTextBoxStyle}"
+                                   ToolTip="N° de operación, últimos dígitos de la tarjeta…"
+                                   Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                      </Grid>
+
+                      <TextBlock Text="{Binding EquivalenteTexto}" FontSize="{StaticResource FsCaption}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid Margin="0,4,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Button Grid.Column="0" Content="Agregar pago" Margin="0" HorizontalAlignment="Stretch"
+                      Style="{StaticResource SecondaryButtonStyle}" Command="{Binding AgregarPagoCommand}" />
+              <Button Grid.Column="2" Content="Cobrar el resto" Margin="0" HorizontalAlignment="Stretch"
+                      Style="{StaticResource SecondaryButtonStyle}"
+                      ToolTip="Pone en el último pago lo que falta por cobrar"
+                      Command="{Binding CobrarRestoCommand}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
 </UserControl>

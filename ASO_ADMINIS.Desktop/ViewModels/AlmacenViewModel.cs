@@ -62,7 +62,7 @@ public sealed class AlmacenViewModel : PantallaCrudViewModel<Articulo, int>
 
     /// <summary>Estado del almacén de un vistazo, sin ir al resumen del módulo.</summary>
     public string Resumen =>
-        $"{Items.Count(a => a.Activo)} artículos activos · {Items.Count(a => a.BajoMinimo)} bajo mínimo";
+        $"{Items.Count(a => a.Activo && !a.EsServicio)} artículos activos · {Items.Count(a => a.BajoMinimo)} bajo mínimo";
 
     protected override string ModuloPermiso => "Articulos";
 
@@ -72,7 +72,8 @@ public sealed class AlmacenViewModel : PantallaCrudViewModel<Articulo, int>
         || item.Categoria.Contains(texto, StringComparison.OrdinalIgnoreCase)
         || item.Ubicacion.Contains(texto, StringComparison.OrdinalIgnoreCase);
 
-    protected override bool PasaFiltroExtra(Articulo item) => _filtro switch
+    /// <summary>Los servicios comparten tabla pero viven en Ventas · Servicios, no aquí.</summary>
+    protected override bool PasaFiltroExtra(Articulo item) => !item.EsServicio && _filtro switch
     {
         "Bajo mínimo" => item.BajoMinimo,
         "Sin existencia" => item.SinExistencia,
@@ -136,6 +137,7 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         Categoria = original.Categoria;
         Ubicacion = original.Ubicacion;
         Notas = original.Notas;
+        CodigoBalanza = original.CodigoBalanza;
         Activo = original.Id == 0 || original.Activo;
         Minimo = original.Minimo == 0 ? string.Empty : original.Minimo.ToString("0.##");
         PrecioVenta = original.PrecioVenta == 0 ? string.Empty : original.PrecioVenta.ToString("0.##");
@@ -195,7 +197,10 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         set
         {
             if (SetProperty(ref _unidadSeleccionada, value))
+            {
                 OnPropertyChanged(nameof(EncabezadoFactor));
+                OnPropertyChanged(nameof(EsGranel));
+            }
         }
     }
 
@@ -253,6 +258,17 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         : _tasaCambio is null
             ? "Sin tasa de cambio registrada todavía."
             : string.Empty;
+
+    /// <summary>Kilogramo, litro o metro: se vende con decimales y puede pesarse en balanza.</summary>
+    public bool EsGranel => new Articulo { Unidad = UnidadSeleccionada }.EsGranel;
+
+    private string _codigoBalanza = string.Empty;
+    /// <summary>Número del producto en la balanza (PLU), el que trae su etiqueta. Opcional.</summary>
+    public string CodigoBalanza
+    {
+        get => _codigoBalanza;
+        set => SetProperty(ref _codigoBalanza, value);
+    }
 
     private string _ubicacion = string.Empty;
     public string Ubicacion
@@ -320,6 +336,8 @@ public sealed class ArticuloEditorViewModel : CrudEditorViewModelBase<Articulo>
         articulo.Ubicacion = Ubicacion.Trim();
         articulo.Notas = Notas.Trim();
         articulo.Activo = Activo;
+        // Fuera de granel no aplica: se descarta en vez de guardar un PLU que nunca se leería.
+        articulo.CodigoBalanza = articulo.EsGranel ? CodigoBalanza.Trim() : string.Empty;
 
         // Una fila del todo vacía (la que se agregó y no se llenó) no cuenta.
         articulo.Presentaciones = [.. Presentaciones

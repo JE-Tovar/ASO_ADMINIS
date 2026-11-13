@@ -46,6 +46,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("CodigoBalanza")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
+
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -64,6 +69,9 @@ namespace ASO_ADMINIS.Desktop.Migrations
 
                     b.Property<decimal>("PrecioVenta")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
 
                     b.Property<string>("Ubicacion")
                         .IsRequired()
@@ -1383,7 +1391,7 @@ namespace ASO_ADMINIS.Desktop.Migrations
                                 .HasColumnType("int");
 
                             b1.Property<decimal>("Cantidad")
-                                .HasColumnType("decimal(18,2)");
+                                .HasColumnType("decimal(18,3)");
 
                             b1.Property<string>("Codigo")
                                 .IsRequired()
@@ -1394,6 +1402,9 @@ namespace ASO_ADMINIS.Desktop.Migrations
                                 .IsRequired()
                                 .HasMaxLength(200)
                                 .HasColumnType("nvarchar(200)");
+
+                            b1.Property<bool>("EsServicio")
+                                .HasColumnType("bit");
 
                             b1.Property<decimal>("Factor")
                                 .HasColumnType("decimal(18,4)");

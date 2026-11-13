@@ -210,7 +210,7 @@ public sealed class EmisorFiscalSimulado : IEmisorFiscal
         foreach (var l in d.Lineas)
         {
             sb.AppendLine($"{l.Codigo} {l.Descripcion}");
-            sb.AppendLine($"   {l.Cantidad:N2} {l.PresentacionNombre} x {l.PrecioUnitario:N2}  ({Alicuotas.Marca(l.Alicuota)}) {l.Monto,12:N2}");
+            sb.AppendLine($"   {l.Cantidad:#,0.###} {l.PresentacionNombre} x {l.PrecioUnitario:N2}  ({Alicuotas.Marca(l.Alicuota)}) {l.Monto,12:N2}");
         }
         sb.AppendLine("----------------------------------------");
         if (d.MontoExento != 0) sb.AppendLine($"Exento (E)                 {d.MontoExento,12:N2}");

@@ -43,6 +43,10 @@
     <views:ProveedoresView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:ServiciosViewModel}">
+    <views:ServiciosView />
+  </DataTemplate>
+
   <DataTemplate DataType="{x:Type vm:ClientesViewModel}">
     <views:ClientesView />
   </DataTemplate>

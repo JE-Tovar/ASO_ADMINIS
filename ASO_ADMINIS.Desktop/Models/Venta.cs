@@ -254,12 +254,20 @@ public class Venta : IEntidad<int>, IDeOrganizacion
 }
 
 /// <summary>
-/// Un renglón del documento. En una factura o nota de crédito es un artículo del almacén; en
+/// Un renglón del documento. En una factura o nota de crédito es un artículo del almacén o un
+/// servicio (<see cref="EsServicio"/>); en
 /// una nota de débito puede ser un concepto libre (<see cref="ArticuloId"/> nulo).
 /// </summary>
 public class VentaLinea
 {
     public int? ArticuloId { get; set; }
+
+    /// <summary>
+    /// Snapshot: el renglón es un servicio (no mueve el almacén ni al facturar ni al devolver).
+    /// Se guarda en el renglón y no se consulta al artículo porque la factura es inalterable.
+    /// </summary>
+    public bool EsServicio { get; set; }
+
     public string Codigo { get; set; } = string.Empty;       // snapshot (SKU)
     public string Descripcion { get; set; } = string.Empty;  // snapshot, sin genéricos
 
@@ -287,7 +295,8 @@ public class VentaLinea
     public decimal Iva { get; set; }
 
     public decimal CantidadBase => Cantidad * Factor;
-    public string CantidadTexto => $"{Cantidad:N2} {PresentacionNombre}".Trim();
+    /// <summary>"1,25 kg", "2 pza": hasta 3 decimales, sin ceros de relleno.</summary>
+    public string CantidadTexto => $"{Cantidad:#,0.###} {PresentacionNombre}".Trim();
     public string PrecioUnitarioTexto => PrecioUnitario.ToString("N2");
     public string MontoTexto => Monto.ToString("N2");
     public string AlicuotaTexto => Alicuota == TipoAlicuota.Exento ? "(E)" : $"{PorcentajeIva:0.##} %";

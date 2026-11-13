@@ -224,6 +224,35 @@
           <TextBlock Style="{StaticResource AyudaAjusteStyle}"
                      Text="Código de la caja o terminal de esta máquina (p. ej. CAJA-01). Figura en cada factura; sin él no se puede facturar desde aquí." />
 
+          <TextBlock Text="Etiquetas de balanza" Style="{StaticResource TituloTarjetaStyle}" Margin="0,20,0,0" />
+          <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                    Content="Leer las etiquetas que imprime la balanza"
+                    IsChecked="{Binding LeerEtiquetasBalanza}" />
+          <TextBlock Style="{StaticResource AyudaAjusteStyle}"
+                     Text="Al escanear la etiqueta (EAN-13) en la factura se agrega el artículo con el peso impreso. El artículo necesita su código en la balanza (Inventario · Almacén)." />
+          <Grid Margin="0,8,0,0" IsEnabled="{Binding LeerEtiquetasBalanza}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <controls:FormField Grid.Column="0" Etiqueta="Empieza por">
+              <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="2"
+                       Text="{Binding EtiquetaPrefijo, UpdateSourceTrigger=LostFocus}" />
+            </controls:FormField>
+            <controls:FormField Grid.Column="2" Etiqueta="Dígitos de producto">
+              <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="1"
+                       Text="{Binding EtiquetaDigitosProducto, UpdateSourceTrigger=LostFocus}" />
+            </controls:FormField>
+            <controls:FormField Grid.Column="4" Etiqueta="Decimales del peso">
+              <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="1"
+                       Text="{Binding EtiquetaDecimalesPeso, UpdateSourceTrigger=LostFocus}" />
+            </controls:FormField>
+          </Grid>
+          <TextBlock Style="{StaticResource AyudaAjusteStyle}" Text="{Binding FormatoEtiquetaTexto}" />
+
           <TextBlock Text="{Binding Aviso.Texto}" Margin="0,16,0,0"
                      FontSize="{StaticResource FsCaption}"
                      Foreground="{DynamicResource SuccessTextBrush}" />

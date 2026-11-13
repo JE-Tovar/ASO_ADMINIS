@@ -125,27 +125,53 @@ public sealed class VentasService
 
         if (factura.Lineas.Count == 0)
         {
-            error = "Agregue al menos un artículo.";
+            error = "Agregue al menos un artículo o servicio.";
             return false;
         }
 
         foreach (var linea in factura.Lineas)
         {
+            // Un renglón suelto (sin artículo) traería su propio precio. En la factura todo sale
+            // del catálogo; los conceptos libres son solo de la nota de débito.
+            if (linea.ArticuloId is null)
+            {
+                error = $"\"{linea.Descripcion}\" no está en el catálogo: dé de alta el artículo o el servicio antes de facturarlo.";
+                return false;
+            }
+
             if (linea.Cantidad <= 0)
             {
                 error = $"La cantidad de {linea.Descripcion} debe ser mayor que cero.";
                 return false;
             }
 
-            if (linea.PrecioUnitarioUsd < 0)
+            // El precio no lo decide quien factura: sale del catálogo (FijarDesdeCatalogo). Un
+            // artículo sin precio no se vende hasta que se le asigne en su catálogo.
+            if (linea.PrecioUnitarioUsd <= 0)
             {
-                error = $"El precio de {linea.Descripcion} no puede ser negativo.";
+                error = $"{linea.Descripcion} no tiene precio de venta; asígnelo en " +
+                        (linea.EsServicio ? "Ventas · Servicios." : "Inventario · Almacén.");
                 return false;
             }
 
             if (linea.Factor <= 0)
             {
                 error = $"Elija la presentación de {linea.Descripcion}.";
+                return false;
+            }
+
+            // La columna guarda 3 decimales: con más, la factura guardada no cuadraría con su monto.
+            if (decimal.Round(linea.Cantidad, 3) != linea.Cantidad)
+            {
+                error = $"La cantidad de {linea.Descripcion} admite hasta 3 decimales (p. ej. 1,250 kg).";
+                return false;
+            }
+
+            // Solo lo que se vende a granel (kg, L, m) lleva decimales; lo demás va por unidad entera.
+            if (decimal.Truncate(linea.Cantidad) != linea.Cantidad
+                && _articulos.GetById(linea.ArticuloId.Value) is { EsGranel: false } entero)
+            {
+                error = $"{entero.Codigo} · {entero.Descripcion} se vende por unidad entera: no se puede facturar {linea.Cantidad:0.###} {linea.PresentacionNombre}.";
                 return false;
             }
 
@@ -157,8 +183,9 @@ public sealed class VentasService
         }
 
         // Existencia: se suma por artículo, porque el mismo artículo puede ir en dos renglones
-        // (en presentaciones distintas) y lo que sale del almacén es la suma.
-        foreach (var grupo in factura.Lineas.Where(l => l.ArticuloId is not null).GroupBy(l => l.ArticuloId!.Value))
+        // (en presentaciones distintas) y lo que sale del almacén es la suma. Un servicio no
+        // tiene existencia.
+        foreach (var grupo in factura.Lineas.Where(l => l.ArticuloId is not null && !l.EsServicio).GroupBy(l => l.ArticuloId!.Value))
         {
             var articulo = _articulos.GetById(grupo.Key);
             if (articulo is null)
@@ -236,6 +263,7 @@ public sealed class VentasService
             throw new InvalidOperationException("No tienes permiso para emitir facturas.");
 
         var factura = PrepararNueva(borrador, TipoDocumentoVenta.Factura, usuarioId);
+        FijarDesdeCatalogo(factura);
         Preparar(factura);
         if (!Validar(factura, out var error))
             throw new InvalidOperationException(error);
@@ -263,6 +291,7 @@ public sealed class VentasService
             throw new InvalidOperationException($"El número de control {control} ya está usado en otro documento.");
 
         var factura = PrepararNueva(borrador, TipoDocumentoVenta.Factura, usuarioId);
+        FijarDesdeCatalogo(factura);
         Preparar(factura);
         if (!Validar(factura, out var error))
             throw new InvalidOperationException(error);
@@ -353,7 +382,7 @@ public sealed class VentasService
             var queda = disponible.GetValueOrDefault(grupo.Key);
             if (pedido > queda)
                 throw new InvalidOperationException(
-                    $"De {grupo.First().LineaFactura.Descripcion} solo quedan {queda:N2} {grupo.Key.PresentacionNombre} por devolver.");
+                    $"De {grupo.First().LineaFactura.Descripcion} solo quedan {queda:#,0.###} {grupo.Key.PresentacionNombre} por devolver.");
         }
 
         var nota = NotaSobre(factura, TipoDocumentoVenta.NotaCredito, motivo, usuarioId);
@@ -450,6 +479,37 @@ public sealed class VentasService
 
     // ---------------------------------------------------------------- Emisión y almacén
 
+    /// <summary>
+    /// El precio, la alícuota y la descripción de cada renglón salen del catálogo, no de lo que
+    /// mande la pantalla: quien factura no puede cambiar el precio de un artículo ni de un
+    /// servicio. Se lee el artículo de la base en el momento de emitir, así que un precio
+    /// cambiado en el catálogo mientras el editor estaba abierto también se respeta.
+    /// </summary>
+    private void FijarDesdeCatalogo(Venta factura)
+    {
+        foreach (var linea in factura.Lineas.Where(l => l.ArticuloId is not null))
+        {
+            var articulo = _articulos.GetById(linea.ArticuloId!.Value)
+                ?? throw new InvalidOperationException($"{linea.Descripcion} ya no existe en el catálogo.");
+
+            if (!articulo.Activo)
+                throw new InvalidOperationException($"{articulo.Etiqueta} está inactivo y no se puede facturar.");
+
+            var opcion = articulo.OpcionesDePresentacion()
+                .FirstOrDefault(o => string.Equals(o.Nombre, linea.PresentacionNombre, StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException(
+                    $"La presentación \"{linea.PresentacionNombre}\" ya no existe para {articulo.Etiqueta}; vuelva a elegirla.");
+
+            linea.Codigo = articulo.Codigo;
+            linea.Descripcion = articulo.Descripcion;
+            linea.EsServicio = articulo.EsServicio;
+            linea.PresentacionNombre = opcion.Nombre;
+            linea.Factor = opcion.Factor;
+            linea.PrecioUnitarioUsd = opcion.PrecioVenta;
+            linea.Alicuota = articulo.Alicuota;
+        }
+    }
+
     private Venta PrepararNueva(Venta borrador, TipoDocumentoVenta tipo, int usuarioId)
     {
         var documento = borrador.Clonar();
@@ -525,7 +585,8 @@ public sealed class VentasService
     /// <summary>La factura descuenta el almacén con UNA salida de N renglones, en unidad base.</summary>
     private void RegistrarSalida(Venta factura, int usuarioId)
     {
-        var lineas = factura.Lineas.Where(l => l.ArticuloId is not null).ToList();
+        // Los servicios no salen del almacén.
+        var lineas = factura.Lineas.Where(l => l.ArticuloId is not null && !l.EsServicio).ToList();
         if (lineas.Count == 0)
             return;
 
@@ -559,7 +620,8 @@ public sealed class VentasService
     /// <summary>La nota de crédito reingresa la mercancía con una entrada de devolución.</summary>
     private void RegistrarDevolucion(Venta nota, int usuarioId)
     {
-        var lineas = nota.Lineas.Where(l => l.ArticuloId is not null).ToList();
+        // Devolver un servicio es solo una reversa fiscal: no hay nada que reingresar.
+        var lineas = nota.Lineas.Where(l => l.ArticuloId is not null && !l.EsServicio).ToList();
         if (lineas.Count == 0)
             return;
 

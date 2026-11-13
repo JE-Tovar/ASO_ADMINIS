@@ -66,6 +66,10 @@
 
   <!-- Inventario -->
 
+  <DataTemplate DataType="{x:Type vm:ServicioEditorViewModel}">
+    <views:ServicioEditorView />
+  </DataTemplate>
+
   <DataTemplate DataType="{x:Type vm:ArticuloEditorViewModel}">
     <views:ArticuloEditorView />
   </DataTemplate>

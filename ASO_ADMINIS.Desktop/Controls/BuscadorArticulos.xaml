@@ -1,0 +1,168 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Controls.BuscadorArticulos"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="800">
+
+  <!--
+    Buscador de artículos (DataContext = BuscadorArticulosViewModel). Se escribe parte del código,
+    de la descripción o de la categoría; ↑/↓ recorren la lista, Enter agrega y Esc la cierra.
+    El teclado lo atiende el code-behind para que Enter no dispare el botón por defecto de la
+    ventana (Emitir factura / Registrar).
+  -->
+
+  <Grid x:Name="Raiz">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="12" />
+      <ColumnDefinition Width="220" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Caja de búsqueda: mismo aspecto que controls:SearchBox, pero más alta (es la entrada principal). -->
+    <Border x:Name="Marco" Grid.Column="0" Height="36"
+            Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="{StaticResource BdFino}"
+            CornerRadius="{StaticResource RadSm}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Column="0" Text="{x:Static controls:Iconos.Buscar}" Margin="10,0,8,0"
+                   FontFamily="{StaticResource IconFont}" FontSize="{StaticResource FsSubtitle}"
+                   Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+
+        <Grid Grid.Column="1">
+          <TextBox x:Name="Caja" Background="Transparent" BorderThickness="0" Padding="0,0,8,0"
+                   VerticalContentAlignment="Center"
+                   FontFamily="{StaticResource AppFont}" FontSize="{StaticResource FsSubtitle}"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   CaretBrush="{DynamicResource TextPrimaryBrush}"
+                   Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}"
+                   PreviewKeyDown="Caja_PreviewKeyDown"
+                   GotKeyboardFocus="Caja_GotKeyboardFocus" />
+          <TextBlock x:Name="Sugerencia" IsHitTestVisible="False" VerticalAlignment="Center"
+                     Text="Buscar por código, descripción o categoría · 1,25*código para una cantidad"
+                     FontFamily="{StaticResource AppFont}" FontSize="{StaticResource FsSubtitle}"
+                     Foreground="{DynamicResource TextMutedBrush}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Text, ElementName=Caja}" Value="">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <ComboBox Grid.Column="2" Style="{StaticResource FormComboBoxStyle}" VerticalAlignment="Center"
+              ItemsSource="{Binding Categorias}"
+              SelectedItem="{Binding CategoriaSeleccionada}"
+              ToolTip="Filtrar por categoría" />
+
+    <!-- Por qué no se agregó lo escrito (p. ej. etiqueta de un producto sin asignar). -->
+    <Border Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource AlertBoxStyle}" Margin="0,8,0,0"
+            Visibility="{Binding HayAviso, Converter={StaticResource BoolToVis}}">
+      <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" FontSize="{StaticResource FsBody}"
+                 Foreground="{DynamicResource DangerTextBrush}" />
+    </Border>
+
+    <!-- Resultados, flotando bajo la caja. -->
+    <Popup x:Name="Lista" Grid.Column="0" Grid.ColumnSpan="3"
+           PlacementTarget="{Binding ElementName=Marco}" Placement="Bottom"
+           AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade"
+           IsOpen="{Binding MostrarResultados, Mode=TwoWay}">
+      <Border Background="{DynamicResource SurfaceBrush}"
+              BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+              CornerRadius="{StaticResource RadSm}" Padding="2" Margin="0,4,8,8"
+              Width="{Binding ActualWidth, ElementName=Raiz}"
+              Effect="{DynamicResource SombraFlotante}">
+        <!-- El margen derecho e inferior deja sitio a la sombra; sin él el Popup la recorta. -->
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <!-- Encabezado: mismas columnas que cada fila. -->
+          <Grid Grid.Row="0" Margin="10,6,10,4" TextElement.Foreground="{DynamicResource TextMutedBrush}"
+                TextElement.FontSize="{StaticResource FsCaption}"
+                Visibility="{Binding HayResultados, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="130" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="140" />
+              <ColumnDefinition Width="100" />
+              <ColumnDefinition Width="80" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Código" />
+            <TextBlock Grid.Column="1" Text="Descripción" />
+            <TextBlock Grid.Column="2" Text="Categoría" />
+            <TextBlock Grid.Column="3" Text="Disponible" HorizontalAlignment="Right" />
+            <TextBlock Grid.Column="4" Text="Precio US$" HorizontalAlignment="Right" />
+          </Grid>
+
+          <ListBox x:Name="Resultados" Grid.Row="1" MaxHeight="320"
+                   BorderThickness="0" Background="Transparent"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                   ItemsSource="{Binding Resultados}"
+                   SelectedItem="{Binding ResultadoSeleccionado}"
+                   Focusable="False"
+                   PreviewMouseLeftButtonUp="Resultados_PreviewMouseLeftButtonUp"
+                   Visibility="{Binding HayResultados, Converter={StaticResource BoolToVis}}">
+            <ListBox.ItemContainerStyle>
+              <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Cursor" Value="Hand" />
+              </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="8,4">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="80" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="0" Text="{Binding Codigo}" FontWeight="{StaticResource FwMedium}"
+                             Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="1" Text="{Binding Descripcion}" Margin="0,0,8,0"
+                             Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"
+                             ToolTip="{Binding Descripcion}" />
+                  <TextBlock Grid.Column="2" Text="{Binding CategoriaTexto}" Margin="0,0,8,0"
+                             Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="3" Text="{Binding DisponibleTexto}" HorizontalAlignment="Right"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Grid.Column="4" Text="{Binding PrecioVentaTexto}" HorizontalAlignment="Right"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <TextBlock Grid.Row="2" Text="{Binding AvisoResultados}" Margin="10,6"
+                     FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}"
+                     TextWrapping="Wrap" />
+        </Grid>
+      </Border>
+    </Popup>
+  </Grid>
+</UserControl>

@@ -49,6 +49,14 @@ public abstract class CrudEditorViewModelBase : ViewModelBase
     public virtual double AnchoEditor => Ancho.Compacto;
 
     /// <summary>
+    /// Para el trabajo de mostrador (emitir factura): la ventana abre maximizada, se puede
+    /// redimensionar y el formulario recibe el alto completo de la ventana (sin el scroll
+    /// vertical de la ventana), así sus filas <c>*</c> la llenan. El resto de los editores
+    /// conservan su ancho fijo y alto al contenido. Ver <c>ServicioDialogo.MostrarEditor</c>.
+    /// </summary>
+    public virtual bool AbreMaximizado => false;
+
+    /// <summary>
     /// Lo que dice el boton de confirmar.
     ///
     /// Por defecto "Guardar", que es lo que hacen los editores de alta y edicion. Pero la misma

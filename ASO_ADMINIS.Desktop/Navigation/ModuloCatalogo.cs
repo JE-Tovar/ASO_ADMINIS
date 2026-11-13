@@ -66,6 +66,8 @@ public static class ModuloCatalogo
             [
                 new Submodulo("Ventas.Registro", "Registro de ventas",
                     "Facturas y notas de crédito y débito emitidas; lo vendido se descuenta del almacén.", Iconos.Ventas),
+                new Submodulo("Ventas.Servicios", "Servicios",
+                    "Servicios que se facturan sin mover el almacén (cambio de aceite, recarga de batería…), con su precio fijo.", Iconos.Ventas),
                 new Submodulo("Ventas.Clientes", "Clientes",
                     "Padrón de clientes con su RIF o cédula, para facturarles.", Iconos.Usuarios),
                 new Submodulo("Ventas.Cierre", "Cierre del día",

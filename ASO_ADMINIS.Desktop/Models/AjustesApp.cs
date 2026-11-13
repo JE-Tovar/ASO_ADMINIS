@@ -40,5 +40,22 @@ public class AjustesApp
     /// </summary>
     public string CajaCodigo { get; set; } = string.Empty;
 
+    // ---- Etiquetas de balanza (EAN-13 con peso), ver Services/EtiquetaBalanza.cs ----
+
+    /// <summary>Si el buscador de artículos reconoce las etiquetas que imprime la balanza.</summary>
+    public bool LeerEtiquetasBalanza { get; set; } = true;
+
+    /// <summary>
+    /// Con qué empieza la etiqueta: el EAN-13 de peso variable usa 20 a 29, según cómo esté
+    /// programada la balanza. 20 + 5 de producto + 5 de peso + verificador = 13.
+    /// </summary>
+    public string EtiquetaPrefijo { get; set; } = "20";
+
+    /// <summary>Cuántos dígitos son el código del producto en la balanza (PLU).</summary>
+    public int EtiquetaDigitosProducto { get; set; } = 5;
+
+    /// <summary>Decimales del peso: 3 = el peso viene en gramos (01250 = 1,250 kg).</summary>
+    public int EtiquetaDecimalesPeso { get; set; } = 3;
+
     public AjustesApp Clonar() => (AjustesApp)MemberwiseClone();
 }

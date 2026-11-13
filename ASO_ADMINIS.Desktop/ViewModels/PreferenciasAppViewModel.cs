@@ -18,6 +18,87 @@ public sealed class PreferenciasAppViewModel : ViewModelBase
     {
         _abrirEnUltimaSeccion = Ajustes.Actual.AbrirEnUltimaSeccion;
         _cajaCodigo = Ajustes.Actual.CajaCodigo;
+        _leerEtiquetas = Ajustes.Actual.LeerEtiquetasBalanza;
+        _etiquetaPrefijo = Ajustes.Actual.EtiquetaPrefijo;
+        _digitosProducto = Ajustes.Actual.EtiquetaDigitosProducto.ToString();
+        _decimalesPeso = Ajustes.Actual.EtiquetaDecimalesPeso.ToString();
+    }
+
+    // ---------------------------------------------------------------- Etiquetas de balanza
+
+    private bool _leerEtiquetas;
+    /// <summary>Si el buscador de artículos reconoce las etiquetas EAN-13 que imprime la balanza.</summary>
+    public bool LeerEtiquetasBalanza
+    {
+        get => _leerEtiquetas;
+        set
+        {
+            if (!SetProperty(ref _leerEtiquetas, value))
+                return;
+            Ajustes.Actual.LeerEtiquetasBalanza = value;
+            GuardarEtiqueta();
+        }
+    }
+
+    private string _etiquetaPrefijo;
+    public string EtiquetaPrefijo
+    {
+        get => _etiquetaPrefijo;
+        set
+        {
+            var limpio = (value ?? string.Empty).Trim();
+            if (!SetProperty(ref _etiquetaPrefijo, limpio))
+                return;
+            Ajustes.Actual.EtiquetaPrefijo = limpio;
+            GuardarEtiqueta();
+        }
+    }
+
+    private string _digitosProducto;
+    public string EtiquetaDigitosProducto
+    {
+        get => _digitosProducto;
+        set
+        {
+            if (!SetProperty(ref _digitosProducto, value ?? string.Empty))
+                return;
+            if (int.TryParse(_digitosProducto, out var n))
+                Ajustes.Actual.EtiquetaDigitosProducto = n;
+            GuardarEtiqueta();
+        }
+    }
+
+    private string _decimalesPeso;
+    public string EtiquetaDecimalesPeso
+    {
+        get => _decimalesPeso;
+        set
+        {
+            if (!SetProperty(ref _decimalesPeso, value ?? string.Empty))
+                return;
+            if (int.TryParse(_decimalesPeso, out var n))
+                Ajustes.Actual.EtiquetaDecimalesPeso = n;
+            GuardarEtiqueta();
+        }
+    }
+
+    /// <summary>"2 · 5 dígitos de producto · 5 de peso (3 decimales) · verificador", o por qué no sirve.</summary>
+    public string FormatoEtiquetaTexto
+    {
+        get
+        {
+            var f = FormatoEtiqueta.De(Ajustes.Actual);
+            return f.EsValido
+                ? $"Lee: {f.Prefijo} + {f.DigitosProducto} dígitos de producto + {f.DigitosPeso} de peso ({f.DecimalesPeso} decimales) + dígito verificador = 13."
+                : "Ese formato no cabe en 13 dígitos: revise el prefijo, los dígitos de producto y los decimales.";
+        }
+    }
+
+    private void GuardarEtiqueta()
+    {
+        OnPropertyChanged(nameof(FormatoEtiquetaTexto));
+        if (Ajustes.Guardar())
+            Aviso.Mostrar();
     }
 
     private string _cajaCodigo;

@@ -76,8 +76,8 @@ Server Express): `INSTALACION.md`.
 
 ## Estructura de módulos
 
-Hoy hay **cuatro módulos de negocio**: **Ventas** (Registro de ventas, Clientes y Cierre del
-día), **Finanzas** (Cuentas por Pagar, Gastos varios, Banco y Proveedores), **Inventario** (Almacén, Entradas y
+Hoy hay **cuatro módulos de negocio**: **Ventas** (Registro de ventas, Servicios, Clientes y
+Cierre del día), **Finanzas** (Cuentas por Pagar, Gastos varios, Banco y Proveedores), **Inventario** (Almacén, Entradas y
 Salidas) y **Reportes** (Ventas, Gastos y Libro de ventas, de solo lectura), más **cuatro módulos fijados** sin
 submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Administración**
 (usuarios con sus permisos, y los datos de la propia organización) y **Configuración**
@@ -97,6 +97,14 @@ submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Ad
 - Framework CRUD reutilizable (`CrudViewModelBase`, `CrudEditorViewModelBase`, `CrudEditorWindow`,
   `IServicioDialogo`), login/sesión y capa de datos (`Models`, `Services`, `BD`,
   `DataSourceFactory`).
+  - **Tamaño de la ventana de edición:** cada editor elige uno de los tres anchos de `Ancho`, y
+    el alto se ajusta al contenido.
+  - **`AbreMaximizado`:** un editor puede pedir ventana maximizada y redimensionable. Hoy solo lo
+    hace **Emitir factura**, con distribución de punto de venta: renglones a todo el alto a la
+    izquierda y un panel de cobro de 400 px a la derecha.
+  - **Qué cambia en ese modo:** `CrudEditorWindow` apaga su scroll vertical para que las filas
+    `*` del formulario llenen la ventana, y cada grilla lleva su propio scroll. Los mínimos
+    (1000×640) los fija `ServicioDialogo`.
 
 ## Cómo se agrega un submódulo (receta)
 
@@ -195,6 +203,39 @@ llega) y **Salidas** (boletos de salida). Las decisiones que no se deducen del c
 - **`Agregar()` de `CrudViewModelBase` es `protected virtual`** (igual que `Editar` y
   `Eliminar`): Entradas y Salidas lo redefinen para que el alta pase por el servicio de dominio y
   no escriba directo contra la fuente de datos.
+- **Los renglones se agregan buscando** (Factura, Entradas y Salidas, 2026-11-12):
+  `Controls/BuscadorArticulos` + `ViewModels/BuscadorArticulosViewModel`, encima de la grilla.
+  Reemplaza el combo de artículo por renglón, que no escalaba con un catálogo grande.
+  - **Cómo busca:** cada palabra escrita tiene que aparecer en código, descripción o categoría,
+    sin acentos ni mayúsculas (`Services/Texto.Normalizar`). Se puede filtrar por categoría.
+  - **Orden:** primero el código exacto, luego los códigos que empiezan igual, luego el resto
+    por código. Muestra hasta 50 resultados.
+  - **Al elegir:** Enter (código exacto, si no el resaltado) o clic llaman a
+    `AgregarArticulo` del editor. Si el artículo ya está en su unidad base, le suma 1, pensado
+    para lector de código de barras.
+  - **Teclado:** el control marca Enter como manejado para que no dispare el botón
+    `IsDefault` de la ventana (Emitir / Registrar). Con la lista abierta, Esc solo la cierra.
+  - **Los renglones** ya no tienen combo de artículo: el código y la descripción son de solo
+    lectura. Para cambiar un artículo se quita el renglón.
+- **Venta a granel** (2026-11-12): es a granel lo que tiene unidad base kilogramo, litro o
+  metro (`Articulo.EsGranel`, calculado, sin columna).
+  - **Cantidades:** solo lo de granel lleva decimales en la factura; pieza, caja, saco y los
+    servicios van en enteros (`VentasService.Validar`). `VentaLineas.Cantidad` es
+    `decimal(18,3)`: antes tenía 2 decimales, y 0,125 kg se guardaba como 0,13, así que no
+    cuadraba con el monto ni con la salida. Más de 3 decimales se rechaza, no se redondea.
+  - **Cómo se agrega:**
+    - Sin cantidad, un artículo a granel abre un renglón vacío (`PideCantidad`) y el cursor
+      salta a la cantidad (`Controls/Enfoque`).
+    - Enter ahí devuelve el foco al buscador y no emite.
+    - "1,25*código" agrega esa cantidad del código exacto.
+  - **Etiquetas de balanza** (`Services/EtiquetaBalanza`): EAN-13 de peso variable con
+    prefijo (por defecto 20), PLU (5 dígitos), peso (5 dígitos, 3 decimales) y verificador.
+    - **Configuración:** el formato es por máquina (`AjustesApp`, Configuración · Aplicación).
+    - **Cómo encuentra el artículo:** el PLU se compara con `Articulo.CodigoBalanza`, sin
+      ceros a la izquierda; ese campo solo existe para granel y no se repite.
+    - **Etiqueta inválida:** si el verificador no cuadra, se busca como texto normal.
+    - **PLU sin asignar:** el buscador avisa y no agrega nada.
+    - **Pendiente:** etiquetas con precio en vez de peso, y balanza conectada por USB o serie.
 - **`Controls/PuenteDeDatos.cs`** es genérico: las columnas de un `DataGrid` no están en el árbol
   visual y no heredan `DataContext`, así que un `Binding` puesto en una columna falla en
   silencio. Lo usan las dos grillas de líneas (Entradas, Salidas) para ocultar la columna de
@@ -220,6 +261,32 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
     mano para no perder datos).
   - **Snapshots:** los de las líneas de Entradas y Salidas se siguen llamando `ArticuloNombre`,
     pero guardan la descripción.
+- **El precio es fijo (2026-11-12).** Quien factura no puede cambiarlo: la columna de precio
+  del editor es de solo lectura y `VentasService.FijarDesdeCatalogo` (en `EmitirFactura` y
+  `RegistrarEnContingencia`, antes de `Preparar`) vuelve a leer de la base el precio de la
+  presentación elegida, la alícuota, el código, la descripción y `EsServicio`, ignorando lo que
+  mande la pantalla. Un artículo con precio 0 no se factura, y un renglón de factura sin
+  `ArticuloId` se rechaza (los conceptos libres son solo de la nota de débito). No hay
+  descuentos ni permiso para saltarse esto: el precio se cambia en el catálogo.
+- **Servicios (Ventas · Servicios, 2026-11-12).** Un servicio (cambio de aceite, recarga de
+  batería) es un `Articulo` con `Tipo = TipoArticulo.Servicio`, no una entidad aparte, para
+  que `VentaLinea.ArticuloId`, las notas de crédito, Reportes · Ventas por categoría y el código
+  único sirvan igual.
+  - **Sin existencia:** `UnidadCorta` es "serv", tiene una sola presentación, y no entra en
+    Almacén (`PasaFiltroExtra`), Entradas/Salidas (`InventarioService.ActivosConExistencia`
+    solo devuelve bienes) ni en los contadores del panel de Inventario. El editor de facturas usa
+    `InventarioService.ParaVender()` (bienes + servicios).
+  - **En la factura:** `VentaLinea.EsServicio` es snapshot. Esos renglones no exigen existencia,
+    no generan `SalidaInventario` y, en una nota de crédito, no reingresan nada.
+  - **Catálogo:** `ServiciosViewModel`/`ServicioEditorViewModel`, permisos `Servicios.*` (mismo
+    nivel que `Articulos.*`). El precio es obligatorio (> 0). Un servicio ya facturado no se
+    borra, se desactiva.
+  - **SENIAT:** mismo documento fiscal que los bienes: descripción no genérica (se sumaron
+    "Servicio", "Mano de obra", "Trabajo"…), cantidad, precio y alícuota (General salvo los
+    exentos del art. 19 LIVA). Bienes y servicios pueden ir en la misma factura.
+  - **Pendiente:** la retención de ISLR que un cliente agente de retención hace sobre
+    servicios (Decreto 1808). No toca la factura ni el libro de ventas. Se haría como las
+    retenciones de IVA recibidas.
 - **Precio, categoría y alícuota.** El artículo lleva además `PrecioVenta` (US$, **sin IVA**),
   `Categoria` (texto libre) y `Alicuota` (`TipoAlicuota`: Exento/General/Reducida/Adicional,
   ordinal).
@@ -358,8 +425,10 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
   renglón + pago antes de borrar las columnas viejas; su `Down` lanza, no es reversible) y
   `AgregarCierreZRetenciones`
   (esta última rellena los documentos previos como cargados en unidad base, factor 1).
-  Después vinieron `ArticuloDescripcion` y `AgregarGastosVarios` (tabla nueva, sin datos que
-  migrar). Esta última deshace el enfoque zapatería **sin perder datos**:
+  Después vinieron `ArticuloDescripcion`, `AgregarGastosVarios` (tabla nueva, sin datos que
+  migrar), `AgregarServicios` (`Articulos.Tipo` = 0/Bien y `VentaLineas.EsServicio` = false
+  para lo existente) y `VentaGranel` (`VentaLineas.Cantidad` a `decimal(18,3)`, agrandar sin
+  pérdida; `Articulos.CodigoBalanza`). `QuitarCatalogoMarcasModelos` deshace el enfoque zapatería **sin perder datos**:
   su `Up` está reordenado a mano para pasar el precio de cada modelo a su artículo y repuntar
   `Ventas.ModeloId` → `ArticuloId` antes de borrar `Marcas`/`Modelos`. Si se edita una
   migración generada, revisar el script con `dotnet ef migrations script`.
@@ -398,7 +467,7 @@ Cuatro roles genéricos (`Models/Rol.cs`), cada uno con un conjunto base en
 
 | Rol | Alcance |
 |---|---|
-| **Operador** | El día a día: emite facturas y mantiene clientes; crea/edita proveedores y facturas de compra; mantiene el catálogo de artículos y registra entradas y salidas de almacén; ve el cierre del día (reporte X). No mueve dinero, no anula ni borra nada |
+| **Operador** | El día a día: emite facturas y mantiene clientes y servicios; crea/edita proveedores y facturas de compra; mantiene el catálogo de artículos y registra entradas y salidas de almacén; ve el cierre del día (reporte X). No mueve dinero, no anula ni borra nada |
 | **Supervisor** | Todo lo de Operador, más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; registrar pagos (dispara el asiento en Banco) y gastos varios, administrar cuentas bancarias, anular documentos de almacén, eliminar, y resolver peticiones de su dominio |
 | **AdministradorOrganizacion** | Todo dentro de la organización, salvo crear usuarios Desarrollador |
 | **Desarrollador** | Todos los permisos, y es el único que reparte su propio rol |

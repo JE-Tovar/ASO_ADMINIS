@@ -156,36 +156,68 @@ internal static class Escenario
         DireccionFiscal = "Av. Principal, Caracas"
     };
 
-    public static VentasService Servicio(VentasEnMemoria ventas)
+    /// <summary>Id del servicio que siembra <see cref="Montar"/>: exento, 10 US$.</summary>
+    public const int ServicioMezclaId = 1;
+
+    /// <summary>Id del aceite que siembra <see cref="Montar"/>: bien en la general, 5 US$ el litro, 20 L en existencia.</summary>
+    public const int AceiteId = 2;
+
+    public sealed record Montaje(VentasService Ventas, ArticulosEnMemoria Articulos,
+                                 SalidasEnMemoria Salidas, EntradasEnMemoria Entradas);
+
+    public static VentasService Servicio(VentasEnMemoria ventas) => Montar(ventas).Ventas;
+
+    /// <summary>VentasService sobre un catálogo con un servicio y un bien con existencia.</summary>
+    public static Montaje Montar(VentasEnMemoria ventas)
     {
         var articulos = new ArticulosEnMemoria();
         var salidas = new SalidasEnMemoria();
         var entradas = new EntradasEnMemoria();
+
+        articulos.Add(new Articulo
+        {
+            Codigo = "SRV-MEZ", Descripcion = "Mezcla de pintura a la medida", Tipo = TipoArticulo.Servicio,
+            PrecioVenta = 10m, Alicuota = TipoAlicuota.Exento, Activo = true
+        });
+        articulos.Add(new Articulo
+        {
+            Codigo = "ACE-15W40", Descripcion = "Aceite de motor 15W40 mineral", Unidad = UnidadMedida.Litro,
+            PrecioVenta = 5m, Alicuota = TipoAlicuota.General, Activo = true
+        });
+        entradas.Add(new EntradaInventario
+        {
+            Numero = "ENT-000001", Tipo = TipoEntrada.Ajuste, Estado = EstadoEntrada.Registrada,
+            Lineas = [new EntradaInventarioLinea { ArticuloId = AceiteId, Cantidad = 20m, CantidadPresentacion = 20m, Factor = 1m }]
+        });
+
         var org = Organizacion();
-        return new VentasService(ventas, articulos, salidas, entradas,
-                                 new InventarioService(articulos, entradas, salidas),
-                                 new SesionTotal(), new EmisorDePrueba(),
-                                 organizacion: () => org, caja: () => "CAJA-01");
+        var servicio = new VentasService(ventas, articulos, salidas, entradas,
+                                         new InventarioService(articulos, entradas, salidas),
+                                         new SesionTotal(), new EmisorDePrueba(),
+                                         organizacion: () => org, caja: () => "CAJA-01");
+        return new Montaje(servicio, articulos, salidas, entradas);
     }
 
     /// <summary>
-    /// Factura de un servicio sin artículo de almacén (no exige existencia), exenta, 10 US$ a
-    /// tasa 40, pagada en bolívares.
+    /// Factura del servicio de mezcla (no exige existencia), exenta, 10 US$ a tasa 40, pagada en
+    /// bolívares.
     /// </summary>
     public static Venta Borrador() => new()
     {
         TasaCambioUsada = 40m,
-        Lineas =
-        [
-            new VentaLinea
-            {
-                Descripcion = "Mezcla de pintura a la medida",
-                Cantidad = 1,
-                Factor = 1,
-                PrecioUnitarioUsd = 10m,
-                Alicuota = TipoAlicuota.Exento
-            }
-        ],
+        Lineas = [Renglon(ServicioMezclaId, "serv", 1)],
         Pagos = [new VentaPago { Metodo = MetodoPago.EfectivoBs, MontoBs = 400m }]
+    };
+
+    /// <summary>Renglón como lo arma el editor: con precio y alícuota del borrador (que el servicio reemplaza).</summary>
+    public static VentaLinea Renglon(int articuloId, string presentacion, decimal cantidad, decimal precioUsd = 10m) => new()
+    {
+        ArticuloId = articuloId,
+        Descripcion = "lo que diga la pantalla",
+        PresentacionNombre = presentacion,
+        Factor = 1,
+        Cantidad = cantidad,
+        PrecioUnitarioUsd = precioUsd,
+        Alicuota = TipoAlicuota.Exento
     };
 }

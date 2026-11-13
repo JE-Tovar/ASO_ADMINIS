@@ -114,7 +114,8 @@ public sealed class EntradasViewModel : PantallaCrudViewModel<EntradaInventario,
         new EntradaEditorViewModel(item,
                                    [.. _proveedores.GetAll().Where(p => p.Activo).OrderBy(p => p.Nombre)],
                                    _inventario.ActivosConExistencia(),
-                                   _servicio);
+                                   _servicio,
+                                   FormatoEtiqueta.Vigente());
 
     /// <summary>
     /// El alta pasa por el servicio de dominio y no por la fuente de datos: registrar la entrada
@@ -180,7 +181,8 @@ public sealed class EntradaEditorViewModel : CrudEditorViewModelBase<EntradaInve
     public EntradaEditorViewModel(EntradaInventario original,
                                   IReadOnlyList<Proveedor> proveedores,
                                   IReadOnlyList<Articulo> articulos,
-                                  EntradasInventarioService servicio)
+                                  EntradasInventarioService servicio,
+                                  FormatoEtiqueta? etiquetas = null)
     {
         _original = original;
         _servicio = servicio;
@@ -197,15 +199,13 @@ public sealed class EntradaEditorViewModel : CrudEditorViewModelBase<EntradaInve
 
         Lineas.CollectionChanged += AlCambiarLineas;
 
-        AgregarLineaCommand = new RelayCommand(() => Lineas.Add(NuevaLinea()));
+        Buscador = new BuscadorArticulosViewModel(articulos, AgregarArticulo, etiquetas);
 
         QuitarLineaCommand = new RelayCommand<LineaEntradaEditorViewModel>(linea =>
         {
             if (linea is not null)
                 Lineas.Remove(linea);
         });
-
-        Lineas.Add(NuevaLinea());
     }
 
     public override string Titulo => "Registrar entrada";
@@ -220,7 +220,9 @@ public sealed class EntradaEditorViewModel : CrudEditorViewModelBase<EntradaInve
 
     public ObservableCollection<LineaEntradaEditorViewModel> Lineas { get; } = [];
 
-    public ICommand AgregarLineaCommand { get; }
+    /// <summary>Barra de búsqueda de los renglones (código, descripción o categoría).</summary>
+    public BuscadorArticulosViewModel Buscador { get; }
+
     public ICommand QuitarLineaCommand { get; }
 
     // --- Modo ---
@@ -386,6 +388,46 @@ public sealed class EntradaEditorViewModel : CrudEditorViewModelBase<EntradaInve
 
     // --- Líneas ---
 
+    /// <summary>
+    /// Lo que hace el buscador al elegir.
+    /// <list type="bullet">
+    /// <item>Con cantidad (escrita como "1,25*código" o leída de la etiqueta de la balanza): se
+    /// suma al renglón del artículo en su unidad base, o se abre uno con esa cantidad.</item>
+    /// <item>Sin cantidad y a granel: siempre un renglón nuevo con la cantidad vacía, y el cursor
+    /// salta a ella (<see cref="Controls.Enfoque"/>): lo que se pesa no viene de a 1.</item>
+    /// <item>Sin cantidad y por unidad: suma 1 (cómodo con lector de código de barras).</item>
+    /// </list>
+    /// </summary>
+    public void AgregarArticulo(Articulo articulo, decimal? cantidad = null)
+    {
+        if (cantidad is null && articulo.EsGranel)
+        {
+            var pesar = NuevaLinea();
+            pesar.ArticuloSeleccionado = articulo;
+            pesar.Cantidad = string.Empty;
+            pesar.PideCantidad = true;
+            Lineas.Add(pesar);
+            return;
+        }
+
+        var suma = cantidad ?? 1m;
+        var existente = Lineas.FirstOrDefault(l => l.ArticuloSeleccionado?.Id == articulo.Id
+                                                   && l.PresentacionSeleccionada == l.Presentaciones.FirstOrDefault());
+        if (existente is not null)
+        {
+            var actual = decimal.TryParse(existente.Cantidad, out var c) ? c : 0m;
+            existente.Cantidad = (actual + suma).ToString("0.###");
+            return;
+        }
+
+        var linea = NuevaLinea();
+        linea.ArticuloSeleccionado = articulo;
+        linea.Cantidad = suma.ToString("0.###");
+        Lineas.Add(linea);
+    }
+
+    public bool SinLineas => Lineas.Count == 0;
+
     private LineaEntradaEditorViewModel NuevaLinea()
     {
         var linea = new LineaEntradaEditorViewModel(Articulos);
@@ -405,6 +447,7 @@ public sealed class EntradaEditorViewModel : CrudEditorViewModelBase<EntradaInve
     {
         OnPropertyChanged(nameof(Total));
         OnPropertyChanged(nameof(TotalTexto));
+        OnPropertyChanged(nameof(SinLineas));
     }
 }
 
@@ -462,6 +505,17 @@ public sealed class LineaEntradaEditorViewModel : ViewModelBase
     {
         get => _cantidad;
         set { if (SetProperty(ref _cantidad, value)) Recalcular(); }
+    }
+
+    private bool _pideCantidad;
+    /// <summary>
+    /// Renglón a granel recién agregado sin cantidad: el cursor salta a su celda de cantidad
+    /// (Controls/Enfoque.AlCargar). Se apaga al escribirla.
+    /// </summary>
+    public bool PideCantidad
+    {
+        get => _pideCantidad;
+        set => SetProperty(ref _pideCantidad, value);
     }
 
     private string _precioUnitario = string.Empty;

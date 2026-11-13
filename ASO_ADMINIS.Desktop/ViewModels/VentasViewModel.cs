@@ -139,8 +139,8 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     /// cachean: mismo criterio que <c>SalidasViewModel.CrearEditor</c>.
     /// </summary>
     protected override CrudEditorViewModelBase<Venta> CrearEditor(Venta item) =>
-        new VentaEditorViewModel(item, _inventario.ActivosConExistencia(), [.. _clientes.GetAll()],
-                                 _servicio, _tasaCambio.Actual()?.Valor);
+        new VentaEditorViewModel(item, _inventario.ParaVender(), [.. _clientes.GetAll()],
+                                 _servicio, _tasaCambio.Actual()?.Valor, FormatoEtiqueta.Vigente());
 
     /// <summary>Emitir factura: por el servicio, que habla con el emisor y descuenta el almacén.</summary>
     protected override void Agregar()

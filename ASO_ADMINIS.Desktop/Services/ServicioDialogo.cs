@@ -33,8 +33,23 @@ public class ServicioDialogo : IServicioDialogo
         // que MaxHeight es lo único que hace falta para que el ScrollViewer de la ventana entre a
         // trabajar en vez de salirse de la pantalla.
         var areaTrabajo = SystemParameters.WorkArea;
-        ventana.Width = Math.Min(ventana.Width, areaTrabajo.Width * 0.9);
-        ventana.MaxHeight = areaTrabajo.Height * 0.9;
+        if (editor.AbreMaximizado)
+        {
+            // Mostrador: maximizada y redimensionable. Width/Height son el tamaño al restaurar;
+            // los mínimos evitan que, restaurada, el panel de cobro deje de caber.
+            ventana.SizeToContent = SizeToContent.Manual;
+            ventana.ResizeMode = ResizeMode.CanResize;
+            ventana.MinWidth = Math.Min(1000, areaTrabajo.Width);
+            ventana.MinHeight = Math.Min(640, areaTrabajo.Height);
+            ventana.Width = Math.Max(ventana.MinWidth, areaTrabajo.Width * 0.9);
+            ventana.Height = Math.Max(ventana.MinHeight, areaTrabajo.Height * 0.9);
+            ventana.WindowState = WindowState.Maximized;
+        }
+        else
+        {
+            ventana.Width = Math.Min(ventana.Width, areaTrabajo.Width * 0.9);
+            ventana.MaxHeight = areaTrabajo.Height * 0.9;
+        }
 
         return ventana.ShowDialog() == true;
     }

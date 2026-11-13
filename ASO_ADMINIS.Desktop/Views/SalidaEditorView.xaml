@@ -87,7 +87,19 @@
     <!-- Artículos que salen -->
     <TextBlock Text="Artículos que salen" Style="{StaticResource CardTitleStyle}" Margin="0,20,0,8" />
 
+    <!-- Se agrega buscando: Enter o clic agrega; si ya está, le suma 1. -->
+    <controls:BuscadorArticulos Margin="0,0,0,8" DataContext="{Binding Buscador}" />
+
     <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+      <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <TextBlock Grid.Row="1" Margin="16,14" HorizontalAlignment="Center" TextAlignment="Center"
+                 Text="Busca un artículo arriba para agregarlo al boleto."
+                 Foreground="{DynamicResource TextMutedBrush}"
+                 Visibility="{Binding SinLineas, Converter={StaticResource BoolToVis}}" />
       <DataGrid Style="{StaticResource DataGridStyle}"
                 ItemsSource="{Binding Lineas}"
                 IsReadOnly="True"
@@ -95,16 +107,15 @@
                 HeadersVisibility="Column"
                 CanUserSortColumns="False">
         <DataGrid.Columns>
-          <DataGridTemplateColumn Header="Artículo" Width="40*" MinWidth="220">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <ComboBox Style="{StaticResource LineaComboBoxStyle}"
-                          ItemsSource="{Binding Articulos}"
-                          DisplayMemberPath="Etiqueta"
-                          SelectedItem="{Binding ArticuloSeleccionado, UpdateSourceTrigger=PropertyChanged}" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
+          <controls:ColumnaTexto Header="Código" Binding="{Binding ArticuloSeleccionado.Codigo}" Width="12*" MinWidth="90">
+            <controls:ColumnaTexto.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="{StaticResource FwMedium}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+              </Style>
+            </controls:ColumnaTexto.ElementStyle>
+          </controls:ColumnaTexto>
+          <controls:ColumnaTexto Header="Descripción" Binding="{Binding ArticuloSeleccionado.Descripcion}" Width="28*" MinWidth="150" />
 
           <controls:ColumnaTexto Header="Unidad" Binding="{Binding UnidadTexto}" Width="10*" MinWidth="66" />
           <controls:ColumnaNumero Header="Disponible" Binding="{Binding DisponibleTexto}" Width="14*" MinWidth="96" />
@@ -113,6 +124,7 @@
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
                 <TextBox TextAlignment="Right"
+                         controls:Enfoque.AlCargar="{Binding PideCantidad}"
                          Text="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}">
                   <TextBox.Style>
                     <!-- Aviso inmediato de que se pide más de lo que hay. Quien decide de verdad
@@ -145,6 +157,7 @@
           </DataGridTemplateColumn>
         </DataGrid.Columns>
       </DataGrid>
+      </Grid>
     </Border>
 
     <Grid Margin="0,12,0,0">
@@ -153,10 +166,6 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-
-      <Button Grid.Column="0" Content="Agregar línea" Margin="0"
-              Style="{StaticResource SecondaryButtonStyle}"
-              Command="{Binding AgregarLineaCommand}" />
 
       <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
         <TextBlock Text="Unidades" VerticalAlignment="Center" Margin="0,0,12,0"

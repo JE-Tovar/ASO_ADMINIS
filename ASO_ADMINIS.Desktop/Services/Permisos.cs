@@ -87,6 +87,17 @@ public static class Permisos
     }
 
 
+    /// <summary>
+    /// Catálogo de servicios (Ventas · Servicios). Mismo nivel que <see cref="Articulos"/>:
+    /// fijar el precio de lo que se factura.
+    /// </summary>
+    public static class Servicios
+    {
+        public const string Crear = "Servicios.Crear";
+        public const string Editar = "Servicios.Editar";
+        public const string Eliminar = "Servicios.Eliminar";
+    }
+
     /// <summary>Padrón de clientes (Ventas · Clientes).</summary>
     public static class Clientes
     {

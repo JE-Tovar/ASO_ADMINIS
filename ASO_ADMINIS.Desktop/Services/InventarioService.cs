@@ -25,14 +25,17 @@ public sealed class InventarioService
     private readonly IArticuloDataSource _articulos;
     private readonly IEntradaInventarioDataSource _entradas;
     private readonly ISalidaInventarioDataSource _salidas;
+    private readonly Func<int> _digitosPlu;
 
     public InventarioService(IArticuloDataSource articulos,
                              IEntradaInventarioDataSource entradas,
-                             ISalidaInventarioDataSource salidas)
+                             ISalidaInventarioDataSource salidas,
+                             Func<int>? digitosPlu = null)
     {
         _articulos = articulos;
         _entradas = entradas;
         _salidas = salidas;
+        _digitosPlu = digitosPlu ?? (() => Ajustes.Actual.EtiquetaDigitosProducto);
     }
 
     // --- Código ---
@@ -70,17 +73,14 @@ public sealed class InventarioService
     private static readonly string[] Genericas =
     [
         "articulo", "articulos", "mercancia", "mercancias", "varios", "varias", "producto",
-        "productos", "item", "items", "otros", "otro", "general", "miscelaneo", "miscelaneos"
+        "productos", "item", "items", "otros", "otro", "general", "miscelaneo", "miscelaneos",
+        "servicio", "servicios", "mano de obra", "servicio tecnico", "trabajo", "trabajos"
     ];
 
     /// <summary>True si el nombre es solo una palabra genérica ("Artículo", "Varios"…).</summary>
     public static bool DescripcionGenerica(string nombre)
     {
-        var limpio = new string(nombre.Trim().ToLowerInvariant()
-            .Normalize(System.Text.NormalizationForm.FormD)
-            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
-                        != System.Globalization.UnicodeCategory.NonSpacingMark)
-            .ToArray()).Trim('.', ' ');
+        var limpio = Texto.Normalizar(nombre).Trim('.', ' ');
         return Genericas.Contains(limpio);
     }
 
@@ -119,7 +119,17 @@ public sealed class InventarioService
             return false;
         }
 
+        // Un servicio existe para facturarse, y su precio no se cambia en la factura.
+        if (articulo.EsServicio && articulo.PrecioVenta <= 0)
+        {
+            error = "Indique el precio del servicio (US$, sin IVA).";
+            return false;
+        }
+
         if (!ValidarPresentaciones(articulo, out error))
+            return false;
+
+        if (!ValidarCodigoBalanza(articulo, out error))
             return false;
 
         var repetido = _articulos.GetAll()
@@ -182,6 +192,43 @@ public sealed class InventarioService
     }
 
     /// <summary>
+    /// El código de la balanza (PLU) es opcional y solo de granel: dígitos, que quepan en la
+    /// etiqueta, y que no lo tenga otro artículo ("123" y "00123" son el mismo).
+    /// </summary>
+    private bool ValidarCodigoBalanza(Articulo articulo, out string? error)
+    {
+        error = null;
+        var plu = articulo.CodigoBalanza.Trim();
+        if (plu.Length == 0)
+            return true;
+
+        if (!articulo.EsGranel)
+        {
+            error = "El código de balanza es solo para artículos a granel (kilogramo, litro o metro).";
+            return false;
+        }
+
+        var digitos = _digitosPlu();
+        if (!plu.All(char.IsAsciiDigit) || plu.Length > digitos)
+        {
+            error = $"El código de balanza son solo números, de hasta {digitos} dígitos (el número del producto en la balanza).";
+            return false;
+        }
+
+        var normal = EtiquetaBalanza.NormalizarPlu(plu);
+        var otro = _articulos.GetAll()
+            .FirstOrDefault(a => a.Id != articulo.Id && a.CodigoBalanza.Trim().Length > 0
+                                 && EtiquetaBalanza.NormalizarPlu(a.CodigoBalanza) == normal);
+        if (otro is not null)
+        {
+            error = $"El código de balanza {plu} ya lo tiene {otro.Codigo} · {otro.Descripcion}.";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Un artículo que ya se movió no se borra: se desactiva. Borrarlo dejaría las líneas de los
     /// documentos apuntando a un artículo que no existe y el kardex sin poder cuadrarse.
     /// </summary>
@@ -229,28 +276,39 @@ public sealed class InventarioService
             articulo.Existencia = saldos.GetValueOrDefault(articulo.Id);
     }
 
-    /// <summary>Artículos activos con existencia, para elegir en una entrada o una salida.</summary>
+    /// <summary>
+    /// Artículos activos con existencia, para elegir en una entrada o una salida. Solo bienes:
+    /// un servicio no entra ni sale del almacén.
+    /// </summary>
     public IReadOnlyList<Articulo> ActivosConExistencia()
+    {
+        var articulos = _articulos.GetActivos().Where(a => !a.EsServicio).ToList();
+        RellenarExistencias(articulos);
+        return articulos;
+    }
+
+    /// <summary>Lo que se puede facturar: bienes activos (con su existencia) y servicios activos.</summary>
+    public IReadOnlyList<Articulo> ParaVender()
     {
         var articulos = _articulos.GetActivos().ToList();
         RellenarExistencias(articulos);
         return articulos;
     }
 
-    // --- Resúmenes para el panel del módulo ---
+    // --- Resúmenes para el panel del módulo (solo bienes) ---
 
-    public int TotalArticulosActivos() => _articulos.GetAll().Count(a => a.Activo);
+    public int TotalArticulosActivos() => _articulos.GetAll().Count(a => a.Activo && !a.EsServicio);
 
     public int ArticulosBajoMinimo()
     {
-        var articulos = _articulos.GetAll().ToList();
+        var articulos = _articulos.GetAll().Where(a => !a.EsServicio).ToList();
         RellenarExistencias(articulos);
         return articulos.Count(a => a.BajoMinimo);
     }
 
     public int ArticulosSinExistencia()
     {
-        var articulos = _articulos.GetAll().ToList();
+        var articulos = _articulos.GetAll().Where(a => !a.EsServicio).ToList();
         RellenarExistencias(articulos);
         return articulos.Count(a => a.SinExistencia);
     }

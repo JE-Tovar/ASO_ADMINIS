@@ -32,9 +32,32 @@
          ServicioDialogo según el work area de la pantalla) la recorta, esta fila es la que cede
          el espacio sobrante y dispara el scroll — con "Auto" el ScrollViewer nunca se activaba y
          la ventana simplemente se salía de la pantalla. -->
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <!-- Un editor maximizado (AbreMaximizado) recibe el alto de la ventana en vez de un alto
+           infinito: así sus filas "*" se estiran y cada grilla lleva su propio scroll. -->
+      <ScrollViewer.Style>
+        <Style TargetType="ScrollViewer">
+          <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding AbreMaximizado}" Value="True">
+              <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </ScrollViewer.Style>
       <!-- El UserControl del formulario concreto se resuelve por DataTemplate implícito -->
-      <ContentControl Content="{Binding}" VerticalAlignment="Top" />
+      <ContentControl Content="{Binding}">
+        <ContentControl.Style>
+          <Style TargetType="ContentControl">
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding AbreMaximizado}" Value="True">
+                <Setter Property="VerticalAlignment" Value="Stretch" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </ContentControl.Style>
+      </ContentControl>
     </ScrollViewer>
 
     <!-- El error de validacion, en su propia caja. Antes era un TextBlock rojo suelto que

@@ -157,6 +157,7 @@ public partial class MainWindow : Window
         new Dictionary<string, Func<Modulo, Submodulo, IPantalla>>
         {
             ["Ventas.Registro"] = (m, s) => new VentasViewModel(m, s),
+            ["Ventas.Servicios"] = (m, s) => new ServiciosViewModel(m, s),
             ["Ventas.Clientes"] = (m, s) => new ClientesViewModel(m, s),
             ["Ventas.Cierre"] = (m, s) => new CierreViewModel(m, s),
 

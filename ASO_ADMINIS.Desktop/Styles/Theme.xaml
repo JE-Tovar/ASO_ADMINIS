@@ -349,6 +349,28 @@
     </Style.Triggers>
   </Style>
 
+  <!-- Estado del cobro en el editor de factura (VentaEditorViewModel): falta, vuelto o completo. -->
+  <Style x:Key="ChipEstadoCobroStyle" TargetType="Border" BasedOn="{StaticResource ChipBaseStyle}">
+    <Setter Property="Padding" Value="10,4" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding FaltaCobrar}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource WarningTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding HayVuelto}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource InfoTextBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding CobroCompleto}" Value="True">
+        <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBordeBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SuccessTextBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
   <!-- Nombre anterior de SectionCardStyle. Sigue vivo porque lo citan 64 sitios, para cuatro
        cosas distintas; las vistas lo van cambiando por el nombre que corresponda conforme se
        rehacen, y entonces desaparece. -->

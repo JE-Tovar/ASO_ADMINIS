@@ -194,7 +194,9 @@ public class AsoAdminisDbContext : DbContext
                 linea.Property(x => x.Descripcion).IsRequired().HasMaxLength(200);
                 linea.Property(x => x.PresentacionNombre).HasMaxLength(40);
                 linea.Property(x => x.Factor).HasColumnType("decimal(18,4)");
-                linea.Property(x => x.Cantidad).HasColumnType("decimal(18,2)");
+                // 3 decimales: a granel se vende por gramos (0,125 kg). Con 2 se guardaba 0,13 y
+                // la factura no cuadraba con su monto ni con la salida del almacén.
+                linea.Property(x => x.Cantidad).HasColumnType("decimal(18,3)");
                 linea.Property(x => x.PrecioUnitarioUsd).HasColumnType("decimal(18,2)");
                 linea.Property(x => x.PrecioUnitario).HasColumnType("decimal(18,2)");
                 linea.Property(x => x.PorcentajeIva).HasColumnType("decimal(5,2)");
@@ -447,6 +449,11 @@ public class AsoAdminisDbContext : DbContext
             // el exento se marca a mano.
             entity.Ignore(a => a.AlicuotaTexto);
 
+            // Bien o servicio (ordinal). Lo que ya existía queda como Bien (0) por la migración.
+            entity.Ignore(a => a.EsServicio);
+            entity.Ignore(a => a.EsGranel);
+            entity.Property(a => a.CodigoBalanza).HasMaxLength(13);
+
             // Respalda el código aleatorio: si dos altas simultáneas generan el mismo candidato,
             // la segunda choca contra el índice en vez de duplicar el artículo.
             entity.HasIndex(a => new { a.OrganizacionId, a.Codigo }).IsUnique();
@@ -465,6 +472,8 @@ public class AsoAdminisDbContext : DbContext
             entity.Ignore(a => a.UnidadTexto);
             entity.Ignore(a => a.UnidadCorta);
             entity.Ignore(a => a.ExistenciaTexto);
+            entity.Ignore(a => a.DisponibleTexto);
+            entity.Ignore(a => a.CategoriaTexto);
             entity.Ignore(a => a.MinimoTexto);
             entity.Ignore(a => a.Etiqueta);
             entity.Ignore(a => a.PresentacionesTexto);

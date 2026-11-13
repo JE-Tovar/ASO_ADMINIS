@@ -15,8 +15,9 @@ namespace ASO_ADMINIS.Desktop.ViewModels;
 /// repite al emitir. Así lo que se ve es lo que se emite. La validación de fondo (existencia,
 /// cliente, cuadre de pagos) también es del servicio.
 ///
-/// Los montos van en Bs a la tasa BCV vigente al abrir el editor; el precio de cada renglón se
-/// escribe en US$ (es como está en el almacén) y los pagos en divisa se escriben en US$.
+/// Los montos van en Bs a la tasa BCV vigente al abrir el editor. El precio de cada renglón NO
+/// se escribe: es el del artículo o servicio en su catálogo (en US$), y el servicio lo vuelve a
+/// fijar desde la base al emitir. Los pagos en divisa se escriben en US$.
 /// </summary>
 public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
 {
@@ -28,7 +29,8 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
                                 IReadOnlyList<Articulo> articulos,
                                 IReadOnlyList<Cliente> clientes,
                                 VentasService servicio,
-                                decimal? tasaCambio)
+                                decimal? tasaCambio,
+                                FormatoEtiqueta? etiquetas = null)
     {
         _original = original;
         _servicio = servicio;
@@ -41,13 +43,12 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         Lineas.CollectionChanged += AlCambiarColeccion;
         Pagos.CollectionChanged += AlCambiarColeccion;
 
-        AgregarLineaCommand = new RelayCommand(() => Lineas.Add(NuevaLinea()));
+        Buscador = new BuscadorArticulosViewModel(articulos, AgregarArticulo, etiquetas);
         QuitarLineaCommand = new RelayCommand<LineaVentaEditorViewModel>(l => { if (l is not null) Lineas.Remove(l); });
         AgregarPagoCommand = new RelayCommand(() => Pagos.Add(NuevoPago()));
         QuitarPagoCommand = new RelayCommand<PagoVentaEditorViewModel>(p => { if (p is not null) Pagos.Remove(p); });
         CobrarRestoCommand = new RelayCommand(CobrarResto);
 
-        Lineas.Add(NuevaLinea());
         Pagos.Add(NuevoPago());
         Recalcular();
     }
@@ -56,10 +57,13 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     public override string TextoAccion => "Emitir factura";
     public override double AnchoEditor => Ancho.Amplio;
 
+    /// <summary>Trabajo de mostrador: abre maximizada, con los renglones a todo el alto.</summary>
+    public override bool AbreMaximizado => true;
+
     public IReadOnlyList<Articulo> Articulos { get; }
 
     public string TasaTexto => _tasa > 0
-        ? $"Tasa BCV: Bs. {_tasa:N4} por US$ · los precios se escriben en US$ sin IVA."
+        ? $"Tasa BCV: Bs. {_tasa:N4} por US$ · los precios son los del catálogo, en US$ sin IVA."
         : "Sin tasa de cambio registrada: no se puede facturar hasta actualizarla.";
 
     public string EmisorTexto => _servicio.Emisor.EsFiscal
@@ -121,11 +125,53 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     public ObservableCollection<LineaVentaEditorViewModel> Lineas { get; } = [];
     public ObservableCollection<PagoVentaEditorViewModel> Pagos { get; } = [];
 
-    public ICommand AgregarLineaCommand { get; }
+    /// <summary>Barra de búsqueda de los renglones (código, descripción o categoría).</summary>
+    public BuscadorArticulosViewModel Buscador { get; }
+
     public ICommand QuitarLineaCommand { get; }
     public ICommand AgregarPagoCommand { get; }
     public ICommand QuitarPagoCommand { get; }
     public ICommand CobrarRestoCommand { get; }
+
+    /// <summary>
+    /// Lo que hace el buscador al elegir.
+    /// <list type="bullet">
+    /// <item>Con cantidad (escrita como "1,25*código" o leída de la etiqueta de la balanza): se
+    /// suma al renglón del artículo en su unidad base, o se abre uno con esa cantidad.</item>
+    /// <item>Sin cantidad y a granel: siempre un renglón nuevo con la cantidad vacía, y el cursor
+    /// salta a ella (<see cref="Controls.Enfoque"/>): lo que se pesa no viene de a 1.</item>
+    /// <item>Sin cantidad y por unidad: suma 1 (cómodo con lector de código de barras).</item>
+    /// </list>
+    /// </summary>
+    public void AgregarArticulo(Articulo articulo, decimal? cantidad = null)
+    {
+        if (cantidad is null && articulo.EsGranel)
+        {
+            var pesar = NuevaLinea();
+            pesar.ArticuloSeleccionado = articulo;
+            pesar.Cantidad = string.Empty;
+            pesar.PideCantidad = true;
+            Lineas.Add(pesar);
+            return;
+        }
+
+        var suma = cantidad ?? 1m;
+        var existente = Lineas.FirstOrDefault(l => l.ArticuloSeleccionado?.Id == articulo.Id
+                                                   && l.PresentacionSeleccionada == l.Presentaciones.FirstOrDefault());
+        if (existente is not null)
+        {
+            var actual = decimal.TryParse(existente.Cantidad, out var c) ? c : 0m;
+            existente.Cantidad = (actual + suma).ToString("0.###");
+            return;
+        }
+
+        var linea = NuevaLinea();
+        linea.ArticuloSeleccionado = articulo;
+        linea.Cantidad = suma.ToString("0.###");
+        Lineas.Add(linea);
+    }
+
+    public bool SinLineas => Lineas.Count == 0;
 
     private LineaVentaEditorViewModel NuevaLinea()
     {
@@ -195,7 +241,8 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
                      nameof(ExentoTexto), nameof(BaseGeneralTexto), nameof(IvaGeneralTexto), nameof(BaseReducidaTexto),
                      nameof(IvaReducidaTexto), nameof(BaseAdicionalTexto), nameof(IvaAdicionalTexto), nameof(IgtfTexto),
                      nameof(TotalTexto), nameof(TotalUsdTexto), nameof(PagadoTexto), nameof(PendienteTexto),
-                     nameof(HayReducida), nameof(HayAdicional), nameof(HayIgtf), nameof(HayExento)
+                     nameof(HayReducida), nameof(HayAdicional), nameof(HayIgtf), nameof(HayExento),
+                     nameof(FaltaCobrar), nameof(HayVuelto), nameof(CobroCompleto), nameof(SinLineas)
                  })
             OnPropertyChanged(nombre);
     }
@@ -216,6 +263,11 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     public string TotalTexto => $"Bs. {_calculado.Total:N2}";
     public string TotalUsdTexto => _tasa > 0 ? $"≈ US$ {_calculado.Total / _tasa:N2}" : string.Empty;
     public string PagadoTexto => $"Bs. {_calculado.Pagos.Sum(p => p.MontoBs):N2}";
+
+    /// <summary>Para el color del chip de cobro: falta (ámbar), vuelto (azul) o completo (verde).</summary>
+    public bool FaltaCobrar => CalculoFiscal.Pendiente(_calculado) > 0.005m;
+    public bool HayVuelto => CalculoFiscal.Pendiente(_calculado) < -0.005m;
+    public bool CobroCompleto => !FaltaCobrar && !HayVuelto && _calculado.Total > 0;
 
     public string PendienteTexto
     {
@@ -249,9 +301,9 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
 
     protected override bool Validar(out string? error)
     {
-        if (Lineas.Any(l => l.ArticuloSeleccionado is not null && (!l.CantidadEsValida || !l.PrecioEsValido)))
+        if (Lineas.Any(l => l.ArticuloSeleccionado is not null && !l.CantidadEsValida))
         {
-            error = "Hay una cantidad o un precio que no es un número válido.";
+            error = "Hay una cantidad que no es un número válido.";
             return false;
         }
 
@@ -318,9 +370,8 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
             if (!SetProperty(ref _presentacionSeleccionada, value))
                 return;
 
-            // El precio se propone del artículo, pero sigue editable (oferta, ajuste).
-            if (value is not null)
-                PrecioUnitario = value.PrecioVenta == 0 ? string.Empty : value.PrecioVenta.ToString("0.##");
+            // El precio es el del catálogo y no se edita aquí: quien factura no lo cambia.
+            OnPropertyChanged(nameof(PrecioUnitario));
             Avisar();
         }
     }
@@ -334,24 +385,37 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
         set { if (SetProperty(ref _cantidad, value)) Avisar(); }
     }
 
-    private string _precioUnitario = string.Empty;
-    public string PrecioUnitario
+    private bool _pideCantidad;
+    /// <summary>
+    /// Renglón a granel recién agregado sin cantidad: el cursor salta a su celda de cantidad
+    /// (Controls/Enfoque.AlCargar). Se apaga al escribirla.
+    /// </summary>
+    public bool PideCantidad
     {
-        get => _precioUnitario;
-        set { if (SetProperty(ref _precioUnitario, value)) Avisar(); }
+        get => _pideCantidad;
+        set => SetProperty(ref _pideCantidad, value);
     }
 
+    /// <summary>Precio US$ sin IVA del catálogo, de solo lectura.</summary>
+    public string PrecioUnitario => PresentacionSeleccionada is null
+        ? string.Empty
+        : PrecioValor > 0 ? PrecioValor.ToString("N2") : "Sin precio";
+
     public bool CantidadEsValida => decimal.TryParse(Cantidad, out var v) && v > 0;
-    public bool PrecioEsValido => decimal.TryParse(PrecioUnitario, out var v) && v >= 0;
     private decimal CantidadValor => decimal.TryParse(Cantidad, out var v) ? v : 0m;
-    private decimal PrecioValor => decimal.TryParse(PrecioUnitario, out var v) ? v : 0m;
+    private decimal PrecioValor => PresentacionSeleccionada?.PrecioVenta ?? 0m;
 
     public string AlicuotaTexto => ArticuloSeleccionado is { } a ? Alicuotas.Marca(a.Alicuota) : string.Empty;
 
-    public string ExistenciaTexto => ArticuloSeleccionado is { } a ? $"{a.Existencia:N2} {a.UnidadCorta}" : string.Empty;
+    public string ExistenciaTexto => ArticuloSeleccionado switch
+    {
+        null => string.Empty,
+        { EsServicio: true } => "Servicio",
+        var a => $"{a.Existencia:N2} {a.UnidadCorta}"
+    };
 
     /// <summary>Se pinta en rojo si se pide más de lo disponible; el servicio lo vuelve a comprobar.</summary>
-    public bool SePasa => ArticuloSeleccionado is { } a && CantidadValor * Factor > a.Existencia;
+    public bool SePasa => ArticuloSeleccionado is { EsServicio: false } a && CantidadValor * Factor > a.Existencia;
 
     private string _montoTexto = string.Empty;
     public string MontoTexto
@@ -366,6 +430,7 @@ public sealed class LineaVentaEditorViewModel : ViewModelBase
     public VentaLinea Construir() => new()
     {
         ArticuloId = ArticuloSeleccionado!.Id,
+        EsServicio = ArticuloSeleccionado.EsServicio,
         Codigo = ArticuloSeleccionado.Codigo,
         Descripcion = ArticuloSeleccionado.Descripcion,
         PresentacionNombre = PresentacionSeleccionada?.Nombre ?? ArticuloSeleccionado.UnidadCorta,

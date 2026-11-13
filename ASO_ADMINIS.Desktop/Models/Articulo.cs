@@ -18,6 +18,21 @@ public enum UnidadMedida
 }
 
 /// <summary>
+/// Qué es un <see cref="Articulo"/>. Se persiste como ORDINAL: miembros nuevos al final.
+/// </summary>
+public enum TipoArticulo
+{
+    /// <summary>Mercancía del almacén: tiene existencia y pasa por Entradas y Salidas.</summary>
+    Bien,
+
+    /// <summary>
+    /// Prestación que se factura sin mover el almacén (cambio de aceite, recarga de batería). Se
+    /// da de alta en Ventas · Servicios, no tiene existencia y no aparece en Inventario.
+    /// </summary>
+    Servicio
+}
+
+/// <summary>
 /// Artículo del almacén: la mercancía que la organización compra, guarda y vende, sea cual sea
 /// el rubro (un par de zapatos, un galón de pintura, una caja de tornillos). Dato maestro de la
 /// organización y, a la vez, lo que se elige al registrar una venta (ver <see cref="Venta"/>).
@@ -64,8 +79,30 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     public string Notas { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
 
-    /// <summary>Precio de venta de referencia, en dólares. Ventas lo propone al elegir el
-    /// artículo y guarda su propio snapshot, así que cambiarlo no altera ventas ya hechas.</summary>
+    /// <summary>
+    /// Bien o servicio. Comparten tabla a propósito: el renglón de venta apunta igual a los dos
+    /// (<c>VentaLinea.ArticuloId</c>), las notas de crédito y los reportes por categoría no
+    /// distinguen, y el código es único entre ambos.
+    /// </summary>
+    public TipoArticulo Tipo { get; set; } = TipoArticulo.Bien;
+
+    public bool EsServicio => Tipo == TipoArticulo.Servicio;
+
+    /// <summary>
+    /// Se vende a granel: por peso o medida, con decimales (1,250 kg, 3,5 m). Se deduce de la
+    /// unidad base; lo demás (pieza, caja, saco…) y los servicios se venden en cantidades enteras.
+    /// </summary>
+    public bool EsGranel => !EsServicio && Unidad is UnidadMedida.Kilogramo or UnidadMedida.Litro or UnidadMedida.Metro;
+
+    /// <summary>
+    /// Código del producto en la balanza (PLU), solo para granel. Es lo que trae la etiqueta EAN-13
+    /// que imprime la balanza (ver <c>Services/EtiquetaBalanza</c>). Vacío = no se pesa en balanza.
+    /// </summary>
+    public string CodigoBalanza { get; set; } = string.Empty;
+
+    /// <summary>Precio de venta en dólares. Es EL precio: Ventas lo toma de aquí y quien
+    /// factura no puede cambiarlo (lo hace cumplir <c>VentasService</c>). La factura guarda su
+    /// propio snapshot, así que cambiarlo no altera ventas ya hechas.</summary>
     public decimal PrecioVenta { get; set; }
 
     /// <summary>
@@ -99,15 +136,22 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     /// Lo que se ofrece al elegir cómo se compra o se vende: primero la unidad base (factor 1,
     /// precio <see cref="PrecioVenta"/>), que nunca hace falta dar de alta, y luego las
     /// presentaciones. El precio de una presentación sin precio propio es factor × precio base.
+    /// Un servicio tiene una sola opción ("serv", factor 1): no se mide ni se presenta.
     /// </summary>
-    public IReadOnlyList<OpcionPresentacion> OpcionesDePresentacion() =>
-    [
-        new OpcionPresentacion(UnidadCorta, 1m, PrecioVenta, $"{UnidadTexto} (unidad base)"),
-        .. Presentaciones.Select(p => new OpcionPresentacion(
-            p.Nombre, p.Factor,
-            p.PrecioVenta > 0 ? p.PrecioVenta : Math.Round(p.Factor * PrecioVenta, 2),
-            $"{p.Nombre} ({p.Factor:0.####} {UnidadCorta})"))
-    ];
+    public IReadOnlyList<OpcionPresentacion> OpcionesDePresentacion()
+    {
+        if (EsServicio)
+            return [new OpcionPresentacion(UnidadCorta, 1m, PrecioVenta, "Servicio")];
+
+        return
+        [
+            new OpcionPresentacion(UnidadCorta, 1m, PrecioVenta, $"{UnidadTexto} (unidad base)"),
+            .. Presentaciones.Select(p => new OpcionPresentacion(
+                p.Nombre, p.Factor,
+                p.PrecioVenta > 0 ? p.PrecioVenta : Math.Round(p.Factor * PrecioVenta, 2),
+                $"{p.Nombre} ({p.Factor:0.####} {UnidadCorta})"))
+        ];
+    }
 
     /// <summary>"Galón · Cuñete" para la grilla del almacén.</summary>
     public string PresentacionesTexto => Presentaciones.Count == 0
@@ -121,17 +165,19 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     /// </summary>
     public decimal Existencia { get; set; }
 
-    public bool BajoMinimo => Activo && Minimo > 0 && Existencia < Minimo;
+    public bool BajoMinimo => !EsServicio && Activo && Minimo > 0 && Existencia < Minimo;
 
-    public bool SinExistencia => Activo && Existencia <= 0;
+    public bool SinExistencia => !EsServicio && Activo && Existencia <= 0;
 
     public string EstadoTexto => !Activo
         ? "Inactivo"
-        : SinExistencia
-            ? "Sin existencia"
-            : BajoMinimo
-                ? "Bajo mínimo"
-                : "Disponible";
+        : EsServicio
+            ? "Activo"
+            : SinExistencia
+                ? "Sin existencia"
+                : BajoMinimo
+                    ? "Bajo mínimo"
+                    : "Disponible";
 
     public string UnidadTexto => Unidad switch
     {
@@ -147,7 +193,7 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     };
 
     /// <summary>Abreviatura para las grillas de líneas, donde no cabe el nombre completo.</summary>
-    public string UnidadCorta => Unidad switch
+    public string UnidadCorta => EsServicio ? "serv" : Unidad switch
     {
         UnidadMedida.Pieza => "pza",
         UnidadMedida.Caja => "caja",
@@ -161,6 +207,12 @@ public class Articulo : IEntidad<int>, IDeOrganizacion
     };
 
     public string ExistenciaTexto => Existencia.ToString("N2");
+
+    /// <summary>"20,00 L", o "Servicio": lo que se lee en la lista del buscador de artículos.</summary>
+    public string DisponibleTexto => EsServicio ? "Servicio" : $"{Existencia:N2} {UnidadCorta}";
+
+    /// <summary>"Sin categoría" en vez de vacío, para la lista del buscador.</summary>
+    public string CategoriaTexto => string.IsNullOrWhiteSpace(Categoria) ? "Sin categoría" : Categoria;
 
     public string MinimoTexto => Minimo > 0 ? Minimo.ToString("N2") : "—";
 
