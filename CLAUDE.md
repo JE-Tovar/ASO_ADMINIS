@@ -116,6 +116,11 @@ submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Ad
       `CrudEditorWindow`. Hoy: venta (factura y notas), entrada, salida, gasto vario y factura
       de proveedor pagada o anulada. Los datos opcionales van con `controls:Dato`, que se oculta
       si el valor está vacío.
+    - **En Reportes** (2026-11-15), que no son CRUD, cada pantalla tiene su `Seleccionada` y
+      su `AbrirCommand`. Reportes · Ventas abre la ficha de la venta. Reportes · Gastos abre la
+      del documento de origen por `FilaGasto.DocumentoId`: un pago a proveedor abre su factura,
+      con lo comprado (los renglones copiados de la entrada), y un gasto vario abre su gasto.
+      El Libro de ventas no la tiene: sus filas pueden estar consolidadas.
     - **Permiso:** ver la ficha solo pide acceso a la pantalla, no `…Editar`.
 
 ## Cómo se agrega un submódulo (receta)
@@ -447,8 +452,12 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
   origen, barras apiladas por mes y torta por categoría.
 - **Gráficos** (`ViewModels/Graficos.cs`): toda gráfica de Reportes se construye aquí. Toma los
   colores del tema activo, deja margen para la etiqueta de la barra más larga y la torta lleva
-  el % dentro y los nombres en leyenda (máx. 6 porciones + "Otros"), para que nada se salga de
-  la tarjeta. No crear `PlotModel` "pelados" en un ViewModel.
+  el % dentro (máx. 6 porciones + "Otros"), para que nada se salga de la tarjeta. No crear
+  `PlotModel` "pelados" en un ViewModel.
+  - **Leyenda de la torta** (2026-11-15): `Graficos.Torta` devuelve un `GraficoTorta` (modelo +
+    porciones con nombre, %, monto y color), y la pinta `Controls/TortaConLeyenda` con la lista
+    WPF al lado, en la misma tarjeta. No es una leyenda de OxyPlot porque la `PieSeries` no pinta
+    sus porciones en `Legends`: salía vacía y los colores quedaban sin nombre.
 
 ## Persistencia
 

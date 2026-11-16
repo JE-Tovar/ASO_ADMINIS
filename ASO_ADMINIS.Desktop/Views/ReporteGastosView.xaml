@@ -55,6 +55,8 @@
                      Text="{Binding CantidadVariosTexto, StringFormat='Gastos varios ({0})'}" />
           <TextBlock Text="{Binding VariosTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
         </StackPanel>
+        <TextBlock Text="Doble clic en una fila para ver el detalle" VerticalAlignment="Center" Margin="24,0,0,0"
+                   FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
       </WrapPanel>
     </Border>
 
@@ -70,14 +72,16 @@
       </Border>
 
       <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" MinWidth="260">
-        <oxy:PlotView Model="{Binding GraficoPorCategoria}" Height="300" Background="Transparent" />
+        <controls:TortaConLeyenda Grafico="{Binding GraficoPorCategoria}" Height="300" />
       </Border>
     </Grid>
 
     <Border Grid.Row="3" Style="{StaticResource SectionCardStyle}" Padding="0" Margin="0,16,0,0">
       <Grid>
         <DataGrid x:Name="TablaGastos" Style="{StaticResource DataGridStyle}"
-                  ItemsSource="{Binding Items}" IsReadOnly="True">
+                  ItemsSource="{Binding Items}" IsReadOnly="True"
+                  SelectedItem="{Binding Seleccionada}"
+                  controls:DobleClicFila.Comando="{Binding AbrirCommand}">
           <DataGrid.Columns>
             <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="9*" MinWidth="80" />
             <controls:ColumnaTexto Header="Origen" Binding="{Binding OrigenTexto}" Width="9*" MinWidth="86" />

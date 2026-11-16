@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Legends;
@@ -108,13 +109,19 @@ public static class Graficos
     }
 
     /// <summary>
-    /// Torta con el porcentaje DENTRO de cada porción y los nombres en una leyenda a la derecha:
-    /// así nada se sale de la tarjeta, por largos que sean los nombres. Se queda con las
-    /// <see cref="MaxPorciones"/> más grandes y junta el resto en "Otros".
+    /// Torta con el porcentaje DENTRO de cada porción. Se queda con las <see cref="MaxPorciones"/>
+    /// más grandes y junta el resto en "Otros".
+    ///
+    /// Los nombres NO van en una leyenda de OxyPlot: la <see cref="PieSeries"/> no pinta sus
+    /// porciones en <c>Legends</c>, así que la leyenda salía vacía y los colores quedaban sin
+    /// nombre. Se devuelven aparte, en <see cref="GraficoTorta.Porciones"/>, y los dibuja
+    /// <c>Controls/TortaConLeyenda</c> al lado de la torta con el mismo color de cada porción.
+    /// Por eso el modelo va sin título: lo pone la tarjeta, encima de torta y leyenda.
     /// </summary>
-    public static PlotModel Torta(string titulo, IEnumerable<(string Nombre, double Valor)> datos)
+    public static GraficoTorta Torta(string titulo, IEnumerable<(string Nombre, double Valor)> datos)
     {
-        var modelo = Modelo(titulo);
+        var modelo = Modelo(string.Empty);
+        modelo.Padding = new OxyThickness(0);
         var ordenados = datos.Where(d => d.Valor > 0).OrderByDescending(d => d.Valor).ToList();
 
         var visibles = ordenados.Count <= MaxPorciones
@@ -134,23 +141,23 @@ public static class Graficos
             OutsideLabelFormat = null,
             TickHorizontalLength = 0,
             TickRadialLength = 0,
-            Diameter = 0.92,
+            Diameter = 0.95,
             StartAngle = -90
         };
 
+        var porciones = new List<PorcionTorta>();
         for (var i = 0; i < visibles.Count; i++)
         {
             var (nombre, valor) = visibles[i];
+            var color = paleta[i % paleta.Count];
             var porcentaje = total > 0 ? valor / total * 100 : 0;
-            serie.Slices.Add(new PieSlice($"{Recortar(nombre, 22)} ({porcentaje:0} %)", valor)
-            {
-                Fill = paleta[i % paleta.Count]
-            });
+
+            serie.Slices.Add(new PieSlice(nombre, valor) { Fill = color });
+            porciones.Add(new PorcionTorta(nombre, $"{porcentaje:0} %", $"Bs {valor:N2}", Pincel(color)));
         }
 
         modelo.Series.Add(serie);
-        modelo.Legends.Add(Leyenda(LegendPosition.RightMiddle, LegendOrientation.Vertical));
-        return modelo;
+        return new GraficoTorta(titulo, modelo, porciones);
     }
 
     // ------------------------------------------------------------------ piezas
@@ -214,6 +221,25 @@ public static class Graficos
             ? OxyColor.FromArgb(c.A, c.R, c.G, c.B)
             : respaldo;
 
-    private static string Recortar(string texto, int maximo) =>
-        texto.Length <= maximo ? texto : texto[..(maximo - 1)] + "…";
+    /// <summary>El mismo color de la porción, como pincel de WPF para la leyenda.</summary>
+    private static SolidColorBrush Pincel(OxyColor c)
+    {
+        var pincel = new SolidColorBrush(System.Windows.Media.Color.FromArgb(c.A, c.R, c.G, c.B));
+        pincel.Freeze();
+        return pincel;
+    }
 }
+
+/// <summary>
+/// Una torta de Reportes con su leyenda: el modelo de OxyPlot y, aparte, las porciones con su
+/// nombre, %, monto y color, que pinta <c>Controls/TortaConLeyenda</c> al lado de la torta.
+/// </summary>
+public sealed record GraficoTorta(string Titulo, PlotModel Modelo, IReadOnlyList<PorcionTorta> Porciones)
+{
+    public static GraficoTorta Vacio(string titulo) => new(titulo, new PlotModel(), []);
+
+    public bool SinDatos => Porciones.Count == 0;
+}
+
+/// <summary>Una fila de la leyenda de la torta; el color es el mismo de su porción.</summary>
+public sealed record PorcionTorta(string Nombre, string PorcentajeTexto, string MontoTexto, SolidColorBrush Color);

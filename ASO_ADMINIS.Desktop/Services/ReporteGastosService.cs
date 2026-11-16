@@ -12,7 +12,8 @@ public sealed record FilaGasto(
     string Concepto,
     string Moneda,
     decimal Monto,
-    decimal MontoBs)
+    decimal MontoBs,
+    int DocumentoId)
 {
     public string FechaTexto => Fecha.ToString("dd/MM/yyyy");
     public string OrigenTexto => Origen == OrigenGasto.Proveedor ? "Proveedor" : "Gasto vario";
@@ -72,13 +73,13 @@ public sealed class ReporteGastosService(IFacturaProveedorDataSource facturas,
 
                 return new FilaGasto(fecha, OrigenGasto.Proveedor, CategoriaProveedores, f.ProveedorNombre,
                                      f.NumeroDocumento, f.Descripcion,
-                                     enDolares ? "US$" : "Bs", f.Monto, montoBs);
+                                     enDolares ? "US$" : "Bs", f.Monto, montoBs, f.Id);
             });
 
         var varios = gastos.GetAll()
             .Where(g => g.Vigente && EnRango(g.Fecha))
             .Select(g => new FilaGasto(g.Fecha, OrigenGasto.GastoVario, g.Categoria, g.Beneficiario,
-                                       g.Numero, g.Concepto, g.MonedaTexto, g.Monto, g.MontoBs));
+                                       g.Numero, g.Concepto, g.MonedaTexto, g.Monto, g.MontoBs, g.Id));
 
         return [.. deProveedores.Concat(varios).OrderBy(f => f.Fecha)];
     }

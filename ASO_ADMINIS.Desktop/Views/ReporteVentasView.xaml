@@ -46,6 +46,8 @@
                      Foreground="{DynamicResource TextSecondaryBrush}" />
           <TextBlock Text="{Binding TotalUnidadesTexto}" Style="{StaticResource FormValorCalculadoStyle}" />
         </StackPanel>
+        <TextBlock Text="Doble clic en una fila para ver el detalle" VerticalAlignment="Center" Margin="24,0,0,0"
+                   FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
       </WrapPanel>
     </Border>
 
@@ -63,7 +65,7 @@
       </Border>
 
       <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" MinWidth="260">
-        <oxy:PlotView Model="{Binding GraficoPorCategoria}" Height="300" Background="Transparent" />
+        <controls:TortaConLeyenda Grafico="{Binding GraficoPorCategoria}" Height="300" />
       </Border>
 
       <!-- Tabla y no gráfico: para cuadrar caja hacen falta los montos exactos por método. -->
@@ -94,7 +96,9 @@
     <Border Grid.Row="3" Style="{StaticResource SectionCardStyle}" Padding="0" Margin="0,16,0,0">
       <Grid>
         <DataGrid x:Name="TablaVentas" Style="{StaticResource DataGridStyle}"
-                  ItemsSource="{Binding Items}" IsReadOnly="True">
+                  ItemsSource="{Binding Items}" IsReadOnly="True"
+                  SelectedItem="{Binding Seleccionada}"
+                  controls:DobleClicFila.Comando="{Binding AbrirCommand}">
           <DataGrid.Columns>
             <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoCorto}" Width="6*" MinWidth="44" />
             <controls:ColumnaTexto Header="N° fiscal" Binding="{Binding NumeroFiscalTexto}" Width="11*" MinWidth="90" />

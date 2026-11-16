@@ -19,12 +19,16 @@ public sealed class ReporteGastosViewModel : PantallaViewModelBase
     private const string FiltroVarios = "Gastos varios";
 
     private readonly ReporteGastosService _servicio;
+    private readonly IFacturaProveedorDataSource _facturas;
+    private readonly IGastoVarioDataSource _gastos;
 
     public ReporteGastosViewModel(Modulo modulo, Submodulo submodulo)
         : base(modulo, submodulo)
     {
-        _servicio = new ReporteGastosService(DataSourceFactory.CrearFacturasProveedor(),
-                                             DataSourceFactory.CrearGastosVarios(),
+        _facturas = DataSourceFactory.CrearFacturasProveedor();
+        _gastos = DataSourceFactory.CrearGastosVarios();
+        _servicio = new ReporteGastosService(_facturas,
+                                             _gastos,
                                              DataSourceFactory.CrearMovimientosBanco(),
                                              DataSourceFactory.CrearCuentasBancarias(),
                                              DataSourceFactory.CrearTasasCambio());
@@ -38,10 +42,43 @@ public sealed class ReporteGastosViewModel : PantallaViewModelBase
             Recalcular();
         });
 
+        AbrirCommand = new RelayCommand(Abrir, () => Seleccionada is not null);
+
         Recalcular();
     }
 
     public ObservableCollection<FilaGasto> Items { get; } = [];
+
+    private FilaGasto? _seleccionada;
+    public FilaGasto? Seleccionada
+    {
+        get => _seleccionada;
+        set => SetProperty(ref _seleccionada, value);
+    }
+
+    /// <summary>
+    /// Doble clic (o Enter) en una fila: el documento de origen en su ficha de solo lectura. Un
+    /// pago a proveedor abre su factura, con los renglones de lo que se compró (los copia de la
+    /// entrada de almacén al registrarla); un gasto vario abre el gasto. Solo pide acceso a esta
+    /// pantalla, como toda ficha.
+    /// </summary>
+    public ICommand AbrirCommand { get; }
+
+    private void Abrir()
+    {
+        if (Seleccionada is not { } fila)
+            return;
+
+        var dialogo = new ServicioDialogo();
+        CrudEditorViewModelBase? ficha = fila.Origen == OrigenGasto.Proveedor
+            ? _facturas.GetById(fila.DocumentoId) is { } factura ? new FacturaProveedorDetalleViewModel(factura) : null
+            : _gastos.GetById(fila.DocumentoId) is { } gasto ? new GastoVarioDetalleViewModel(gasto) : null;
+
+        if (ficha is null)
+            dialogo.Informar("Detalle", $"No se encontró el documento {fila.Documento}: puede que se haya eliminado.");
+        else
+            dialogo.MostrarEditor(ficha);
+    }
 
     public ICommand CambiarFiltroCommand { get; }
 
@@ -96,8 +133,8 @@ public sealed class ReporteGastosViewModel : PantallaViewModelBase
         private set => SetProperty(ref _graficoPorMes, value);
     }
 
-    private PlotModel _graficoPorCategoria = new();
-    public PlotModel GraficoPorCategoria
+    private GraficoTorta _graficoPorCategoria = GraficoTorta.Vacio("Gastos por categoría (Bs)");
+    public GraficoTorta GraficoPorCategoria
     {
         get => _graficoPorCategoria;
         private set => SetProperty(ref _graficoPorCategoria, value);

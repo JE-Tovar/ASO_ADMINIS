@@ -40,10 +40,31 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
         _desde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _hasta = DateTime.Today;
 
+        AbrirCommand = new RelayCommand(Abrir, () => Seleccionada is not null);
+
         Recalcular();
     }
 
     public ObservableCollection<Venta> Items { get; } = [];
+
+    private Venta? _seleccionada;
+    public Venta? Seleccionada
+    {
+        get => _seleccionada;
+        set => SetProperty(ref _seleccionada, value);
+    }
+
+    /// <summary>
+    /// Doble clic (o Enter) en una venta: su ficha de solo lectura, la misma de Ventas · Registro,
+    /// con renglones, pagos y totales. Solo pide acceso a esta pantalla.
+    /// </summary>
+    public System.Windows.Input.ICommand AbrirCommand { get; }
+
+    private void Abrir()
+    {
+        if (Seleccionada is { } venta)
+            new ServicioDialogo().MostrarEditor(new VentaDetalleViewModel(venta));
+    }
 
     /// <summary>Cuánto entró por cada método de pago en el período: lo que se mira al cuadrar caja.</summary>
     public ObservableCollection<ResumenMetodoPago> PorMetodoPago { get; } = [];
@@ -90,8 +111,8 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
         private set => SetProperty(ref _graficoPorDia, value);
     }
 
-    private PlotModel _graficoPorCategoria = new();
-    public PlotModel GraficoPorCategoria
+    private GraficoTorta _graficoPorCategoria = GraficoTorta.Vacio("Ventas por categoría (Bs)");
+    public GraficoTorta GraficoPorCategoria
     {
         get => _graficoPorCategoria;
         private set => SetProperty(ref _graficoPorCategoria, value);
@@ -152,7 +173,7 @@ public sealed class ReporteVentasViewModel : PantallaViewModelBase
     /// puede mezclar categorías), en Bs sin IVA y neto de notas de crédito. Los cargos de una
     /// nota de débito no son artículos y no entran.
     /// </summary>
-    private static PlotModel ConstruirGraficoPorCategoria(IReadOnlyList<Venta> ventas,
+    private static GraficoTorta ConstruirGraficoPorCategoria(IReadOnlyList<Venta> ventas,
                                                            IReadOnlyDictionary<int, Articulo> articulosPorId)
     {
         var porCategoria = ventas
