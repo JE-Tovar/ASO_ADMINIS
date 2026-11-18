@@ -15,7 +15,6 @@ namespace ASO_ADMINIS.Desktop.ViewModels;
 public sealed class CuentaViewModel : ViewModelBase
 {
     /// <summary>El mismo mínimo que exige el alta de usuarios; una sola regla para las dos vías.</summary>
-    public const int LargoMinimoPassword = 8;
 
     private readonly IUsuarioDataSource _usuarios;
     private readonly ISesionActual _sesion;
@@ -52,7 +51,7 @@ public sealed class CuentaViewModel : ViewModelBase
         : "—";
 
     public string AyudaPassword =>
-        $"Al menos {LargoMinimoPassword} caracteres. Se aplica de inmediato: la próxima vez que entres usa la nueva.";
+        $"{PoliticaSeguridad.DescripcionPassword} Se aplica de inmediato: la próxima vez que entres usa la nueva.";
 
     private bool _recordarUsuario;
     public bool RecordarUsuario
@@ -96,9 +95,9 @@ public sealed class CuentaViewModel : ViewModelBase
             return false;
         }
 
-        if (nueva.Length < LargoMinimoPassword)
+        if (PoliticaSeguridad.ErrorPassword(nueva, usuario.NombreUsuario) is { } errorPassword)
         {
-            ErrorPassword = $"La contraseña nueva debe tener al menos {LargoMinimoPassword} caracteres.";
+            ErrorPassword = errorPassword;
             return false;
         }
 
@@ -119,6 +118,7 @@ public sealed class CuentaViewModel : ViewModelBase
         var copia = usuario.Clonar();
         copia.PasswordHash = hash;
         copia.PasswordSalt = salt;
+        copia.DebeCambiarPassword = false;
 
         try
         {
@@ -134,6 +134,8 @@ public sealed class CuentaViewModel : ViewModelBase
         // próxima vez: sin esto, cambiar dos veces seguidas fallaría en la segunda.
         usuario.PasswordHash = hash;
         usuario.PasswordSalt = salt;
+        usuario.DebeCambiarPassword = false;
+        usuario.Version = copia.Version;   // la nueva rowversion: si no, el siguiente cambio chocaría
 
         ErrorPassword = string.Empty;
         Aviso.Mostrar("Contraseña cambiada. La próxima vez que entres, usa la nueva.");

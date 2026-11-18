@@ -41,8 +41,11 @@ public enum TipoArticulo
 /// salió, sin contar documentos anulados) porque un número editable a mano se desincroniza del
 /// historial y no deja rastro de por qué cambió. Ver <see cref="Existencia"/>.
 /// </summary>
-public class Articulo : IEntidad<int>, IDeOrganizacion
+public class Articulo : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Organizacion duenna de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

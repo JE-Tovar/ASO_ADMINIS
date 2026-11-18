@@ -13,6 +13,13 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        Registro.Info("Inicio de ASO Adminis {Version}", Registro.Version);
+        InstalarManejoDeErrores();
+
+        // Toda operación de dominio que escriba en más de una tabla pasa por aquí (ver
+        // Services/UnidadDeTrabajo.cs). Las pruebas se quedan con la directa, sin SQL.
+        UnidadDeTrabajo.Actual = new UnidadDeTrabajoSql();
+
         // El tema antes de abrir nada: si se aplicara despues, la pantalla de login parpadearia
         // en claro antes de pasar a oscuro.
         Tema.Aplicar(Ajustes.Actual.Tema);
@@ -55,6 +62,38 @@ public partial class App : Application
     }
 
     /// <summary>
+    /// Lo que se escape de todo <c>try</c>. Antes cerraba la aplicación sin dejar rastro; ahora
+    /// queda en el registro y, si fue en la interfaz, se avisa y se sigue: una excepción de base
+    /// en un botón no tiene por qué tumbar la caja entera.
+    /// </summary>
+    private void InstalarManejoDeErrores()
+    {
+        DispatcherUnhandledException += (_, args) =>
+        {
+            Registro.Error(args.Exception, "Error no controlado en la interfaz");
+            args.Handled = true;
+            MessageBox.Show(
+                $"Ocurrió un error inesperado y la acción no se completó.\n\n{args.Exception.Message}\n\n" +
+                $"Quedó anotado en el registro de errores ({Registro.Carpeta}). " +
+                "Si se repite, envíaselo a soporte.",
+                "ASO Adminis", MessageBoxButton.OK, MessageBoxImage.Warning);
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+                Registro.Fatal(ex, "Error no controlado (terminando: {Terminando})", args.IsTerminating);
+            Registro.Cerrar();
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Registro.Error(args.Exception, "Error no observado en una tarea de fondo");
+            args.SetObserved();
+        };
+    }
+
+    /// <summary>
     /// Pone la base de datos al día con las migraciones del código, y la crea entera si no
     /// existía (primer arranque en una máquina nueva).
     ///
@@ -68,13 +107,18 @@ public partial class App : Application
         try
         {
             using var db = new AsoAdminisDbContext();
-            if (db.Database.GetPendingMigrations().Any())
+            var pendientes = db.Database.GetPendingMigrations().ToList();
+            if (pendientes.Count > 0)
+            {
+                Registro.Info("Aplicando migraciones: {Migraciones}", string.Join(", ", pendientes));
                 db.Database.Migrate();
+            }
 
             return true;
         }
         catch (Exception ex)
         {
+            Registro.Error(ex, "No se pudo actualizar el esquema de la base");
             // Seguir con el esquema viejo no es una opción: daría errores por todas partes
             // menos donde está la causa.
             MessageBox.Show(
@@ -98,6 +142,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            Registro.Error(ex, "No se pudo conectar con la base al arrancar");
             MessageBox.Show(
                 $"No se pudo conectar con la base de datos.\n\n{ex.Message}\n\n" +
                 "Revisa la cadena de conexión en appsettings.local.json.",

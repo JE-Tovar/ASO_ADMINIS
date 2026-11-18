@@ -17,4 +17,20 @@ public interface IUsuarioDataSource : ICrudDataSource<Usuario, int>
 
     /// <summary>¿Hay al menos un usuario en TODO el sistema? Decide si hay que sembrar.</summary>
     bool ExisteAlguno();
+
+    /// <summary>
+    /// Suma un intento fallido y, al llegar a <paramref name="limite"/>, bloquea la cuenta hasta
+    /// <paramref name="bloquearHasta"/> (y vuelve el contador a cero). Sin ámbito: es del login.
+    /// </summary>
+    /// <returns>Cómo quedó el usuario.</returns>
+    Usuario RegistrarIntentoFallido(int usuarioId, int limite, DateTime bloquearHasta);
+
+    /// <summary>Contador a cero y sin bloqueo: entró bien. Sin ámbito: es del login.</summary>
+    void ReiniciarIntentos(int usuarioId);
+
+    /// <summary>
+    /// El usuario tal como está ahora en la base, con sus ajustes de permisos, para refrescar la
+    /// sesión abierta. Sin ámbito, como el login. Null si ya no existe.
+    /// </summary>
+    ResultadoAutenticacion? LeerParaSesion(int usuarioId);
 }

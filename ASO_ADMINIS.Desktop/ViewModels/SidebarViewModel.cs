@@ -241,9 +241,10 @@ public sealed class SidebarViewModel : ViewModelBase, IDisposable
             var fuente = DataSourceFactory.CrearTasasCambio();
             TasaTexto = FormatearTasa(await Task.Run(fuente.GetUltima));
         }
-        catch
+        catch (Exception ex)
         {
             // Sin tasa en el pie. El detalle sigue en Administración · Organización.
+            Registro.Advertencia(ex, "No se pudo leer la tasa BCV para el menú");
         }
     }
 
@@ -278,9 +279,10 @@ public sealed class SidebarViewModel : ViewModelBase, IDisposable
                     && (!resuelve
                         || (sesion.Puede(p.Permiso) && p.SolicitadoPorId != propioId))));
         }
-        catch
+        catch (Exception ex)
         {
             // Sin contador. Ver el resumen de la propia bandeja.
+            Registro.Advertencia(ex, "No se pudo contar las peticiones pendientes");
         }
     }
 

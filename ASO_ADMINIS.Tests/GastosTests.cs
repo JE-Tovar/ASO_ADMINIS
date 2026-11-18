@@ -85,6 +85,9 @@ public class GastosTests
     [Fact]
     public void Si_el_asiento_falla_se_retira_el_gasto()
     {
+        // El gasto y su asiento van en una sola unidad de trabajo: si el asiento falla, el rollback
+        // se lleva el gasto. (La transacción real de SQL la prueban las pruebas de integración.)
+        using var _ = UnidadDeTrabajo.Usar(new TransaccionEnMemoria(_gastos, _movimientos));
         _movimientos.Fallar = true;
 
         Assert.Throws<InvalidOperationException>(() =>

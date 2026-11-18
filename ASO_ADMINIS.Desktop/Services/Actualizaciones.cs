@@ -41,9 +41,10 @@ public static class Actualizaciones
             if (respuesta == MessageBoxResult.Yes)
                 gestor.ApplyUpdatesAndRestart(nueva);
         }
-        catch
+        catch (Exception ex)
         {
             // Ver el comentario del metodo: un fallo aqui no debe interrumpir a nadie.
+            Registro.Advertencia(ex, "No se pudo buscar una versión nueva");
         }
     }
 }

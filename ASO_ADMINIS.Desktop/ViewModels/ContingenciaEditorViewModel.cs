@@ -6,8 +6,28 @@ namespace ASO_ADMINIS.Desktop.ViewModels;
 /// documento y el número de control impresos en el formato; la factura queda pendiente de
 /// transmitir.
 /// </summary>
-public sealed class ContingenciaEditorViewModel(string error) : CrudEditorViewModelBase
+public sealed class ContingenciaEditorViewModel : CrudEditorViewModelBase
 {
+    private readonly string error;
+
+    /// <param name="sugerencia">El siguiente número libre del talonario, si hay; se propone ya escrito.</param>
+    public ContingenciaEditorViewModel(string error, Services.RangosContingencia.Sugerencia? sugerencia = null)
+    {
+        this.error = error;
+        _numeroControl = sugerencia?.NumeroControl ?? string.Empty;
+        TalonarioTexto = sugerencia is null
+            ? "No hay talonarios de contingencia con números libres. Un administrador tiene que cargar el rango autorizado en Administración · Contingencia."
+            : $"Talonario {sugerencia.Rango.RangoTexto} ({sugerencia.Rango.Imprenta}): quedan {sugerencia.Quedan}. " +
+              "Se propone el siguiente libre; corríjalo si usó otro formato.";
+        PocosQuedan = sugerencia is null || sugerencia.PocosQuedan;
+    }
+
+    /// <summary>Qué talonario se usa y cuántos quedan.</summary>
+    public string TalonarioTexto { get; }
+
+    /// <summary>El talonario se acaba (o no hay): se resalta para que se pida otro a tiempo.</summary>
+    public bool PocosQuedan { get; }
+
     public override string Titulo => "Emitir en contingencia";
     public override string TextoAccion => "Registrar en contingencia";
 

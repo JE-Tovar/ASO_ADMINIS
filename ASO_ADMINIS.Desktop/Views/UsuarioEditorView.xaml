@@ -25,9 +25,28 @@
                 DisplayMemberPath="Texto" />
     </controls:FormField>
 
-    <controls:FormField Etiqueta="{Binding EtiquetaPassword}">
+    <controls:FormField Etiqueta="Caja asignada"
+                        Ayuda="Obligatoria para un Cajero: es la caja en la que vende, en cualquier PC donde entre.">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                ItemsSource="{Binding CajasDisponibles}"
+                SelectedItem="{Binding CajaSeleccionada}"
+                DisplayMemberPath="Texto" />
+    </controls:FormField>
+
+    <controls:FormField Etiqueta="{Binding EtiquetaPassword}" Ayuda="{Binding AyudaPassword}">
       <PasswordBox x:Name="PasswordBox" Padding="8,8" PasswordChanged="OnPasswordChanged" />
     </controls:FormField>
+
+    <Border Margin="0,12,0,0" Padding="12,8" CornerRadius="{StaticResource RadMd}"
+            Background="{DynamicResource WarningSoftBrush}" BorderBrush="{DynamicResource WarningBordeBrush}" BorderThickness="1"
+            Visibility="{Binding EstaBloqueado, Converter={StaticResource BoolToVis}}">
+      <StackPanel>
+        <TextBlock Text="{Binding BloqueoTexto}" TextWrapping="Wrap" Foreground="{DynamicResource WarningTextBrush}" />
+        <CheckBox Content="Desbloquear al guardar" Margin="0,6,0,0" Cursor="Hand"
+                  Foreground="{DynamicResource WarningTextBrush}"
+                  IsChecked="{Binding Desbloquear}" />
+      </StackPanel>
+    </Border>
 
     <CheckBox Content="Activo" Margin="0,16,0,0" Cursor="Hand"
               IsChecked="{Binding Activo}" />

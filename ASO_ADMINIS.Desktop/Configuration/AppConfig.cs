@@ -31,6 +31,9 @@ public static class AppConfig
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
             .AddJsonFile(local, optional: true, reloadOnChange: false)
+            // ASO_ConnectionStrings__AsoAdminisDb gana sobre los archivos: lo usan las pruebas de
+            // integración para trabajar contra una base temporal propia.
+            .AddEnvironmentVariables("ASO_")
             .Build();
     }
 

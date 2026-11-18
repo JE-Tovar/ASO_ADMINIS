@@ -110,6 +110,7 @@ public class LoginViewModel : ViewModelBase
 
             if (resultado is null)
             {
+                Registro.Advertencia("Inicio de sesión rechazado para {Nombre}", NombreUsuario.Trim());
                 MensajeError = "Usuario o contraseña incorrectos.";
                 return false;
             }
@@ -117,14 +118,23 @@ public class LoginViewModel : ViewModelBase
             // Dentro del try porque iniciar sesión también toca la base: resuelve el núcleo
             // del usuario para fijar el ámbito.
             _sesion.IniciarSesion(resultado.Usuario, resultado.Ajustes);
+            Registro.Info("Inicio de sesión de {Nombre} ({Rol})", resultado.Usuario.NombreUsuario, resultado.Usuario.RolTexto);
 
             // En segundo plano y en silencio: es la primera vez que esta app habla con
             // internet, y sin conexión no hay dónde avisar en pleno login. Administración
             // sigue mostrando la última tasa guardada mientras tanto.
             _ = ActualizarTasaCambioEnSegundoPlano();
+            _ = RespaldoAutomaticoEnSegundoPlano(resultado.Usuario.NombreCompleto);
+        }
+        catch (SesionRechazadaException ex)
+        {
+            Registro.Advertencia("Sesión rechazada para {Nombre}: {Motivo}", NombreUsuario.Trim(), ex.Message);
+            MensajeError = ex.Message;
+            return false;
         }
         catch (Exception ex)
         {
+            Registro.Error(ex, "Fallo al iniciar sesión (base de datos)");
             // Sin base de datos no hay login posible; decirlo aquí evita que el fallo
             // aparezca más tarde, a mitad de una navegación, como si fuera otra cosa.
             MensajeError = $"No se pudo conectar con la base de datos. {ex.Message}";
@@ -133,6 +143,24 @@ public class LoginViewModel : ViewModelBase
 
         MensajeError = string.Empty;
         return true;
+    }
+
+    /// <summary>
+    /// El primer inicio de sesión del día (de cualquier PC) hace el respaldo, en segundo plano y
+    /// sin avisar: SQL Server Express no trae el Agente que lo programaría. Si falla, queda en el
+    /// historial de Administración · Respaldos y en el registro.
+    /// </summary>
+    private static async Task RespaldoAutomaticoEnSegundoPlano(string usuario)
+    {
+        try
+        {
+            var servicio = DataSourceFactory.CrearServicioRespaldos();
+            await Task.Run(() => servicio.RespaldarSiToca(usuario));
+        }
+        catch (Exception ex)
+        {
+            Registro.Error(ex, "Falló el respaldo automático");
+        }
     }
 
     private static async Task ActualizarTasaCambioEnSegundoPlano()
@@ -144,10 +172,11 @@ public class LoginViewModel : ViewModelBase
 
             await servicio.ActualizarDesdeApi();
         }
-        catch
+        catch (Exception ex)
         {
             // Sin internet o la fuente cayó: se sigue con la última tasa guardada. Quien la
             // necesite ve el botón "Actualizar" en Administración · Organización.
+            Registro.Advertencia(ex, "No se pudo actualizar la tasa BCV");
         }
     }
 }

@@ -108,17 +108,22 @@ public sealed class SalidasInventarioService
         if (!_sesion.Puede(Permisos.SalidasInventario.Crear))
             throw new InvalidOperationException("No tienes permiso para registrar salidas de almacén.");
 
-        if (!Validar(salida, out var error))
-            throw new InvalidOperationException(error);
+        // Bajo el candado de documentos: la existencia se valida y se descuenta sin que una caja
+        // venda lo mismo entre medio, y el correlativo no se repite.
+        return UnidadDeTrabajo.Ejecutar(UnidadDeTrabajo.Documentos, () =>
+        {
+            if (!Validar(salida, out var error))
+                throw new InvalidOperationException(error);
 
-        salida.Numero = SiguienteNumero();
-        salida.Estado = EstadoSalida.Registrada;
-        salida.AutorizadoPorId = usuarioId;
-        salida.AutorizadoPorNombre = _sesion.UsuarioActual?.NombreCompleto ?? string.Empty;
-        salida.CreadoPorId = usuarioId;
-        salida.FechaCreacion = DateTime.Now;
+            salida.Numero = SiguienteNumero();
+            salida.Estado = EstadoSalida.Registrada;
+            salida.AutorizadoPorId = usuarioId;
+            salida.AutorizadoPorNombre = _sesion.UsuarioActual?.NombreCompleto ?? string.Empty;
+            salida.CreadoPorId = usuarioId;
+            salida.FechaCreacion = DateTime.Now;
 
-        return _salidas.Add(salida);
+            return _salidas.Add(salida);
+        });
     }
 
     /// <summary>

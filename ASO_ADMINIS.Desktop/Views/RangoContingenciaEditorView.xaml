@@ -1,0 +1,76 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.RangoContingenciaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="520">
+
+  <StackPanel>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="2*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <controls:FormField Grid.Column="0" Etiqueta="Imprenta autorizada" Requerido="True">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" Text="{Binding Imprenta, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+      <controls:FormField Grid.Column="2" Etiqueta="RIF de la imprenta">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" Text="{Binding ImprentaRif, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+    </Grid>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="2*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <controls:FormField Grid.Column="0" Etiqueta="Providencia o n° de autorización">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" Text="{Binding Autorizacion, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Tal como figura impresa en el formato" />
+      </controls:FormField>
+      <controls:FormField Grid.Column="2" Etiqueta="Fecha de autorización">
+        <DatePicker Style="{StaticResource FormDatePickerStyle}" SelectedDate="{Binding FechaAutorizacion}" />
+      </controls:FormField>
+    </Grid>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <controls:FormField Grid.Column="0" Etiqueta="Prefijo">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" Text="{Binding Prefijo, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Lo que va antes del correlativo, p. ej. 00-" />
+      </controls:FormField>
+      <controls:FormField Grid.Column="2" Etiqueta="Primero" Requerido="True">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+      <controls:FormField Grid.Column="4" Etiqueta="Último" Requerido="True">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+      <controls:FormField Grid.Column="6" Etiqueta="Cifras">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" Text="{Binding Digitos, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Cuántas cifras lleva el correlativo, con ceros a la izquierda" />
+      </controls:FormField>
+    </Grid>
+
+    <TextBlock Text="{Binding Ejemplo}" Margin="0,8,0,0" TextWrapping="Wrap"
+               FontSize="{StaticResource FsBody}" Foreground="{DynamicResource TextPrimaryBrush}" />
+
+    <CheckBox Content="Activo" Margin="0,12,0,0" Cursor="Hand" IsChecked="{Binding Activo}"
+              ToolTip="Un talonario inactivo no se puede usar; conserva las facturas que ya lo usaron" />
+
+    <TextBlock Text="Solo se pueden registrar facturas de contingencia con un número de control de un talonario activo, y cada número una sola vez. Los rangos no pueden solaparse."
+               FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextMutedBrush}" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

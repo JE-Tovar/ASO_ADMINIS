@@ -54,10 +54,11 @@ public static class MatrizPermisos
     ];
 
     /// <summary>
-    /// El día a día en Finanzas: registra facturas de proveedor y proveedores nuevos, pero no
-    /// mueve dinero (eso es de Supervisor) ni borra nada. Para lo demás, petición.
+    /// El día a día de la oficina (compras, almacén, banco, vender). Era el conjunto del rol
+    /// Operador, retirado el 2026-11-18; hoy solo es la base sobre la que se arma
+    /// <see cref="_supervisor"/>. No es de ningún rol por sí solo.
     /// </summary>
-    private static readonly HashSet<string> _operador =
+    private static readonly HashSet<string> _oficina =
     [
         Permisos.Ver(ModuloCatalogo.Inicio.Clave),
         Permisos.Ver(ModuloCatalogo.Peticiones.Clave),
@@ -75,6 +76,10 @@ public static class MatrizPermisos
         Permisos.Ver("Inventario.Salidas"),
 
         Permisos.Ventas.Crear,
+        Permisos.Ventas.VerTodasLasCajas,
+
+        Permisos.Turnos.Abrir,
+        Permisos.Turnos.Cerrar,
 
         Permisos.Clientes.Crear,
         Permisos.Clientes.Editar,
@@ -108,12 +113,12 @@ public static class MatrizPermisos
     ];
 
     /// <summary>
-    /// Supervisa Finanzas: todo lo de Operador, más registrar el pago (que además asienta el
+    /// La oficina y su supervisión: todo lo de <see cref="_oficina"/>, más registrar el pago (que además asienta el
     /// movimiento en el libro de banco) y administrar las cuentas bancarias. No deshace un
     /// movimiento ya asentado — eso es del administrador de la organización.
     /// </summary>
     private static readonly HashSet<string> _supervisor =
-        _operador.Concat(
+        _oficina.Concat(
         [
             Permisos.Ver("Reportes.Gastos"),
 
@@ -149,11 +154,56 @@ public static class MatrizPermisos
             Permisos.EntradasInventario.Anular,
             Permisos.SalidasInventario.Anular,
 
-            Permisos.Peticiones.Resolver
+            Permisos.Peticiones.Resolver,
+
+            Permisos.Turnos.CerrarAjeno
 
             // Fuera a propósito:
             // - Banco.Anular: deshacer un movimiento ya asentado queda un nivel más arriba.
         ]).ToHashSet();
+
+    /// <summary>
+    /// La cuenta de caja: vender en su caja y dentro de su turno, y nada más. La oficina
+    /// (compras, almacén, banco) es del Supervisor.
+    /// </summary>
+    private static readonly HashSet<string> _cajero =
+    [
+        Permisos.Ver(ModuloCatalogo.Inicio.Clave),
+        Permisos.Ver(ModuloCatalogo.Configuracion.Clave),
+        Permisos.Ver("Ventas.Registro"),
+        Permisos.Ver("Ventas.Clientes"),
+        Permisos.Ver("Ventas.Cierre"),
+
+        Permisos.Ventas.Crear,
+
+        Permisos.Clientes.Crear,
+        Permisos.Clientes.Editar,
+
+        Permisos.Turnos.Abrir,
+        Permisos.Turnos.Cerrar
+
+        // Fuera a propósito:
+        // - Ventas.VerTodasLasCajas: solo ve lo de su caja.
+        // - Notas, contingencia, cierre Z, retenciones: Supervisor.
+        // - Finanzas, Inventario, Reportes, Peticiones: no es trabajo de caja.
+    ];
+
+    /// <summary>
+    /// Permisos que solo tienen Supervisor, Administrador y Desarrollador, y que no se pueden
+    /// conceder a un Cajero ni a mano: <see cref="SesionActual"/> los quita del conjunto efectivo de
+    /// cualquier otro rol aunque haya un ajuste que los conceda, y la pantalla de permisos no deja
+    /// marcarlos.
+    /// </summary>
+    public static IReadOnlySet<string> SoloSupervision { get; } = new HashSet<string>
+    {
+        // Cerrar el turno de otro cajero firma SU arqueo: lo hace un supervisor, no un compañero.
+        Permisos.Turnos.CerrarAjeno
+    };
+
+    public static bool EsDeSupervision(Rol rol) =>
+        rol is Rol.Supervisor or Rol.AdministradorOrganizacion or Rol.Desarrollador;
+
+    private static readonly HashSet<string> _ninguno = [];
 
     private static readonly HashSet<string> _administrador =
         Todos.Where(p => !_soloDesarrollador.Contains(p)).ToHashSet();
@@ -166,10 +216,13 @@ public static class MatrizPermisos
 #pragma warning disable CS8524
     public static IReadOnlySet<string> Base(Rol rol) => rol switch
     {
-        Rol.Operador => _operador,
+        // Retirado: no da nada. Si quedara un usuario con este rol (la migración los pasó a
+        // Supervisor), entra sin permisos en vez de con los de oficina.
+        Rol.OperadorRetirado => _ninguno,
         Rol.Supervisor => _supervisor,
         Rol.AdministradorOrganizacion => _administrador,
-        Rol.Desarrollador => Todos
+        Rol.Desarrollador => Todos,
+        Rol.Cajero => _cajero
     };
 #pragma warning restore CS8524
 
@@ -177,7 +230,7 @@ public static class MatrizPermisos
     /// Permisos que, si faltan, no dejan el boton muerto: abren una peticion al administrador.
     ///
     /// Empieza vacía: hoy no hay ninguna acción sensible gateada en las pantallas que un
-    /// Operador ve. Al ampliar lo que ve un rol, sumar aquí la acción sensible correspondiente
+    /// Cajero ve. Al ampliar lo que ve un rol, sumar aquí la acción sensible correspondiente
     /// y cablear el comando con <see cref="SolicitudesDeCambio"/>, o la regla queda muerta.
     /// </summary>
     public static IReadOnlySet<string> Solicitables { get; } = new HashSet<string>();

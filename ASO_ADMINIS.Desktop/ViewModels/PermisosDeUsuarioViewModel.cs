@@ -137,11 +137,18 @@ public sealed class PermisosDeUsuarioViewModel : ViewModelBase
             // Nadie concede lo que no tiene: si no, un administrador se fabricaría un usuario con
             // más alcance que el suyo y entraría con él.
             var loTengo = _sesion.Puede(permiso);
-            var motivo = puedeEditar && !loTengo
-                ? "No puedes conceder un permiso que tú no tienes."
-                : null;
+            var soloAdministracion = MatrizPermisos.SoloSupervision.Contains(permiso)
+                                     && !MatrizPermisos.EsDeSupervision(usuario.Rol);
+            var motivo = soloAdministracion
+                ? "Solo lo tienen Supervisor, Administrador y Desarrollador; no se concede a un Cajero."
+                : puedeEditar && !loTengo
+                    ? "No puedes conceder un permiso que tú no tienes."
+                    : null;
 
-            var fila = new PermisoFilaViewModel(permiso, enRol, concedido, puedeEditar && loTengo, motivo);
+            if (soloAdministracion)
+                concedido = false;
+
+            var fila = new PermisoFilaViewModel(permiso, enRol, concedido, puedeEditar && loTengo && !soloAdministracion, motivo);
             fila.PropertyChanged += OnFilaCambio;
             Filas.Add(fila);
         }

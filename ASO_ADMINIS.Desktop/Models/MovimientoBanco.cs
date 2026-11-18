@@ -75,8 +75,11 @@ public enum CategoriaMovimiento
 /// edita ni se borra desde Banco: su verdad está en el documento. Solo admite conciliarse y
 /// anularse con motivo.
 /// </summary>
-public class MovimientoBanco : IEntidad<int>, IDeOrganizacion
+public class MovimientoBanco : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Nucleo (organizacion) duenno de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

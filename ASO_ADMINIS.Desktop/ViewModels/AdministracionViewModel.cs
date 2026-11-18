@@ -20,6 +20,10 @@ public sealed class AdministracionViewModel : PantallaViewModelBase
 {
     public const string VistaOrganizacion = "Organizacion";
     public const string VistaUsuarios = "Usuarios";
+    public const string VistaCajas = "Cajas";
+    public const string VistaBitacora = "Bitacora";
+    public const string VistaRespaldos = "Respaldos";
+    public const string VistaContingencia = "Contingencia";
 
     private readonly IServicioDialogo _dialogos;
 
@@ -45,7 +49,12 @@ public sealed class AdministracionViewModel : PantallaViewModelBase
 
         Organizacion = new DatosOrganizacionViewModel(
             DataSourceFactory.CrearOrganizaciones(), dialogos, sesion, tasaCambio);
-        Usuarios = new UsuariosCrudViewModel(DataSourceFactory.CrearUsuarios(), dialogos, sesion);
+        Usuarios = new UsuariosCrudViewModel(DataSourceFactory.CrearUsuarios(), dialogos, sesion,
+                                             DataSourceFactory.CrearCajas());
+        Cajas = new CajasCrudViewModel(DataSourceFactory.CrearCajas(), dialogos, sesion);
+        Bitacora = new BitacoraViewModel(DataSourceFactory.CrearBitacora(), dialogos, sesion);
+        Respaldos = new RespaldosViewModel(DataSourceFactory.CrearServicioRespaldos(), dialogos, sesion);
+        Contingencia = new RangosContingenciaCrudViewModel(DataSourceFactory.CrearRangosContingencia(), dialogos, sesion);
         PermisosDeUsuario = new PermisosDeUsuarioViewModel(
             DataSourceFactory.CrearPermisosUsuario(), dialogos, sesion);
 
@@ -56,6 +65,10 @@ public sealed class AdministracionViewModel : PantallaViewModelBase
 
     public DatosOrganizacionViewModel Organizacion { get; }
     public UsuariosCrudViewModel Usuarios { get; }
+    public CajasCrudViewModel Cajas { get; }
+    public BitacoraViewModel Bitacora { get; }
+    public RespaldosViewModel Respaldos { get; }
+    public RangosContingenciaCrudViewModel Contingencia { get; }
     public PermisosDeUsuarioViewModel PermisosDeUsuario { get; }
 
     /// <summary>
@@ -98,6 +111,9 @@ public sealed class AdministracionViewModel : PantallaViewModelBase
     {
         var idMostrado = _usuarioMostrado?.Id;
 
+        Cajas.Recargar();
+        Contingencia.Recargar();
+
         _restaurandoSeleccion = true;
         Usuarios.Recargar();
         _restaurandoSeleccion = false;
@@ -126,6 +142,10 @@ public sealed class AdministracionViewModel : PantallaViewModelBase
 
     public bool MostrarOrganizacion => VistaActual == VistaOrganizacion;
     public bool MostrarUsuarios => VistaActual == VistaUsuarios;
+    public bool MostrarCajas => VistaActual == VistaCajas;
+    public bool MostrarBitacora => VistaActual == VistaBitacora;
+    public bool MostrarRespaldos => VistaActual == VistaRespaldos;
+    public bool MostrarContingencia => VistaActual == VistaContingencia;
 
     /// <summary>
     /// Las dos pestanas, enlazadas en DOS VIAS al IsChecked de su boton. Antes la seleccion
@@ -138,6 +158,42 @@ public sealed class AdministracionViewModel : PantallaViewModelBase
     {
         get => MostrarUsuarios;
         set { if (value) VistaActual = VistaUsuarios; }
+    }
+
+    public bool EsContingencia
+    {
+        get => MostrarContingencia;
+        set { if (value) VistaActual = VistaContingencia; }
+    }
+
+    public bool EsRespaldos
+    {
+        get => MostrarRespaldos;
+        set
+        {
+            if (!value)
+                return;
+            VistaActual = VistaRespaldos;
+            Respaldos.CargarSiHaceFalta();
+        }
+    }
+
+    public bool EsBitacora
+    {
+        get => MostrarBitacora;
+        set
+        {
+            if (!value)
+                return;
+            VistaActual = VistaBitacora;
+            Bitacora.CargarSiHaceFalta();
+        }
+    }
+
+    public bool EsCajas
+    {
+        get => MostrarCajas;
+        set { if (value) VistaActual = VistaCajas; }
     }
 
     public bool EsOrganizacion

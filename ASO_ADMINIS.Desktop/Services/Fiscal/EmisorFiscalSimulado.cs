@@ -27,11 +27,17 @@ public sealed class EmisorFiscalSimulado : IEmisorFiscal
     private readonly string _carpetaDocumentos;
     private readonly bool _comoMaquina;
     private readonly bool _fallar;
+    private readonly bool _incierto;
 
-    public EmisorFiscalSimulado(bool comoMaquina, bool fallar, string? carpeta = null)
+    /// <param name="incierto">
+    /// Simula el peor caso: el documento SÍ queda emitido, pero se "pierde" la respuesta
+    /// (<see cref="EmisionInciertaException"/>). Para probar el camino del diario fiscal.
+    /// </param>
+    public EmisorFiscalSimulado(bool comoMaquina, bool fallar, string? carpeta = null, bool incierto = false)
     {
         _comoMaquina = comoMaquina;
         _fallar = fallar;
+        _incierto = incierto;
         var raiz = carpeta ?? Carpeta;
         _rutaEstado = Path.Combine(raiz, "emisor-simulado.json");
         _carpetaDocumentos = Path.Combine(raiz, "documentos");
@@ -76,8 +82,18 @@ public sealed class EmisorFiscalSimulado : IEmisorFiscal
             null);
 
         var ruta = EscribirDocumento(documento, emisor, resultado);
+
+        if (_incierto)
+            throw new EmisionInciertaException(
+                "Se envió el documento al emisor pero no llegó la respuesta (simulación). " +
+                "Verifique en el emisor si quedó emitido antes de repetirlo.");
+
         return resultado with { RutaDocumento = ruta };
     }
+
+    public EstadoEmisor ProbarConexion() => _fallar
+        ? new EstadoEmisor(false, "El emisor no responde (simulación de falla).")
+        : new EstadoEmisor(true, $"{Nombre} listo. SIN VALOR FISCAL: es un simulador.", Serial);
 
     public void TransmitirContingencia(Venta documento, Organizacion emisor)
     {

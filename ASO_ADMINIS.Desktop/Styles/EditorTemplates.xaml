@@ -34,6 +34,24 @@
     <views:RetencionEditorView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:AbrirTurnoEditorViewModel}">
+    <views:AbrirTurnoEditorView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:CerrarTurnoEditorViewModel}">
+    <views:CerrarTurnoEditorView />
+  </DataTemplate>
+
+  <!-- Administración -->
+
+  <DataTemplate DataType="{x:Type vm:CajaEditorViewModel}">
+    <views:CajaEditorView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:RangoContingenciaEditorViewModel}">
+    <views:RangoContingenciaEditorView />
+  </DataTemplate>
+
   <!-- Finanzas · Cuentas por Pagar y Banco -->
 
   <DataTemplate DataType="{x:Type vm:ProveedorEditorViewModel}">

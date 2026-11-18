@@ -81,12 +81,54 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<int>("Unidad")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizacionId", "Codigo")
                         .IsUnique();
 
                     b.ToTable("Articulos");
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Caja", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizacionId", "Codigo")
+                        .IsUnique();
+
+                    b.ToTable("Cajas");
                 });
 
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.CierreZ", b =>
@@ -207,6 +249,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizacionId", "Rif")
@@ -262,6 +309,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
 
                     b.Property<int>("Tipo")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id");
 
@@ -351,6 +403,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<int?>("VentaId")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FacturaProveedorId");
@@ -419,6 +476,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id");
 
@@ -505,6 +567,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<decimal>("TasaCambio")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizacionId", "Fecha");
@@ -587,6 +654,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<int>("Tipo")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CuentaId", "Fecha");
@@ -632,6 +704,9 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<decimal>("IvaReducida")
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<int>("MinutosInactividad")
+                        .HasColumnType("int");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -651,6 +726,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id");
 
@@ -766,6 +846,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.ToTable("PeticionesCambio");
@@ -805,9 +890,192 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.ToTable("Proveedores");
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.RangoContingencia", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Autorizacion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Desde")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Digitos")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaAutorizacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Hasta")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Imprenta")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ImprentaRif")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Prefijo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizacionId", "Prefijo", "Desde")
+                        .IsUnique();
+
+                    b.ToTable("RangosContingencia", (string)null);
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.RegistroAuditoria", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Accion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CajaCodigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Detalle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Entidad")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("EntidadId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Equipo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Resumen")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<int?>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UsuarioNombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Entidad", "EntidadId");
+
+                    b.HasIndex("OrganizacionId", "Fecha");
+
+                    b.ToTable("RegistrosAuditoria", (string)null);
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.RegistroRespaldo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Archivo")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DuracionMs")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Equipo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Error")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("Exitoso")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Origen")
+                        .HasColumnType("int");
+
+                    b.Property<long>("TamanoBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UsuarioNombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("Verificado")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.ToTable("Respaldos", (string)null);
                 });
 
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.RetencionIvaRecibida", b =>
@@ -940,6 +1208,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<int?>("VentaId")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("VentaId");
@@ -967,12 +1240,101 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizacionId", "Fecha")
                         .IsUnique();
 
                     b.ToTable("TasasCambio");
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Turno", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Apertura")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CajaCodigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("CajaId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CerradoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CerradoPorNombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("Cierre")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("ContadoBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ContadoDivisa")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("EsperadoBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("EsperadoDivisa")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("FondoBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("FondoDivisa")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Observaciones")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UsuarioNombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CajaId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Turnos_CajaId_Abierto")
+                        .HasFilter("[Estado] = 0");
+
+                    b.HasIndex("OrganizacionId", "Apertura");
+
+                    b.ToTable("Turnos");
                 });
 
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Usuario", b =>
@@ -985,6 +1347,18 @@ namespace ASO_ADMINIS.Desktop.Migrations
 
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("BloqueadoHasta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CajaId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("DebeCambiarPassword")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("IntentosFallidos")
+                        .HasColumnType("int");
 
                     b.Property<string>("NombreCompleto")
                         .IsRequired()
@@ -1012,7 +1386,14 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<int>("Rol")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CajaId");
 
                     b.HasIndex("NombreUsuario")
                         .IsUnique();
@@ -1044,6 +1425,9 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("CajaId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ClienteCorreo")
                         .IsRequired()
@@ -1091,6 +1475,11 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("DocumentoRuta")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("EnContingencia")
                         .HasColumnType("bit");
@@ -1179,12 +1568,19 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("TurnoId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Vuelto")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CajaId");
+
                     b.HasIndex("DocumentoAfectadoId");
+
+                    b.HasIndex("TurnoId");
 
                     b.HasIndex("OrganizacionId", "Fecha");
 
@@ -1347,8 +1743,35 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.Navigation("Lineas");
                 });
 
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Turno", b =>
+                {
+                    b.HasOne("ASO_ADMINIS.Desktop.Models.Caja", null)
+                        .WithMany()
+                        .HasForeignKey("CajaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Usuario", b =>
+                {
+                    b.HasOne("ASO_ADMINIS.Desktop.Models.Caja", null)
+                        .WithMany()
+                        .HasForeignKey("CajaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Venta", b =>
                 {
+                    b.HasOne("ASO_ADMINIS.Desktop.Models.Caja", null)
+                        .WithMany()
+                        .HasForeignKey("CajaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ASO_ADMINIS.Desktop.Models.Turno", null)
+                        .WithMany()
+                        .HasForeignKey("TurnoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.OwnsMany("ASO_ADMINIS.Desktop.Models.VentaLinea", "Lineas", b1 =>
                         {
                             b1.Property<int>("Id")

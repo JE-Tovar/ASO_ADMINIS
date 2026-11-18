@@ -11,11 +11,14 @@ namespace ASO_ADMINIS.Desktop.ViewModels;
 public sealed class UsuariosCrudViewModel : CrudViewModelBase<Usuario, int>
 {
     private readonly ISesionActual _sesion;
+    private readonly ICajaDataSource _cajas;
 
-    public UsuariosCrudViewModel(IUsuarioDataSource usuarios, IServicioDialogo dialogos, ISesionActual sesion)
+    public UsuariosCrudViewModel(IUsuarioDataSource usuarios, IServicioDialogo dialogos, ISesionActual sesion,
+                                 ICajaDataSource cajas)
         : base(usuarios, dialogos, sesion)
     {
         _sesion = sesion;
+        _cajas = cajas;
     }
 
     protected override string ModuloPermiso => "Usuarios";
@@ -23,12 +26,13 @@ public sealed class UsuariosCrudViewModel : CrudViewModelBase<Usuario, int>
     protected override bool CoincideBusqueda(Usuario item, string texto) =>
         item.NombreUsuario.Contains(texto, StringComparison.OrdinalIgnoreCase)
         || item.NombreCompleto.Contains(texto, StringComparison.OrdinalIgnoreCase)
-        || item.RolTexto.Contains(texto, StringComparison.OrdinalIgnoreCase);
+        || item.RolTexto.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || item.CajaTexto.Contains(texto, StringComparison.OrdinalIgnoreCase);
 
     protected override Usuario CrearNuevo() => new();
 
     protected override CrudEditorViewModelBase<Usuario> CrearEditor(Usuario item) =>
-        new UsuarioEditorViewModel(item, _sesion);
+        new UsuarioEditorViewModel(item, _sesion, _cajas.GetAll());
 
     /// <summary>
     /// Nadie se borra a sí mismo: dejaría el núcleo sin quien lo administre y cerraría la

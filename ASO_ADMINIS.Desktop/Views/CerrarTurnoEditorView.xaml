@@ -1,0 +1,61 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.CerrarTurnoEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="380">
+
+  <StackPanel>
+    <TextBlock Text="{Binding Descripcion}" FontSize="{StaticResource FsBody}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextSecondaryBrush}" />
+    <TextBlock Text="{Binding AvisoAjeno}" FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+               Foreground="{DynamicResource WarningTextBrush}" Margin="0,8,0,0"
+               Visibility="{Binding HayAvisoAjeno, Converter={StaticResource BoolToVis}}" />
+
+    <Grid Margin="0,8,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <controls:FormField Grid.Row="0" Grid.Column="0" Etiqueta="Esperado en Bs.">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" IsReadOnly="True" Focusable="False"
+                 Text="{Binding EsperadoBsTexto, Mode=OneWay}" />
+      </controls:FormField>
+      <controls:FormField Grid.Row="0" Grid.Column="2" Etiqueta="Esperado en US$">
+        <TextBox Style="{StaticResource FormTextBoxStyle}" IsReadOnly="True" Focusable="False"
+                 Text="{Binding EsperadoDivisaTexto, Mode=OneWay}" />
+      </controls:FormField>
+
+      <controls:FormField Grid.Row="1" Grid.Column="0" Etiqueta="Contado en Bs.">
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding ContadoBs, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+      <controls:FormField Grid.Row="1" Grid.Column="2" Etiqueta="Contado en US$">
+        <TextBox Style="{StaticResource FormTextBoxStyle}"
+                 Text="{Binding ContadoDivisa, UpdateSourceTrigger=PropertyChanged}" />
+      </controls:FormField>
+    </Grid>
+
+    <TextBlock Text="{Binding DiferenciaTexto}" FontSize="{StaticResource FsSubtitle}" FontWeight="{StaticResource FwBold}"
+               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0" TextWrapping="Wrap" />
+
+    <controls:FormField Etiqueta="Observaciones">
+      <TextBox Style="{StaticResource FormTextBoxStyle}"
+               AcceptsReturn="True" MinLines="2" TextWrapping="Wrap"
+               VerticalContentAlignment="Top"
+               Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+
+    <TextBlock Text="Esperado = fondo + efectivo cobrado en las facturas del turno − vuelto. Un reintegro en efectivo por nota de crédito no se descuenta solo: anótalo aquí."
+               FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextMutedBrush}" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

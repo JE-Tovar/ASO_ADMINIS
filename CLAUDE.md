@@ -47,8 +47,14 @@ Es escritorio, no web (no hay dev server / puerto). `dotnet run` dentro de
 `ASO_ADMINIS.Desktop`, o F5 en Visual Studio (`ASO_ADMINIS.slnx`).
 
 Pruebas: `dotnet test ASO_ADMINIS.slnx` (proyecto `ASO_ADMINIS.Tests`, xUnit). Usan fuentes de datos
-y emisor en memoria (`Dobles.cs`), así que no tocan SQL Server ni `%AppData%`; cubren `Rif`,
-`CalculoFiscal` y la numeración de `VentasService` (contingencia, choque entre cajas).
+y emisor en memoria (`Dobles.cs`), así que no tocan SQL Server ni `%AppData%` (el diario fiscal va
+a una carpeta temporal: `InicioDePruebas`); cubren `Rif`, `CalculoFiscal`, la numeración de
+`VentasService`, cajas y turnos, y la bitácora. **Integración con SQL** (`IntegracionSqlTests`):
+solo con `ASO_PRUEBAS_SQL=1` (PowerShell: `$env:ASO_PRUEBAS_SQL=1; dotnet test ASO_ADMINIS.slnx`);
+crean una base LocalDB temporal con todas las migraciones y la borran al terminar. Prueban
+rollback, candado, dos cajas vendiendo la última unidad, conflicto de edición, bitácora y su
+trigger. Sin la variable salen como omitidas. Ojo: si la compilación falla, no correr con
+`--no-build` (correrían binarios viejos).
 
 Instalación en otra PC: instalador y actualizaciones automáticas con **Velopack** (`Program.cs`,
 `Services/Actualizaciones.cs`; cómo publicar una versión en el README). Instalada, `AppConfig`
@@ -339,8 +345,8 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
     en el ViewModel).
 - **Datos del emisor** en `Organizacion` (`RazonSocial`, `Rif`, `DireccionFiscal`, `Telefono`,
   `ContribuyenteEspecial`), editables en Administración · Organización. Sin
-  `DatosFiscalesCompletos` no se emite nada. **Caja por máquina**: `AjustesApp.CajaCodigo`
-  (Configuración · Aplicación); sin caja tampoco se emite.
+  `DatosFiscalesCompletos` no se emite nada. **Caja del usuario** (`SesionActual.CajaActual`,
+  ver "Cajas, cajeros y turnos"); sin caja tampoco se emite, y la factura además exige turno.
 - **RIF** (`Services/Rif.cs`): normaliza a `J-12345678-9` y valida el dígito verificador con
   módulo 11. Letras: V=1, E=2, J=3, P=4, G=5. La letra se multiplica por 4 y los 8 dígitos por
   3,2,7,6,5,4,3,2; luego DV = 11 − (suma mod 11), con ≥10 → 0. Se verificó con `G-20000303-0`
@@ -395,9 +401,25 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
     - Con `Fallar: true` simula un emisor caído.
   - **PENDIENTE:** escribir el conector real (máquina HKA o API de una imprenta digital) cuando
     el cliente elija.
-- **Contingencia:** si el emisor no responde, quien tenga `Ventas.Contingencia` registra la factura
-  hecha en papel. Se cargan su n° y su n° de control, que se valida que no se repita. Queda
-  `PendienteTransmitir` hasta que "Transmitir pendientes" la envía.
+- **Contingencia:** si el emisor no responde (falla SEGURA, `EmisorFiscalException`), quien tenga
+  `Ventas.Contingencia` registra la factura hecha en papel. Se cargan su n° y su n° de control.
+  Queda `PendienteTransmitir` hasta que "Transmitir pendientes" la envía.
+  - **Talonarios** (`Models/RangoContingencia.cs`, reglas puras en `Services/RangosContingencia.cs`,
+    Administración · Contingencia, permisos `RangosContingencia.Crear/Editar`): el n° de control
+    TIENE que caer en un talonario activo (prefijo + correlativo con N cifras) y no estar usado.
+    **Fuera de rango se bloquea siempre**, y sin talonarios cargados no se registra ninguna
+    contingencia. Se guarda escrito como en el formato ("1" → "00-000001"). El formulario propone
+    el siguiente libre y avisa con ≤ 10 % libre. Los rangos no se solapan (mismo prefijo) y no se
+    pueden achicar dejando afuera un número usado.
+- **Comprobante no fiscal** (2026-11-18): desde la ficha de cualquier venta (doble clic en
+  Registro), "Imprimir comprobante" y "Guardar PDF", en hoja carta. Lleva en grande "DOCUMENTO NO
+  FISCAL" y en el pie cuál es el documento fiscal (n° y control del emisor). No se ofrece al emitir:
+  el documento fiscal ya lo da el emisor. `Services/ComprobanteNoFiscal.cs` arma los datos una vez
+  (los textos compartidos con la ficha están en `TextosDeVenta`); los dibujan `ComprobantePdf`
+  (PDFsharp-MigraDoc, MIT; las fuentes de Windows con `FuentesWindows`, porque PDFsharp 6 no las
+  busca solo) y `ComprobanteImpreso` (`FlowDocument` + `PrintDialog`). Colores fijos (el papel es
+  blanco aunque el tema sea oscuro). Los datos del emisor salen de la organización ACTUAL: la venta no
+  guarda copia. Sin permiso propio: quien ve la ficha puede sacar la copia.
 - **Retenciones de IVA recibidas** (`RetencionIvaRecibida`, `RetencionesService`): son las del
   cliente agente de retención, del 75 % o el 100 % del IVA.
   - **Comprobante:** número de 14 dígitos; una retención por factura; el comprobante no se
@@ -485,8 +507,11 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
 - **La cadena de conexión vive solo en `appsettings.local.json`** (por máquina, en `.gitignore`);
   la de `appsettings.json` (clave `ConnectionStrings:AsoAdminisDb`) apunta a LocalDB con un
   `.mdf` en `App_Data`.
-- **No hay claves foráneas reales** en las tablas planas: las relaciones son `int` sueltos y la
-  integridad es de la aplicación, con snapshots de texto (`…Nombre`) en cada documento.
+- **Casi no hay claves foráneas reales** en las tablas planas: las relaciones son `int` sueltos y la
+  integridad es de la aplicación, con snapshots de texto (`…Nombre`) en cada documento. Las
+  únicas FK son las de cajas y turnos (`Usuarios.CajaId`, `Turnos.CajaId`, `Ventas.CajaId`,
+  `Ventas.TurnoId`, todas `Restrict`) y las de los renglones `OwnsMany`. Las viejas se dejaron
+  sin FK a propósito: una base real con huérfanos haría fallar la migración.
 
 ## Una sola organización por instalación
 
@@ -511,28 +536,185 @@ ese nivel hay que diseñarlo cuando se conozca la necesidad real (ver PROVISIONA
 
 ## Roles y permisos
 
-Cuatro roles genéricos (`Models/Rol.cs`), cada uno con un conjunto base en
+Cuatro roles (`Models/Rol.cs`): Cajero, Supervisor, AdministradorOrganizacion y Desarrollador,
+cada uno con un conjunto base en
 `Services/MatrizPermisos.cs` que el administrador ajusta por usuario con `PermisoUsuario`
 (concede o revoca; **revocar gana**).
 
 | Rol | Alcance |
 |---|---|
-| **Operador** | El día a día: emite facturas y mantiene clientes y servicios; crea/edita proveedores y facturas de compra; mantiene el catálogo de artículos y registra entradas y salidas de almacén; ve el cierre del día (reporte X). No mueve dinero, no anula ni borra nada |
-| **Supervisor** | Todo lo de Operador, más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; registrar pagos (dispara el asiento en Banco) y gastos varios, administrar cuentas bancarias, anular documentos de almacén, eliminar, y resolver peticiones de su dominio |
+| **Supervisor** | La oficina y su supervisión: emite facturas y mantiene clientes y servicios; proveedores y facturas de compra; catálogo de artículos, entradas y salidas de almacén; más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; registrar pagos (dispara el asiento en Banco) y gastos varios, administrar cuentas bancarias, anular documentos de almacén, eliminar, resolver peticiones de su dominio y cerrar el turno de otro cajero |
 | **AdministradorOrganizacion** | Todo dentro de la organización, salvo crear usuarios Desarrollador |
 | **Desarrollador** | Todos los permisos, y es el único que reparte su propio rol |
+| **Cajero** | Solo vender en SU caja y dentro de su turno: Registro de ventas, Clientes y Cierre del día (abrir/cerrar su turno). No ve Finanzas, Inventario, Reportes, Peticiones ni las ventas de otras cajas. Obligatorio tener caja asignada |
 
 - **`Services/Permisos.cs`** es el catálogo de cadenas, formato `"Modulo.Accion"`. Los de
   navegación llevan prefijo `Ver.` y se **derivan de la clave del submódulo**.
 - **`Rol` se persiste como ORDINAL** (`Usuarios.Rol int`, sin `HasConversion`): los miembros se
-  añaden **siempre al final**. Añadir un rol es enum + conjunto en `MatrizPermisos` + el array
+  añaden **siempre al final**, y **no se borran**. El rol **Operador** (ordinal 0) se retiró el
+  2026-11-18: el miembro quedó como `Rol.OperadorRetirado`, no se asigna y no da ningún permiso, y
+  la migración `QuitarRolOperador` pasó a sus usuarios a Supervisor. Lo que hacía vive en
+  `MatrizPermisos._oficina`, la base del Supervisor. Añadir un rol es enum + conjunto en `MatrizPermisos` + el array
   `asignables` de `UsuarioEditorViewModel` (escrito a mano, no `Enum.GetValues`).
-- **`SesionActual`** calcula el conjunto efectivo **una vez al entrar** y lo cachea: un cambio de
-  rol o de permisos se aplica al volver a iniciar sesión, no en caliente.
+- **`SesionActual`** calcula el conjunto efectivo al entrar y lo cachea (`Puede` es una búsqueda en
+  tabla hash). **Se refresca en caliente** cada minuto (ver "Seguridad de las cuentas").
 - **Contraseñas**: PBKDF2-SHA256 con salt por usuario y 210 000 iteraciones
   (`Services/Passwords.cs`). No hay usuarios sembrados ni contraseñas por defecto: en la primera
   ejecución contra una base sin usuarios, `Views/PrimerArranqueView` pide el nombre de la
   organización, su código, y crea el usuario Desarrollador.
+
+## Cajas, cajeros y turnos (2026-11-18)
+
+Antes la caja era un texto libre por PC (`AjustesApp.CajaCodigo`, hoy `[Obsolete]` y sin leer) y
+no había diferencia entre una cuenta de caja y una de oficina. Ahora:
+
+- **`Models/Caja.cs`**: padrón en Administración · Cajas (`CajasCrudViewModel`). Código único por
+  organización, **fijo después de crearla** (ventas, turnos y Z guardan copia). No se borra, se
+  desactiva (no existe `Cajas.Eliminar`).
+- **La caja es del usuario, no de la PC**: `Usuario.CajaId`, que se elige en el editor de usuario.
+  `SesionActual.IniciarSesion` la resuelve en `CajaActual` (una inactiva cuenta como ninguna). Un
+  **Cajero** sin caja activa no entra: `SesionRechazadaException`, que el login muestra tal cual.
+  Otros roles pueden tener caja (un supervisor que despacha) o no.
+- **`Models/Turno.cs` + `Services/TurnosService.cs`**: se abre con fondo (Bs y US$) y se cierra con
+  arqueo. **Un solo turno abierto por caja**, respaldado por el índice único filtrado
+  `IX_Turnos_CajaId_Abierto`. Esperado = fondo + `EfectivoBs`/`EfectivoDivisa` de las facturas
+  vigentes del turno − `Vuelto` (en Bs). Las notas de crédito no llevan pagos, así que un
+  reintegro en efectivo se anota en las observaciones. Si el arqueo no cuadra, el editor exige
+  observaciones. Cerrar el turno de otro exige `Turnos.CerrarAjeno`, que **solo tienen Supervisor,
+  Administrador y Desarrollador**: está en `MatrizPermisos.SoloSupervision`, así que
+  `SesionActual` se lo quita a un Cajero aunque se lo concedan a mano, y la pantalla de permisos no
+  deja marcarlo. El
+  botón "Cerrar turno de otro cajero" de Cierre del día solo lo ve quien puede.
+- **`VentasService.PuedeFacturar`**: caja + turno abierto **propio** en esa caja. Solo para la
+  factura; notas y contingencia (Supervisor) solo piden caja. La factura guarda `CajaId` y
+  `TurnoId`. Sin proveedor de turno (`turno:` nulo en el constructor) no se factura: fail-closed.
+- **`Ventas.VerTodasLasCajas`**: sin él (el Cajero), Registro, resumen diario, Z y turnos se
+  filtran a la caja propia. Se filtra en la vista, no en la fuente.
+- **Dónde se ve**: chip ámbar/azul en la cabecera de `MainWindow` ("CAJA-01 · Turno desde 08:12" /
+  "Sin turno"), que se repinta con `CambiosDeDatos`; tarjeta "Mi turno" y grilla "Turnos" en
+  Ventas · Cierre del día; Configuración · Aplicación muestra la caja de solo lectura.
+- **Migración `AgregarCajasYTurnos`** (editada a mano): crea una `Caja` por cada código distinto
+  (mayúsculas, sin espacios) que haya en `Ventas` o `CierresZ`, por organización, y rellena
+  `Ventas.CajaId`. Tras actualizar, **hay que asignar caja a cada usuario que venda**.
+
+## Transacciones y concurrencia (2026-11-18)
+
+Cada fuente `Sql…DataSource` abre su propio contexto por método, así que lo que toca dos tablas
+no era atómico (había compensaciones a mano con `Delete` en los `catch`). Ahora:
+
+- **`Services/UnidadDeTrabajo.cs`**: `UnidadDeTrabajo.Ejecutar(bloqueo, () => …)`. Estática como
+  `Ajustes`; `App.OnStartup` pone `BD/UnidadDeTrabajoSql` (un `TransactionScope` ReadCommitted, 60 s).
+  Las pruebas en memoria se quedan con `Directa`; para probar el rollback sin SQL está
+  `TransaccionEnMemoria` (`Dobles.cs`) con `UnidadDeTrabajo.Usar(…)`, que es por flujo (AsyncLocal)
+  porque las pruebas corren en paralelo.
+- **No escala a MSDTC** (que .NET 8 no soporta) porque las fuentes nunca abren dos conexiones a la
+  vez. **Regla nueva: una fuente de `BD/` no abre un contexto dentro de otro**, ni llama a otra
+  fuente con su contexto abierto.
+- **Candado `UnidadDeTrabajo.Documentos`** (`sp_getapplock` exclusivo por organización, dueño la
+  transacción, espera máx. 20 s): ventas (factura, notas, contingencia), salidas, entradas y su
+  anulación, gastos. Ventas lo toma desde la validación de existencia hasta el guardado: dos cajas
+  no venden la misma última unidad, y los correlativos "último + 1" no chocan.
+- **Envueltos en transacción**: los de arriba más pago de factura (asiento + factura), anular
+  gasto, transferencia y anulación con contraparte en Banco, cierre Z + estampado, y el `Update` de
+  `SqlAgregadoDataSource` (borrar hijos + escribir nuevos).
+- **Ventas y el diario fiscal**: `VentasService.EmisionAtomica` corre validar → emitir → guardar →
+  mover almacén en una transacción. Si algo falla DESPUÉS de emitir (incluida la confirmación), el
+  documento va a `DiarioFiscal` y se lanza `EmitidoSinGuardarException`. El emisor fiscal se llama
+  con el candado tomado: si la impresora tarda, las otras cajas esperan (hasta 20 s y avisan).
+- **Concurrencia optimista**: `Models/IConVersion` (`byte[]? Version`, `rowversion`, la marca
+  `AplicarVersiones` en `DbContext` para toda entidad que la implemente). La tienen los maestros y
+  los documentos con estado; `Venta` no (es inalterable). `CrudViewModelBase.Editar` copia la versión
+  del registro abierto si el editor armó el resultado con `new`; `SqlAgregadoDataSource.Update` la
+  compara antes de tocar nada. El choque sale como `ConflictoDeEdicionException` (en
+  `ISesionActual.cs`), que `CrudViewModelBase.Intentar` muestra y recarga. **Al reutilizar una
+  entidad ya guardada para un segundo `Update`, tomar la `Version` nueva** (ver `CuentaViewModel`).
+
+## Registro y bitácora (2026-11-18)
+
+- **Registro técnico** (`Services/Registro.cs`, Serilog): `%LocalAppData%\ASO Adminis\logs\aso-AAAAMMDD.log`,
+  30 días, con versión, equipo, usuario y caja en cada línea. Se inicia en `Program.Main`. `App`
+  instala los manejadores de errores no controlados: el de la interfaz registra, avisa y deja seguir
+  (antes cerraba la app). Se registran arranque, migraciones, login (solo el nombre), conflictos,
+  candados vencidos, el diario fiscal y los `catch` que antes se tragaban el error. **Nunca**
+  contraseñas ni cadenas de conexión. Configuración · Aplicación tiene "Abrir carpeta de registros".
+- **Bitácora** (`Models/RegistroAuditoria.cs`, tabla `RegistrosAuditoria`): la escribe sola
+  `AsoAdminisDbContext.SaveChanges` por cada alta, modificación o baja de una entidad raíz (no
+  owned), con quién, caja, equipo y el detalle campo por campo (JSON). En una modificación lo de
+  antes se lee con `GetDatabaseValues()` (las entidades llegan desprendidas). Un `Update` sin
+  cambios reales no se anota. El cambio y su fila van en la misma transacción. La parte pura
+  (diferencias, enmascarado de `PasswordHash`/`PasswordSalt`, formato) está en `Services/Auditoria.cs`.
+- **Solo se agrega**: `ProtegerBitacora` rechaza modificarla o borrarla, y el trigger
+  `TR_RegistrosAuditoria_SoloAgregar` (migración `IntegridadYBitacora`) lo impide por fuera.
+- **Administración · Bitácora**: permiso `Bitacora.Ver` (por defecto solo el administrador).
+  Filtra en el servidor (`SqlBitacoraDataSource`) por fechas, tipo y texto; máx. 1000 filas.
+
+## Seguridad de las cuentas (2026-11-18)
+
+- **`Services/PoliticaSeguridad.cs`**: todas las reglas en un sitio (antes el largo mínimo estaba en
+  cuatro pantallas). `ErrorPassword`: 8+, letras y números, sin el nombre de usuario.
+- **Bloqueo** (`Usuario.IntentosFallidos`, `BloqueadoHasta`): `AuthService` cuenta los fallos con
+  `IUsuarioDataSource.RegistrarIntentoFallido` (sin ámbito, como el login) y bloquea 15 min a los 5.
+  Estando bloqueada, **solo quien escribe la contraseña correcta** recibe el aviso
+  (`SesionRechazadaException`); a quien prueba claves se le contesta como siempre, sin alargar el
+  bloqueo. Se levanta en el editor de usuario (*Desbloquear*) o poniendo contraseña nueva. Queda en
+  la bitácora: `CapturarAuditoria` usa los originales rastreados cuando el filtro de organización
+  (sin sesión) oculta la fila a `GetDatabaseValues`.
+- **Cambio obligatorio** (`Usuario.DebeCambiarPassword`): lo marca el editor de usuario cuando un
+  administrador pone la contraseña de OTRO. `LoginView` abre `CambioPasswordObligatorioView`, que
+  reutiliza `CuentaViewModel.CambiarPassword`; sin cambiarla no se entra.
+- **Inactividad** (`Organizacion.MinutosInactividad`, 15 por defecto, 0 apaga; Administración ·
+  Organización): `MainWindow.Guardia.cs` mira la entrada con `InputManager.PreProcessInput` y tapa
+  todo con `SesionBloqueadaView` (no se cierra con la X; la contraseña pasa por `AuthService`, así que
+  cuenta para el bloqueo).
+- **Permisos en caliente**: cada minuto `SesionActual.Leer` (en segundo plano) + `Aplicar` (en el
+  hilo de interfaz). Cambio de rol/permisos/caja → se aplica y se redibuja `MainWindow` cuando no hay
+  un editor modal abierto; desactivado o cajero sin caja → se cierran las ventanas y la sesión.
+  También refresca los datos de la organización (`Ambito.Actualizar`).
+
+## Respaldos (2026-11-18)
+
+- **`Services/RespaldoService.cs`** + **`BD/SqlRespaldoDataSource.cs`**: `.bak` nativo
+  (`BACKUP DATABASE … WITH CHECKSUM` + `RESTORE VERIFYONLY`; el nombre de la base se escapa a mano
+  porque con LocalDB es la ruta del .mdf y `QUOTENAME` devuelve NULL pasados 128) y exportación
+  portable (zip: `manifiesto.json` + `tablas/<Tabla>.json`, recorriendo el modelo de EF con
+  `IgnoreQueryFilters`; los owned van anidados). **El .bak no se restaura en PostgreSQL**: la
+  exportación portable es la que servirá para migrar de motor (falta escribir el importador, junto
+  con la API).
+- **Cuándo**: primer login del día de cualquier PC (`LoginViewModel`, en segundo plano, si falta un
+  exitoso de alguno de los dos tipos en 20 h), manual (Administración · Respaldos, permiso
+  `Respaldos.Ejecutar`) o `ASO_ADMINIS.Desktop.exe --respaldar` (`Program.RespaldoProgramado`, sin
+  ventanas, para el Programador de tareas). Un candado de sesión (`sp_getapplock` 'ASO:Respaldo',
+  sin espera) evita dos respaldos a la vez.
+- **Dónde**: `Respaldos:Carpeta` (local; por defecto `%LocalAppData%\ASO Adminis\Respaldos`) y
+  `Respaldos:CarpetaServidor` (ruta del servidor de SQL para el .bak; por defecto la de la instancia,
+  o la local con LocalDB). Se conservan 14 de cada tipo; los .bak solo se limpian si la base está en
+  esta PC, y nunca se toca un archivo que no tenga nuestro nombre.
+- **Historial**: tabla `Respaldos` (`RegistroRespaldo`, sin organización, excluida de la bitácora).
+
+## Cómo escribir un conector fiscal (2026-11-18)
+
+La base común está hecha; el conector concreto se escribe cuando el cliente tenga equipo o
+proveedor **y** su documentación (manual del protocolo / SDK, o la API) con un equipo o ambiente de
+PRUEBAS. No escribir comandos ni campos de memoria: un conector que "parece" andar y falla con el
+equipo real es peor que el simulador.
+
+1. Una clase en `Services/Fiscal/` que implemente `IEmisorFiscal`, y su `Tipo` en
+   `EmisoresFiscales.Crear` (leer su configuración de `EmisorFiscal:*` en `appsettings.local.json`,
+   que es POR PC: cada caja puede tener su máquina o el mismo proveedor).
+2. **Distinguir las dos fallas** de `Emitir`: `EmisorFiscalException` solo si es SEGURO que no se
+   emitió (permite reintentar o ir a contingencia); `EmisionInciertaException` si se envió y no se
+   sabe (corte, tiempo vencido): `VentasService` no guarda, no ofrece contingencia y lo anota en el
+   diario fiscal para verificarlo. **Ante la duda, la incierta.** No reintentar por dentro un envío
+   que pudo haber llegado.
+3. `ProbarConexion` sin emitir nada (estado de la máquina, o un ping a la API). Lo usa el botón
+   "Probar emisor" de Ventas · Cierre del día.
+4. Devolver en `ResultadoFiscal.RutaDocumento` el comprobante o PDF si el emisor lo da: queda en
+   `Venta.DocumentoRuta` y se abre desde la ficha de la venta ("Ver documento del emisor").
+5. `TieneReportesXZ` = máquina fiscal; `EsFiscal` = true (solo el simulador es false).
+6. **Contrato**: heredar `ContratoEmisorFiscal` (`ASO_ADMINIS.Tests/FiscalTests.cs`) indicando cómo
+   crearlo (y caído). Contra el equipo o ambiente DE PRUEBAS; si alguna falla, no está listo.
+   El simulador ya lo cumple en sus dos modos. `EmisorFiscal:Incierto = true` en el simulador
+   prueba el camino de la emisión incierta.
 
 ## Peticiones de cambio
 
@@ -541,7 +723,7 @@ puede pedir el motivo con el `MotivoEditorViewModel` de siempre y dejar una `Pet
 bandeja del administrador (módulo fijado **Peticiones**). El mecanismo es genérico y está
 completo (`PeticionService`, segregación de funciones, auditoría de la decisión); lo que está
 vacío es la lista `Solicitables` — hoy no hay ninguna acción sensible gateada en las pantallas
-que ve un Operador. Al agregar un módulo real con acciones sensibles (anular, aprobar, etc.),
+que ve un Cajero. Al agregar un módulo real con acciones sensibles (anular, aprobar, etc.),
 sumarlas ahí y cablear el comando con `Services/SolicitudesDeCambio.cs`.
 
 ## El sistema visual
@@ -610,7 +792,7 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
 
 1. **Marca**: la paleta ámbar/azul sigue siendo placeholder (el logo de caja registradora ya
    existe) — ver "Marca" arriba.
-2. **Roles genéricos**: `Operador` / `Supervisor` / `AdministradorOrganizacion` / `Desarrollador`
+2. **Roles genéricos**: `Cajero` / `Supervisor` / `AdministradorOrganizacion` / `Desarrollador`
    no están atados a ningún puesto real. Ajustar los nombres y los conjuntos base en
    `Models/Rol.cs` / `Services/MatrizPermisos.cs` en cuanto el negocio real esté definido — son
    *el único* rediseño pendiente, porque los cuatro roles conservan intacto el mecanismo
@@ -621,9 +803,10 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
 4. **Nombre de la empresa / razón social**: el `.csproj` usa "ASO Adminis" como placeholder en
    `Product`/`Company`, a falta de la razón social real del cliente.
 5. **Ventas fiscal, pendientes**:
-   - **Emisor real:** solo existe el emisor **simulado** (sin valor fiscal). Hay que escribir el
-     conector de la máquina fiscal (p. ej. HKA) o de la imprenta digital que elija el cliente,
-     contra `IEmisorFiscal`.
+   - **Emisor real:** solo existe el emisor **simulado** (sin valor fiscal). Depende de lo que
+     tenga cada cliente (máquina fiscal como HKA o imprenta digital), y hace falta su manual o
+     API y un equipo o ambiente de pruebas. La base común ya está: ver "Cómo escribir un conector
+     fiscal".
    - **Crédito:** no hay cuentas por cobrar ni venta a crédito.
    - **IGTF en notas:** las notas de crédito no revierten IGTF.
    - **Por confirmar con el contador:** los porcentajes de IVA, el criterio del IGTF y las
@@ -632,9 +815,6 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
      factura imprimible ni PDF para entregar. Con máquina fiscal la imprime la máquina; con
      imprenta digital, normalmente el proveedor devuelve el PDF. Se resuelve junto con el
      conector real.
-   - **Rangos de contingencia:** hoy solo se valida que el n° de control de papel no se repita.
-     Falta cargar en Organización el rango de formatos autorizados por la imprenta y exigir que
-     el número caiga dentro. No depende del cliente: se puede hacer ya.
    - **Providencia SNAT/2026/00093** (vigente desde abril de 2027): solo se conoce por notas de
      prensa. Hay que revisar su texto completo en la Gaceta 43.484 por si exige algo más en el
      documento.
@@ -643,7 +823,7 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
      más una marca de "verificado por / fecha".
 6. **`Solicitables` vacío**: no hay ninguna petición de cambio configurada todavía — ver
    "Peticiones de cambio" arriba. Los dos candidatos naturales ya existen:
-   `EntradasInventario.Anular` y `SalidasInventario.Anular`, que hoy un Operador simplemente no
+   `EntradasInventario.Anular` y `SalidasInventario.Anular`, que hoy un Cajero simplemente no
    ve.
 7. **Pantalla de datos de la organización**: `Administración · Organización` solo pide nombre y
    código; si el negocio real necesita más datos de la organización (dirección, RIF, etc.),
@@ -657,3 +837,27 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
 3. **Elegir el color de marca real** y actualizar lo descrito en "Marca" (y regenerar el `.ico`).
 4. **Llevar la comprobación de permisos a los servicios de dominio** de cada módulo nuevo desde
    el principio (no repetir el hueco que tiene hoy el CRUD genérico).
+
+### Plan empresarial: pasos pendientes (anotado 2026-11-18)
+
+Hechos: cajas/cajeros/turnos, paso 3 (transacciones, concurrencia, FK nuevas), paso 4 (seguridad
+de cuentas), paso 6 (registro y bitácora) y paso 7 (respaldos). Quedan, en el orden sugerido:
+
+1. **Paso 5 · Versiones y migraciones.** Que una caja con versión vieja no abra contra una base
+   más nueva (comparar la última migración aplicada con la que conoce el código y pedir
+   actualizar). Sacar la migración del arranque de "la primera caja que abre": paso controlado,
+   con respaldo previo (`RespaldoService`) y, en red, solo desde el servidor o con un permiso.
+   Más adelante: instalación por equipo (MSI), configuración central y canales piloto/producción.
+2. **Paso 8 · CI.** GitHub Actions: compilar, `dotnet test` (también con `ASO_PRUEBAS_SQL=1`
+   contra LocalDB del runner de Windows) en cada push, y publicar la versión con Velopack.
+3. **Paso 2 · Async.** Pasar fuentes de datos y servicios a async, con indicador de carga y
+   paginación en las listas grandes. Prepara el terreno de la API.
+4. **Paso 1 · API + PostgreSQL** (juntos, decidido). Servidor ASP.NET Core entre las cajas y la
+   base; implementaciones `Http…DataSource` de las interfaces de `Services/`. Al pasar a
+   PostgreSQL: migración inicial nueva; `rowversion` → `xmin`; `sp_getapplock` →
+   `pg_advisory_xact_lock` (`UnidadDeTrabajoSql`, `SqlRespaldoDataSource`); índice filtrado →
+   parcial; trigger de la bitácora en PL/pgSQL; importador del `.zip` portable de respaldos.
+   **Decisión pendiente del negocio:** ¿servidor administrado por nosotros para todas las
+   organizaciones, o uno por cliente?
+5. **Pendiente menor:** commit y versión 0.5.0 de todo lo anterior (antes de lo demás), y probar a
+   mano las pantallas nuevas (Cajas, Mi turno, Bitácora, Respaldos, bloqueo por inactividad).

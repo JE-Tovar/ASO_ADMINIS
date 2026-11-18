@@ -73,6 +73,25 @@
                        FontWeight="{StaticResource FwMedium}" />
           </Border>
 
+          <!-- La caja de la sesión y su turno: en una tienda con varias cajas, cada cajero tiene
+               que ver de un vistazo en cuál está y si puede facturar. Ámbar sin turno. -->
+          <Border x:Name="CajaChip" Visibility="Collapsed">
+            <Border.Style>
+              <Style TargetType="Border" BasedOn="{StaticResource ChipContextoStyle}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="SinTurno">
+                    <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource WarningBordeBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource WarningTextBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <TextBlock x:Name="CajaActualLabel"
+                       FontSize="{StaticResource FsMicro}"
+                       FontWeight="{StaticResource FwMedium}" />
+          </Border>
+
           <!-- Separador: quien eres y como sales son una cosa aparte del contexto de la
                izquierda, y sin nada que los agrupe la barra era una fila de trastos sueltos. -->
           <Border Width="1" Margin="4,0,12,0" VerticalAlignment="Stretch"

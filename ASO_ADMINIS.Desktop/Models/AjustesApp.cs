@@ -35,9 +35,11 @@ public class AjustesApp
     public string UltimaSeccion { get; set; } = string.Empty;
 
     /// <summary>
-    /// Caja o terminal de venta de esta máquina ("CAJA-01"). Figura en cada documento fiscal
-    /// que se emite desde aquí; sin ella no se puede facturar.
+    /// OBSOLETA: era la caja de esta máquina, escrita a mano. Ahora la caja va con el usuario
+    /// (<c>Usuario.CajaId</c>, ver <c>SesionActual.CajaActual</c>) y esto ya no se lee. Se
+    /// conserva para no romper los ajustes.json guardados.
     /// </summary>
+    [Obsolete("La caja sale del usuario: SesionActual.CajaActual.")]
     public string CajaCodigo { get; set; } = string.Empty;
 
     // ---- Etiquetas de balanza (EAN-13 con peso), ver Services/EtiquetaBalanza.cs ----
@@ -56,6 +58,9 @@ public class AjustesApp
 
     /// <summary>Decimales del peso: 3 = el peso viene en gramos (01250 = 1,250 kg).</summary>
     public int EtiquetaDecimalesPeso { get; set; } = 3;
+
+    /// <summary>Última carpeta donde se guardó un comprobante en PDF; se propone la próxima vez.</summary>
+    public string UltimaCarpetaPdf { get; set; } = string.Empty;
 
     public AjustesApp Clonar() => (AjustesApp)MemberwiseClone();
 }

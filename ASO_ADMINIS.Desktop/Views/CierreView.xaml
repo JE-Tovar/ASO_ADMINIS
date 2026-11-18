@@ -11,6 +11,7 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
@@ -18,7 +19,32 @@
                          Titulo="{Binding Submodulo.Nombre}"
                          Descripcion="{Binding Submodulo.Descripcion}" />
 
-    <Border Grid.Row="1" Style="{StaticResource ToolbarStyle}" Margin="0,16,0,0">
+    <!-- Turno de la caja de la sesión: sin turno propio abierto no se factura -->
+    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Margin="0,16,0,0">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="Mi turno" Style="{StaticResource CardTitleStyle}" />
+          <TextBlock Text="{Binding TurnoTexto}" FontSize="{StaticResource FsSubtitle}" FontWeight="{StaticResource FwBold}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,4,0,0" />
+          <TextBlock Text="{Binding TurnoDetalle}" FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="Abrir turno" Style="{StaticResource PrimaryButtonStyle}"
+                  ToolTip="Abre tu turno en tu caja, con el fondo de la gaveta"
+                  Command="{Binding AbrirTurnoCommand}" />
+          <Button Content="Cerrar turno" Style="{StaticResource SecondaryButtonStyle}"
+                  ToolTip="Arqueo: cuenta el efectivo y lo compara con lo esperado"
+                  Command="{Binding CerrarTurnoCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="2" Style="{StaticResource ToolbarStyle}" Margin="0,16,0,0">
       <StackPanel>
         <WrapPanel VerticalAlignment="Center">
           <TextBlock Text="Día" VerticalAlignment="Center" Margin="0,0,8,0"
@@ -35,13 +61,16 @@
           <Button Content="Cierre Z" Style="{StaticResource PrimaryButtonStyle}"
                   ToolTip="Cierra el día en la máquina fiscal"
                   Command="{Binding CierreZCommand}" />
+          <Button Content="Probar emisor" Style="{StaticResource SecondaryButtonStyle}"
+                  ToolTip="Comprueba que el emisor fiscal de esta PC responde, sin emitir nada"
+                  Command="{Binding ProbarEmisorCommand}" />
         </StackPanel>
         <TextBlock Text="{Binding EmisorTexto}" Margin="0,8,0,0" TextWrapping="Wrap"
                    FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
       </StackPanel>
     </Border>
 
-    <Grid Grid.Row="2" Margin="0,16,0,0">
+    <Grid Grid.Row="3" Margin="0,16,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="16" />
@@ -52,7 +81,7 @@
 
       <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" VerticalAlignment="Top">
         <StackPanel>
-          <TextBlock Text="Resumen diario (Bs)" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,8" />
+          <TextBlock Text="{Binding ResumenTitulo}" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,8" />
           <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Resumen}" IsReadOnly="True"
                     HeadersVisibility="None">
             <DataGrid.Columns>
@@ -76,7 +105,14 @@
         </StackPanel>
       </Border>
 
-      <Border Grid.Column="4" Style="{StaticResource SectionCardStyle}" Padding="0" VerticalAlignment="Stretch">
+      <Grid Grid.Column="4">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="16" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0" VerticalAlignment="Stretch">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -95,6 +131,36 @@
           </DataGrid>
         </Grid>
       </Border>
+
+      <!-- Turnos: los de la caja propia o, para quien supervisa, los de todas -->
+      <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0" VerticalAlignment="Stretch">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Grid Margin="16,12,16,8">
+            <TextBlock Text="Turnos" Style="{StaticResource CardTitleStyle}" VerticalAlignment="Center" />
+            <Button Content="Cerrar turno de otro cajero" Style="{StaticResource SecondaryButtonStyle}" Margin="0"
+                    HorizontalAlignment="Right"
+                    ToolTip="Cerrar un turno que otro cajero dejó abierto. Supervisor o administración."
+                    Visibility="{Binding PuedeCerrarAjenos, Converter={StaticResource BoolToVis}}"
+                    Command="{Binding CerrarSeleccionadoCommand}" />
+          </Grid>
+          <DataGrid Grid.Row="1" Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Turnos}" IsReadOnly="True"
+                    SelectedItem="{Binding TurnoSeleccionado}">
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Caja" Binding="{Binding CajaCodigo}" Width="12*" MinWidth="72" />
+              <controls:ColumnaTexto Header="Cajero" Binding="{Binding UsuarioNombre}" Width="20*" MinWidth="110" />
+              <controls:ColumnaTexto Header="Apertura" Binding="{Binding AperturaTexto}" Width="18*" MinWidth="110" />
+              <controls:ColumnaTexto Header="Cierre" Binding="{Binding CierreTexto}" Width="18*" MinWidth="110" />
+              <controls:ColumnaTexto Header="Estado" Binding="{Binding EstadoTexto}" Width="10*" MinWidth="70" />
+              <controls:ColumnaNumero Header="Diferencia" Binding="{Binding DiferenciaTexto}" Width="16*" MinWidth="90" />
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </Border>
+      </Grid>
     </Grid>
   </Grid>
 </UserControl>

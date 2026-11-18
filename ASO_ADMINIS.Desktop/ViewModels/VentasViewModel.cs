@@ -55,10 +55,13 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
                                             DataSourceFactory.CrearSalidasInventario());
 
         _servicioClientes = new ClientesService(_clientes, sesion);
+        var turnos = new TurnosService(DataSourceFactory.CrearTurnos(), ventas, sesion);
         _servicio = new VentasService(ventas, articulos, DataSourceFactory.CrearSalidasInventario(),
                                       DataSourceFactory.CrearEntradasInventario(), _inventario, sesion,
                                       DataSourceFactory.CrearEmisorFiscal(),
-                                      clientes: _servicioClientes);
+                                      turno: turnos.TurnoParaFacturar,
+                                      clientes: _servicioClientes,
+                                      rangos: DataSourceFactory.CrearRangosContingencia());
 
         _tasaCambio = new TasaCambioService(
             DataSourceFactory.CrearTasasCambio(), DataSourceFactory.CrearProveedorTasaCambio());
@@ -103,7 +106,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
         get
         {
             var hoy = DateTime.Today;
-            var delMes = Items.Where(v => v.Vigente && !v.EsHistorico
+            var delMes = Items.Where(v => EsDeCajaVisible(v) && v.Vigente && !v.EsHistorico
                                           && v.Fecha.Year == hoy.Year && v.Fecha.Month == hoy.Month);
             return $"Este mes: Bs. {delMes.Sum(v => v.Signo * v.Total):N2} " +
                    $"({delMes.Count(v => v.Tipo == TipoDocumentoVenta.Factura)} facturas)";
@@ -122,7 +125,19 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
                                 || l.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase))
         || item.MetodoPagoTexto.Contains(texto, StringComparison.OrdinalIgnoreCase);
 
-    protected override bool PasaFiltroExtra(Venta item) => _filtro switch
+    /// <summary>
+    /// Sin <see cref="Permisos.Ventas.VerTodasLasCajas"/> (el Cajero) solo se ven los documentos
+    /// de la caja propia. Se filtra en la vista, no en la consulta: el libro y los reportes, que
+    /// sí necesitan todo, leen la misma fuente.
+    ///
+    /// Usa <see cref="CrudViewModelBase{T, TId}.Sesion"/> y no <c>_sesionActual</c>: el filtro
+    /// corre dentro del constructor base, cuando ese campo todavía no está asignado.
+    /// </summary>
+    private bool EsDeCajaVisible(Venta item) =>
+        Sesion.Puede(Permisos.Ventas.VerTodasLasCajas)
+        || (Sesion.CajaActual is { } caja && item.CajaId == caja.Id);
+
+    protected override bool PasaFiltroExtra(Venta item) => EsDeCajaVisible(item) && _filtro switch
     {
         "Facturas" => item.Tipo == TipoDocumentoVenta.Factura && !item.EsHistorico,
         "Notas de crédito" => item.Tipo == TipoDocumentoVenta.NotaCredito,
@@ -151,7 +166,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
     /// <summary>Emitir factura: por el servicio, que habla con el emisor y descuenta el almacén.</summary>
     protected override void Agregar()
     {
-        if (!_servicio.PuedeEmitir(out var error))
+        if (!_servicio.PuedeFacturar(out var error))
         {
             _dialogos.Informar("No se puede facturar todavía", error!);
             return;
@@ -183,7 +198,7 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
 
     private void OfrecerContingencia(Venta borrador, string error)
     {
-        var editor = new ContingenciaEditorViewModel(error);
+        var editor = new ContingenciaEditorViewModel(error, _servicio.SugerenciaContingencia());
         if (!_dialogos.MostrarEditor(editor))
             return;
 

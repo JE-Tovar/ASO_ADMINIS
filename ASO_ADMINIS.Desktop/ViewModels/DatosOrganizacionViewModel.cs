@@ -44,6 +44,7 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
             _ivaReducida = organizacion.IvaReducida.ToString("0.##");
             _ivaAdicional = organizacion.IvaAdicional.ToString("0.##");
             _igtf = organizacion.IgtfPorcentaje.ToString("0.##");
+            _minutosInactividad = organizacion.MinutosInactividad.ToString();
         }
 
         GuardarCommand = new RelayCommand(Guardar, () => PuedeEditar);
@@ -101,6 +102,15 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
         {
             Actualizando = false;
         }
+    }
+
+    private string _minutosInactividad = PoliticaSeguridad.MinutosInactividadPorDefecto.ToString();
+
+    /// <summary>Minutos sin uso tras los que se pide la contraseña de nuevo (0 = nunca). Vale para toda la organización.</summary>
+    public string MinutosInactividad
+    {
+        get => _minutosInactividad;
+        set => SetProperty(ref _minutosInactividad, value);
     }
 
     private string _codigo = string.Empty;
@@ -211,6 +221,13 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
             return;
         }
 
+        if (!int.TryParse(MinutosInactividad?.Trim(), out var minutos) || minutos is < 0 or > 480)
+        {
+            _dialogos.Informar("Bloqueo por inactividad no válido",
+                "Indica los minutos sin uso antes de pedir la contraseña: un número entre 0 (nunca) y 480.");
+            return;
+        }
+
         if (!LeerPorcentaje(IvaGeneral, out var ivaGeneral)
             || !LeerPorcentaje(IvaReducida, out var ivaReducida)
             || !LeerPorcentaje(IvaAdicional, out var ivaAdicional)
@@ -233,6 +250,7 @@ public sealed class DatosOrganizacionViewModel : ViewModelBase
         actualizado.IvaReducida = ivaReducida;
         actualizado.IvaAdicional = ivaAdicional;
         actualizado.IgtfPorcentaje = igtf;
+        actualizado.MinutosInactividad = minutos;
 
         try
         {

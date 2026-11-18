@@ -22,6 +22,13 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
     public ObservableCollection<T> Items { get; }
     public ICollectionView ItemsView { get; }
 
+    /// <summary>
+    /// La sesión, para los filtros de las pantallas hijas. <b>Usar esta y no un campo propio</b> en
+    /// <see cref="PasaFiltroExtra"/>: el filtro corre ya dentro de ESTE constructor, antes que el de
+    /// la pantalla hija, así que un campo suyo todavía es null (así falló Ventas · Registro).
+    /// </summary>
+    protected ISesionActual Sesion => _sesion;
+
     protected CrudViewModelBase(ICrudDataSource<T, TId> source,
                                 IServicioDialogo? dialogo = null,
                                 ISesionActual? sesion = null)
@@ -124,8 +131,11 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
         if (!_dialogo.MostrarEditor(editor))
             return;
 
-        var agregado = _source.Add(editor.ObtenerResultado());
-        _idASeleccionar = agregado.Id;
+        Intentar("No se pudo guardar", () =>
+        {
+            var agregado = _source.Add(editor.ObtenerResultado());
+            _idASeleccionar = agregado.Id;
+        });
     }
 
     /// <summary>
@@ -143,8 +153,39 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
             return;
 
         var actualizado = editor.ObtenerResultado();
-        _source.Update(actualizado);
-        _idASeleccionar = actualizado.Id;
+
+        // Los editores que arman su resultado con `new` no copian la versión; sin ella el guardado
+        // no sabría contra qué comparar y chocaría siempre. Se toma la del registro que se abrió.
+        if (actualizado is IConVersion nueva && actual is IConVersion leida && nueva.Version is null)
+            nueva.Version = leida.Version;
+
+        Intentar("No se pudo guardar", () =>
+        {
+            _source.Update(actualizado);
+            _idASeleccionar = actualizado.Id;
+        });
+    }
+
+    /// <summary>
+    /// Ejecuta una escritura y, si la rechaza una regla o un conflicto de edición, lo dice en vez
+    /// de dejar que la excepción tumbe la pantalla. Tras un conflicto se recarga: lo que se ve ya
+    /// no es lo que hay en la base.
+    /// </summary>
+    protected void Intentar(string titulo, Action escritura)
+    {
+        try
+        {
+            escritura();
+        }
+        catch (ConflictoDeEdicionException ex)
+        {
+            _dialogo.Informar(titulo, ex.Message);
+            Recargar();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _dialogo.Informar(titulo, ex.Message);
+        }
     }
 
     /// <summary>
@@ -175,9 +216,12 @@ public abstract class CrudViewModelBase<T, TId> : ViewModelBase where T : IEntid
         if (!_dialogo.Confirmar("Eliminar", MensajeConfirmarEliminar(actual)))
             return;
 
-        _source.Delete(actual.Id);
-        _idASeleccionar = null;
-        SelectedItem = default;
+        Intentar("No se pudo eliminar", () =>
+        {
+            _source.Delete(actual.Id);
+            _idASeleccionar = null;
+            SelectedItem = default;
+        });
     }
 
     /// <summary>

@@ -10,8 +10,11 @@ namespace ASO_ADMINIS.Desktop.Models;
 /// Las ventas a consumidor final no necesitan cliente: el documento lleva un snapshot
 /// "Consumidor final" sin identificación.
 /// </summary>
-public class Cliente : IEntidad<int>, IDeOrganizacion
+public class Cliente : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Organizacion duenna de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

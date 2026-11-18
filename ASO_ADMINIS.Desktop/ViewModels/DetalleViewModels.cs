@@ -44,15 +44,82 @@ public sealed class VentaDetalleViewModel(Venta venta) : DetalleViewModelBase<Ve
 
     public bool TienePagos => Documento.Pagos.Count > 0;
 
-    public string ClienteIdentificacion => Documento.EsConsumidorFinal ? "Consumidor final" : Documento.ClienteRif;
+    public string ClienteIdentificacion => Services.TextosDeVenta.ClienteIdentificacion(Documento);
 
-    public string DocumentoAfectadoTexto => string.IsNullOrWhiteSpace(Documento.DocumentoAfectadoNumero)
-        ? string.Empty
-        : Documento.DocumentoAfectadoFecha is { } fecha
-            ? $"Factura N° {Documento.DocumentoAfectadoNumero} del {fecha:dd/MM/yyyy}"
-            : $"Factura N° {Documento.DocumentoAfectadoNumero}";
+    public string DocumentoAfectadoTexto => Services.TextosDeVenta.DocumentoAfectado(Documento);
+
+    // ---------------------------------------------------------------- Comprobante no fiscal
+
+    /// <summary>Imprime la copia no fiscal (hoja carta) en la impresora que se elija.</summary>
+    public System.Windows.Input.ICommand ImprimirComprobanteCommand => new RelayCommand(() =>
+        ConComprobante("No se pudo imprimir", c =>
+        {
+            if (Services.ComprobanteImpreso.Imprimir(c))
+                Services.Registro.Info("Comprobante no fiscal impreso: {Documento}", c.Titulo);
+        }));
+
+    /// <summary>Guarda la copia no fiscal como PDF, para mandarla al cliente.</summary>
+    public System.Windows.Input.ICommand GuardarPdfCommand => new RelayCommand(() =>
+        ConComprobante("No se pudo guardar el PDF", c =>
+        {
+            var ajustes = Services.Ajustes.Actual;
+            var carpeta = System.IO.Directory.Exists(ajustes.UltimaCarpetaPdf)
+                ? ajustes.UltimaCarpetaPdf
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+            var dialogo = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Guardar comprobante no fiscal",
+                Filter = "PDF|*.pdf",
+                FileName = c.NombreArchivo,
+                InitialDirectory = carpeta
+            };
+            if (dialogo.ShowDialog() != true)
+                return;
+
+            Services.ComprobantePdf.Guardar(c, dialogo.FileName);
+            Services.Registro.Info("Comprobante no fiscal en PDF: {Documento} → {Ruta}", c.Titulo, dialogo.FileName);
+
+            ajustes.UltimaCarpetaPdf = System.IO.Path.GetDirectoryName(dialogo.FileName) ?? string.Empty;
+            Services.Ajustes.Guardar();
+
+            if (new Services.ServicioDialogo().Confirmar("PDF guardado",
+                    $"Se guardó en:\n{dialogo.FileName}\n\n¿Abrirlo ahora?"))
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dialogo.FileName) { UseShellExecute = true });
+        }));
+
+    private void ConComprobante(string tituloError, Action<Services.ComprobanteNoFiscal> accion)
+    {
+        try
+        {
+            var organizacion = Services.Ambito.Actual
+                ?? throw new InvalidOperationException("No hay una organización activa.");
+            var emisor = Configuration.DataSourceFactory.CrearEmisorFiscal();
+            accion(Services.ComprobanteNoFiscal.De(Documento, organizacion, emisor.Nombre, emisor.EsFiscal));
+        }
+        catch (Exception ex)
+        {
+            Services.Registro.Error(ex, "{Titulo}: {Documento}", tituloError, Documento.Numero);
+            new Services.ServicioDialogo().Informar(tituloError, ex.Message);
+        }
+    }
 
     public string NumeroZTexto => Documento.NumeroZ?.ToString() ?? string.Empty;
+
+    /// <summary>El documento que devolvió el emisor (PDF de la imprenta digital…), si está en esta PC.</summary>
+    public bool TieneDocumento => !string.IsNullOrWhiteSpace(Documento.DocumentoRuta) && System.IO.File.Exists(Documento.DocumentoRuta);
+
+    public System.Windows.Input.ICommand AbrirDocumentoCommand => new RelayCommand(() =>
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Documento.DocumentoRuta) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Services.Registro.Advertencia(ex, "No se pudo abrir el documento {Ruta}", Documento.DocumentoRuta);
+        }
+    }, () => TieneDocumento);
 
     public string TransmisionTexto => Documento.EnContingencia
         ? Documento.FechaTransmision is { } fecha
@@ -65,24 +132,8 @@ public sealed class VentaDetalleViewModel(Venta venta) : DetalleViewModelBase<Ve
     public string AnulacionTexto => TextoAnulacion(Documento.FechaAnulacion, Documento.MotivoAnulacion);
 
     /// <summary>Las filas del desglose fiscal que tienen monto: exento, cada alícuota, IGTF.</summary>
-    public IReadOnlyList<RenglonTotal> Totales
-    {
-        get
-        {
-            var v = Documento;
-            var filas = new List<RenglonTotal>();
-            if (v.MontoExento != 0) filas.Add(new("Exento", v.MontoExento));
-            if (v.BaseGeneral != 0) filas.Add(new($"Base imponible {v.PorcentajeGeneral:0.##} %", v.BaseGeneral));
-            if (v.IvaGeneral != 0) filas.Add(new($"IVA {v.PorcentajeGeneral:0.##} %", v.IvaGeneral));
-            if (v.BaseReducida != 0) filas.Add(new($"Base imponible {v.PorcentajeReducida:0.##} %", v.BaseReducida));
-            if (v.IvaReducida != 0) filas.Add(new($"IVA {v.PorcentajeReducida:0.##} %", v.IvaReducida));
-            if (v.BaseAdicional != 0) filas.Add(new($"Base imponible {v.PorcentajeAdicional:0.##} %", v.BaseAdicional));
-            if (v.IvaAdicional != 0) filas.Add(new($"IVA {v.PorcentajeAdicional:0.##} %", v.IvaAdicional));
-            if (v.Igtf != 0) filas.Add(new($"IGTF {v.PorcentajeIgtf:0.##} % (sobre {v.BaseIgtf:N2})", v.Igtf));
-            if (v.Vuelto != 0) filas.Add(new("Vuelto", v.Vuelto));
-            return filas;
-        }
-    }
+    public IReadOnlyList<RenglonTotal> Totales =>
+        [.. Services.TextosDeVenta.Totales(Documento).Select(t => new RenglonTotal(t.Concepto, t.Monto))];
 }
 
 /// <summary>Una fila del desglose de totales de la ficha de una venta.</summary>

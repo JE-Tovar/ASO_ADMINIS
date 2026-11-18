@@ -34,8 +34,10 @@ public sealed class VentasService
     private readonly ISesionActual _sesion;
     private readonly IEmisorFiscal _emisor;
     private readonly Func<Organizacion?> _organizacion;
-    private readonly Func<string> _caja;
+    private readonly Func<Caja?> _caja;
+    private readonly Func<Turno?> _turno;
     private readonly ClientesService? _clientes;
+    private readonly IRangoContingenciaDataSource? _rangos;
 
     public VentasService(IVentaDataSource ventas,
                          IArticuloDataSource articulos,
@@ -45,8 +47,10 @@ public sealed class VentasService
                          ISesionActual sesion,
                          IEmisorFiscal emisor,
                          Func<Organizacion?>? organizacion = null,
-                         Func<string>? caja = null,
-                         ClientesService? clientes = null)
+                         Func<Caja?>? caja = null,
+                         Func<Turno?>? turno = null,
+                         ClientesService? clientes = null,
+                         IRangoContingenciaDataSource? rangos = null)
     {
         _ventas = ventas;
         _articulos = articulos;
@@ -56,8 +60,12 @@ public sealed class VentasService
         _sesion = sesion;
         _emisor = emisor;
         _organizacion = organizacion ?? (() => Ambito.Actual);
-        _caja = caja ?? (() => Ajustes.Actual.CajaCodigo);
+        _caja = caja ?? (() => sesion.CajaActual);
+        // Sin proveedor de turno no hay turno: fail-closed, no se factura. Quien construye el
+        // servicio de verdad le pasa TurnosService.TurnoParaFacturar.
+        _turno = turno ?? (() => null);
         _clientes = clientes;
+        _rangos = rangos;
     }
 
     public IEmisorFiscal Emisor => _emisor;
@@ -98,9 +106,30 @@ public sealed class VentasService
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(_caja()))
+        if (_caja() is null)
         {
-            error = "Esta máquina no tiene caja asignada. Indíquela en Configuración · Aplicación.";
+            error = "Tu usuario no tiene una caja activa asignada. Pídela al administrador en Administración · Usuarios.";
+            return false;
+        }
+
+        error = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Lo de <see cref="PuedeEmitir"/> más un turno abierto propio en la caja. Solo lo exige la
+    /// factura: las notas y la contingencia las hace un supervisor, que no tiene por qué tener
+    /// turno.
+    /// </summary>
+    public bool PuedeFacturar(out string? error)
+    {
+        if (!PuedeEmitir(out error))
+            return false;
+
+        if (_turno() is null)
+        {
+            error = $"No tienes un turno abierto en {_caja()!.Codigo}. Ábrelo en Ventas · Cierre del día " +
+                    "(si la caja la tiene otro cajero, tiene que cerrar su turno primero).";
             return false;
         }
 
@@ -272,16 +301,22 @@ public sealed class VentasService
         if (!_sesion.Puede(Permisos.Ventas.Crear))
             throw new InvalidOperationException("No tienes permiso para emitir facturas.");
 
-        var factura = PrepararNueva(borrador, TipoDocumentoVenta.Factura, usuarioId);
-        FijarDesdeCatalogo(factura);
-        Preparar(factura);
-        if (!Validar(factura, out var error))
-            throw new InvalidOperationException(error);
+        if (!PuedeFacturar(out var sinTurno))
+            throw new InvalidOperationException(sinTurno);
 
-        RegistrarCliente(factura);
-        var guardada = EmitirYGuardar(factura);
-        RegistrarSalida(guardada, usuarioId);
-        return guardada;
+        // Todo bajo el candado de documentos: la existencia se valida y se descuenta sin que otra
+        // caja pueda vender lo mismo entre medio.
+        return EmisionAtomica(() =>
+        {
+            var factura = PrepararNueva(borrador, TipoDocumentoVenta.Factura, usuarioId);
+            FijarDesdeCatalogo(factura);
+            Preparar(factura);
+            if (!Validar(factura, out var error))
+                throw new InvalidOperationException(error);
+
+            RegistrarCliente(factura);
+            return EmitirYGuardar(factura, guardada => RegistrarSalida(guardada, usuarioId));
+        });
     }
 
     /// <summary>
@@ -298,8 +333,14 @@ public sealed class VentasService
             throw new InvalidOperationException("Indique el número de documento y el número de control del formato de contingencia.");
 
         var control = numeroControl.Trim();
-        if (_ventas.GetAll().Any(v => string.Equals(v.NumeroControl, control, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"El número de control {control} ya está usado en otro documento.");
+
+        // Sin emisor de por medio, pero igual bajo el candado: el control repetido, la existencia
+        // y el correlativo se comprueban y se escriben sin que otra caja se cuele.
+        return UnidadDeTrabajo.Ejecutar(UnidadDeTrabajo.Documentos, () =>
+        {
+        // El número tiene que ser de un talonario autorizado y activo, y no estar usado. Sin
+        // talonarios cargados no se registra nada: un número de control inventado no vale.
+        control = RangosContingencia.Resolver(control, _rangos?.GetAll() ?? [], NumerosDeControlUsados()).NumeroControl;
 
         var factura = PrepararNueva(borrador, TipoDocumentoVenta.Factura, usuarioId);
         FijarDesdeCatalogo(factura);
@@ -320,7 +361,19 @@ public sealed class VentasService
         var guardada = _ventas.Add(factura);
         RegistrarSalida(guardada, usuarioId);
         return guardada;
+        });
     }
+
+    /// <summary>
+    /// El número de control que toca usar en el próximo formato de contingencia (y si el talonario
+    /// se está acabando), para proponerlo en el formulario. Null si no hay talonarios con lugar.
+    /// </summary>
+    public RangosContingencia.Sugerencia? SugerenciaContingencia() =>
+        _rangos is null ? null : RangosContingencia.Siguiente(_rangos.GetAll(), NumerosDeControlUsados());
+
+    private List<string> NumerosDeControlUsados() =>
+        _rangos?.NumerosDeControlUsados().ToList()
+        ?? [.. _ventas.GetAll().Select(v => v.NumeroControl).Where(n => !string.IsNullOrWhiteSpace(n))];
 
     public IReadOnlyList<Venta> PendientesDeTransmitir() =>
         [.. _ventas.GetAll().Where(v => v.Estado == EstadoVenta.PendienteTransmitir).OrderBy(v => v.Fecha)];
@@ -381,11 +434,15 @@ public sealed class VentasService
         if (!_sesion.Puede(Permisos.Ventas.NotaCredito))
             throw new InvalidOperationException("No tienes permiso para emitir notas de crédito.");
 
-        ValidarNota(factura, motivo);
-
         var lineas = devoluciones.Where(d => d.Cantidad > 0).ToList();
         if (lineas.Count == 0)
             throw new InvalidOperationException("Indique qué cantidad se devuelve de al menos un renglón.");
+
+        // Bajo el candado: dos notas de crédito simultáneas sobre la misma factura no pueden
+        // devolver entre las dos más de lo facturado.
+        return EmisionAtomica(() =>
+        {
+        ValidarNota(factura, motivo);
 
         var disponible = DisponibleParaDevolver(factura);
         foreach (var grupo in lineas.GroupBy(d => (d.LineaFactura.ArticuloId, d.LineaFactura.PresentacionNombre)))
@@ -410,9 +467,8 @@ public sealed class VentasService
 
         CalculoFiscal.Totalizar(nota, Emisora, percibeIgtf: false);
 
-        var guardada = EmitirYGuardar(nota);
-        RegistrarDevolucion(guardada, usuarioId);
-        return guardada;
+        return EmitirYGuardar(nota, guardada => RegistrarDevolucion(guardada, usuarioId));
+        });
     }
 
     /// <summary>
@@ -459,7 +515,7 @@ public sealed class VentasService
         })];
 
         CalculoFiscal.Totalizar(nota, org, percibeIgtf: false);
-        return EmitirYGuardar(nota);
+        return EmisionAtomica(() => EmitirYGuardar(nota, null));
     }
 
     private void ValidarNota(Venta factura, string motivo)
@@ -526,7 +582,12 @@ public sealed class VentasService
         documento.Id = 0;
         documento.Tipo = tipo;
         documento.Fecha = DateTime.Now;
-        documento.CajaCodigo = _caja().Trim();
+        var caja = _caja();
+        documento.CajaId = caja?.Id;
+        documento.CajaCodigo = caja?.Codigo.Trim() ?? string.Empty;
+        // Solo la factura entra al arqueo; en contingencia también, si quien la registra tiene
+        // turno abierto (el efectivo se cobró igual).
+        documento.TurnoId = tipo == TipoDocumentoVenta.Factura ? _turno()?.Id : null;
         documento.Estado = EstadoVenta.Registrada;
         documento.EsHistorico = false;
         documento.CreadoPorId = usuarioId;
@@ -564,7 +625,40 @@ public sealed class VentasService
         }
     }
 
-    private Venta EmitirYGuardar(Venta documento)
+    /// <summary>
+    /// Documento ya emitido en el emisor fiscal cuya transacción todavía no se confirmó. Si algo
+    /// falla de aquí al final de <see cref="EmisionAtomica"/>, el documento existe para el fisco
+    /// pero no en la base, y va al diario fiscal.
+    /// </summary>
+    private Venta? _emitidoSinConfirmar;
+
+    /// <summary>
+    /// Una emisión entera en una transacción, con el candado de documentos: validar, emitir,
+    /// guardar y mover el almacén, todo o nada. Si la base falla DESPUÉS de emitir (incluida la
+    /// confirmación final), el documento queda en el diario fiscal, como siempre.
+    /// </summary>
+    private Venta EmisionAtomica(Func<Venta> emision)
+    {
+        _emitidoSinConfirmar = null;
+        try
+        {
+            return UnidadDeTrabajo.Ejecutar(UnidadDeTrabajo.Documentos, emision);
+        }
+        catch (Exception ex) when (_emitidoSinConfirmar is { } documento && ex is not EmitidoSinGuardarException)
+        {
+            throw EmitidoSinGuardar(documento, ex);
+        }
+        finally
+        {
+            _emitidoSinConfirmar = null;
+        }
+    }
+
+    /// <summary>
+    /// Emite, guarda y, en el mismo intento, mueve el almacén (<paramref name="despues"/>): si la
+    /// salida o la entrada fallan, la venta tampoco queda, y el documento emitido va al diario.
+    /// </summary>
+    private Venta EmitirYGuardar(Venta documento, Action<Venta>? despues)
     {
         ResultadoFiscal resultado;
         try
@@ -575,36 +669,65 @@ public sealed class VentasService
         {
             throw new InvalidOperationException(ex.Message, ex);
         }
+        catch (EmisionInciertaException ex)
+        {
+            // No se sabe si quedó emitido: no se guarda ni se ofrece contingencia (podría
+            // duplicarse); queda en el diario para verificarlo en el emisor.
+            DiarioFiscal.Anotar("Incierto", documento, ex);
+            throw new EmitidoSinGuardarException(
+                $"{ex.Message}\n\nNO lo vuelva a emitir hasta verificarlo: si quedó emitido, regístrelo a mano. " +
+                $"Quedó anotado en el diario fiscal ({DiarioFiscal.RutaTexto}).", ex);
+        }
 
         documento.NumeroFiscal = resultado.NumeroDocumento;
         documento.NumeroControl = resultado.NumeroControl;
         documento.SerialEmisor = resultado.SerialEmisor;
         documento.Fecha = resultado.FechaHora;
+        documento.DocumentoRuta = resultado.RutaDocumento ?? string.Empty;
+        _emitidoSinConfirmar = documento;
 
-        // El número interno (VTA-) es "el último + 1" y no es fiscal: si otra caja de la LAN
-        // tomó el mismo número entre la lectura y el guardado, el índice único lo rechaza y se
-        // reintenta con el siguiente. Cualquier otro fallo va al diario.
+        // El número interno (VTA-) es "el último + 1" y no es fiscal. Bajo el candado de
+        // documentos no debería chocar nunca; el reintento queda por si una instalación vieja (sin
+        // candado) escribe a la vez. Cualquier otro fallo va al diario.
         const int intentos = 3;
         for (var intento = 1; ; intento++)
         {
             documento.Numero = SiguienteNumeroVenta();
+            Venta guardada;
             try
             {
-                return _ventas.Add(documento);
+                guardada = _ventas.Add(documento);
             }
             catch (Exception) when (intento < intentos && NumeroYaTomado(documento.Numero))
             {
                 documento.Id = 0;
+                continue;
             }
             catch (Exception ex)
             {
-                DiarioFiscal.Anotar("Documento", documento, ex);
-                throw new InvalidOperationException(
-                    $"El documento {documento.NumeroFiscal} (control {documento.NumeroControl}) YA SE EMITIÓ, " +
-                    $"pero no se pudo guardar en la base: {ex.Message}\n\nQuedó anotado en el diario fiscal " +
-                    $"({DiarioFiscal.RutaTexto}) para registrarlo a mano.", ex);
+                throw EmitidoSinGuardar(documento, ex);
             }
+
+            try
+            {
+                despues?.Invoke(guardada);
+            }
+            catch (Exception ex)
+            {
+                throw EmitidoSinGuardar(documento, ex);
+            }
+
+            return guardada;
         }
+    }
+
+    private static EmitidoSinGuardarException EmitidoSinGuardar(Venta documento, Exception ex)
+    {
+        DiarioFiscal.Anotar("Documento", documento, ex);
+        return new EmitidoSinGuardarException(
+            $"El documento {documento.NumeroFiscal} (control {documento.NumeroControl}) YA SE EMITIÓ, " +
+            $"pero no se pudo guardar en la base: {ex.Message}\n\nQuedó anotado en el diario fiscal " +
+            $"({DiarioFiscal.RutaTexto}) para registrarlo a mano.", ex);
     }
 
     private bool NumeroYaTomado(string numero)
@@ -704,3 +827,7 @@ public sealed class VentasService
         return $"{prefijo}{ultimo + 1:D6}";
     }
 }
+
+/// <summary>Un documento emitido en el emisor fiscal que no llegó a la base (ya está en el diario fiscal).</summary>
+public sealed class EmitidoSinGuardarException(string mensaje, Exception interna)
+    : InvalidOperationException(mensaje, interna);

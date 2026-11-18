@@ -25,10 +25,25 @@ public interface IEmisorFiscal
     bool EsFiscal { get; }
 
     /// <summary>
-    /// Emite el documento. Lanza <see cref="EmisorFiscalException"/> si no pudo (sin conexión,
-    /// sin papel, rechazado): en ese caso NO se emitió nada y el documento no debe guardarse.
+    /// Emite el documento. Dos maneras de fallar, y el conector TIENE que distinguirlas:
+    /// <list type="bullet">
+    ///   <item><see cref="EmisorFiscalException"/>: seguro que NO se emitió (sin conexión antes de
+    ///         enviar, sin papel, rechazado). El documento no se guarda y se puede reintentar o ir a
+    ///         contingencia.</item>
+    ///   <item><see cref="EmisionInciertaException"/>: se envió pero no se sabe si quedó (se cortó la
+    ///         comunicación o venció el tiempo esperando la respuesta). NO se reintenta: podría
+    ///         duplicar el documento. Va al diario fiscal para verificarlo en el equipo o con el
+    ///         proveedor.</item>
+    /// </list>
+    /// Ante la duda, un conector debe lanzar la incierta, nunca la segura.
     /// </summary>
     ResultadoFiscal Emitir(Venta documento, Organizacion emisor);
+
+    /// <summary>
+    /// Comprueba que el emisor responde, sin emitir nada (estado de la máquina, o un "ping" a la API
+    /// del proveedor). No lanza: el resultado lo dice.
+    /// </summary>
+    EstadoEmisor ProbarConexion();
 
     /// <summary>
     /// Registra en el emisor un documento que se hizo en papel de contingencia (art. de
@@ -66,6 +81,16 @@ public sealed record ResumenFiscal(
     decimal Igtf,
     decimal Total);
 
-/// <summary>El emisor no pudo emitir. El mensaje es para el usuario.</summary>
+/// <summary>El emisor no pudo emitir, y es SEGURO que no se emitió. El mensaje es para el usuario.</summary>
 public sealed class EmisorFiscalException(string mensaje, Exception? interna = null)
     : Exception(mensaje, interna);
+
+/// <summary>
+/// No se sabe si el documento se emitió: se envió y no llegó respuesta. No se reintenta (podría
+/// quedar duplicado); se verifica en el equipo o con el proveedor. El mensaje es para el usuario.
+/// </summary>
+public sealed class EmisionInciertaException(string mensaje, Exception? interna = null)
+    : Exception(mensaje, interna);
+
+/// <summary>Lo que dice <see cref="IEmisorFiscal.ProbarConexion"/>.</summary>
+public sealed record EstadoEmisor(bool Disponible, string Detalle, string? Serial = null);

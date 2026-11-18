@@ -16,15 +16,17 @@ namespace ASO_ADMINIS.Desktop.Models;
 public enum Rol
 {
     /// <summary>
-    /// El día a día dentro de lo que ya existe en el sistema. Crea y edita los documentos de su
-    /// área, pero no mueve dinero ni borra nada: para eso levanta una <see cref="PeticionCambio"/>.
+    /// RETIRADO (2026-11-18): era el rol de oficina que además vendía. La migración
+    /// <c>QuitarRolOperador</c> pasó a sus usuarios a <see cref="Supervisor"/>. Se conserva el
+    /// miembro solo para no correr los ordinales persistidos: no se asigna y no da ningún permiso.
     /// </summary>
-    Operador,
+    OperadorRetirado,
 
     /// <summary>
-    /// Supervisa el área de un Operador: aprueba lo que él inicia (pagos, movimientos de banco),
-    /// resuelve las peticiones de su dominio y puede eliminar documentos de esa área. No deshace
-    /// un movimiento de banco ya asentado: eso queda para quien administra toda la organización.
+    /// La oficina y su supervisión: compras, almacén, banco y vender (lo que antes hacía el
+    /// Operador), más pagar, notas, cierre Z, eliminar, resolver peticiones de su dominio y cerrar
+    /// el turno de otro cajero. No deshace un movimiento de banco ya asentado: eso queda para quien
+    /// administra toda la organización.
     /// </summary>
     Supervisor,
 
@@ -37,5 +39,12 @@ public enum Rol
     /// <summary>
     /// Nosotros. Puede todo, y es el único rol que reparte su propio rol.
     /// </summary>
-    Desarrollador
+    Desarrollador,
+
+    /// <summary>
+    /// Cuenta de caja: solo vende, en SU caja (<see cref="Usuario.CajaId"/>, obligatoria) y dentro
+    /// de su turno. No ve Finanzas, Inventario, Reportes ni las ventas de otras cajas.
+    /// Va al final por el ordinal persistido, no por jerarquía.
+    /// </summary>
+    Cajero
 }

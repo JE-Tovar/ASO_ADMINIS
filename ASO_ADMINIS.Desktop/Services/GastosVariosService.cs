@@ -160,6 +160,9 @@ public sealed class GastosVariosService
         gasto.Referencia = gasto.Referencia.Trim();
         gasto.Monto = CalculoFiscal.Redondear(gasto.Monto);
 
+        // Gasto y asiento en Banco, todo o nada; el correlativo bajo el candado de documentos.
+        return UnidadDeTrabajo.Ejecutar(UnidadDeTrabajo.Documentos, () =>
+        {
         if (!Validar(gasto, out var error))
             throw new InvalidOperationException(error);
 
@@ -176,21 +179,13 @@ public sealed class GastosVariosService
 
         var guardado = _gastos.Add(gasto);
 
+        // Si el asiento falla, la transacción se lleva también el gasto: sin asiento mentiría
+        // sobre el saldo de la cuenta.
         if (guardado.CuentaId is { } cuentaId)
-        {
-            try
-            {
-                _banco.RegistrarGastoVario(guardado, new AsientoBanco(cuentaId, guardado.Fecha, guardado.Referencia), usuarioId);
-            }
-            catch (Exception)
-            {
-                // Sin asiento el gasto mentiría sobre el saldo de la cuenta: se retira.
-                _gastos.Delete(guardado.Id);
-                throw;
-            }
-        }
+            _banco.RegistrarGastoVario(guardado, new AsientoBanco(cuentaId, guardado.Fecha, guardado.Referencia), usuarioId);
 
         return guardado;
+        });
     }
 
     public GastoVario Anular(GastoVario gasto, string motivo)
@@ -204,16 +199,19 @@ public sealed class GastosVariosService
         if (string.IsNullOrWhiteSpace(motivo))
             throw new InvalidOperationException("Indique el motivo de la anulación.");
 
-        var copia = gasto.Clonar();
-        copia.Estado = EstadoGastoVario.Anulado;
-        copia.MotivoAnulacion = motivo.Trim();
-        copia.FechaAnulacion = DateTime.Now;
-        _gastos.Update(copia);
+        return UnidadDeTrabajo.Ejecutar(null, () =>
+        {
+            var copia = gasto.Clonar();
+            copia.Estado = EstadoGastoVario.Anulado;
+            copia.MotivoAnulacion = motivo.Trim();
+            copia.FechaAnulacion = DateTime.Now;
+            _gastos.Update(copia);
 
-        if (copia.CuentaId is not null)
-            _banco.AnularDerivados(OrigenMovimiento.GastoVario, copia.Id, $"Gasto {copia.Numero} anulado: {copia.MotivoAnulacion}");
+            if (copia.CuentaId is not null)
+                _banco.AnularDerivados(OrigenMovimiento.GastoVario, copia.Id, $"Gasto {copia.Numero} anulado: {copia.MotivoAnulacion}");
 
-        return copia;
+            return copia;
+        });
     }
 
     private string SiguienteNumero()

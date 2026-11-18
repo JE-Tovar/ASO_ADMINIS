@@ -73,8 +73,14 @@ public class Venta : IEntidad<int>, IDeOrganizacion
     /// <summary>Fecha y hora de emisión.</summary>
     public DateTime Fecha { get; set; }
 
-    /// <summary>Caja o terminal que emitió (de los ajustes de la máquina).</summary>
+    /// <summary>Caja que emitió (la del usuario que inició sesión). Snapshot del código.</summary>
     public string CajaCodigo { get; set; } = string.Empty;
+
+    /// <summary>La <see cref="Caja"/> que emitió. Nulo en ventas anteriores al padrón de cajas sin código.</summary>
+    public int? CajaId { get; set; }
+
+    /// <summary>Turno en que se emitió la factura. Nulo en notas, en lo histórico y en lo anterior a los turnos.</summary>
+    public int? TurnoId { get; set; }
 
     // ---- Documento afectado (solo notas de crédito y débito) ----
 
@@ -141,6 +147,12 @@ public class Venta : IEntidad<int>, IDeOrganizacion
 
     /// <summary>Serial de la máquina fiscal o identificador del proveedor de imprenta digital.</summary>
     public string SerialEmisor { get; set; } = string.Empty;
+
+    /// <summary>
+    /// El documento que devolvió el emisor (el PDF de la imprenta digital, el comprobante del
+    /// simulador), si devolvió uno. Ruta del archivo en la PC que emitió.
+    /// </summary>
+    public string DocumentoRuta { get; set; } = string.Empty;
 
     /// <summary>Reporte Z que lo incluyó (solo con máquina fiscal); lo estampa el cierre.</summary>
     public int? NumeroZ { get; set; }

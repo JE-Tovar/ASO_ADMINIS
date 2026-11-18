@@ -15,12 +15,27 @@
     </Grid.RowDefinitions>
 
     <controls:PageHeader Grid.Row="0" Titulo="Administración"
-                         Descripcion="Los usuarios con sus permisos, y los datos de la propia organización." />
+                         Descripcion="Los usuarios con sus permisos, las cajas de venta, y los datos de la propia organización." />
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
       <RadioButton Content="Usuarios" GroupName="AdminAcceso"
                    Style="{StaticResource SegmentedTabStyle}"
                    IsChecked="{Binding EsUsuarios, Mode=TwoWay}" />
+      <RadioButton Content="Cajas" GroupName="AdminAcceso"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   IsChecked="{Binding EsCajas, Mode=TwoWay}" />
+      <RadioButton Content="Bitácora" GroupName="AdminAcceso"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   Visibility="{Binding Bitacora.PuedeVer, Converter={StaticResource BoolToVis}}"
+                   IsChecked="{Binding EsBitacora, Mode=TwoWay}" />
+      <RadioButton Content="Contingencia" GroupName="AdminAcceso"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   Visibility="{Binding Contingencia.PuedeVer, Converter={StaticResource BoolToVis}}"
+                   IsChecked="{Binding EsContingencia, Mode=TwoWay}" />
+      <RadioButton Content="Respaldos" GroupName="AdminAcceso"
+                   Style="{StaticResource SegmentedTabStyle}"
+                   Visibility="{Binding Respaldos.PuedeVer, Converter={StaticResource BoolToVis}}"
+                   IsChecked="{Binding EsRespaldos, Mode=TwoWay}" />
       <RadioButton Content="Organización" GroupName="AdminAcceso"
                    Style="{StaticResource SegmentedTabStyle}"
                    IsChecked="{Binding EsOrganizacion, Mode=TwoWay}" />
@@ -50,6 +65,15 @@
           <TextBox Style="{StaticResource FormTextBoxStyle}"
                    IsEnabled="{Binding PuedeEditar}"
                    Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}" />
+
+          <TextBlock Text="Bloquear tras minutos sin uso" Style="{StaticResource FormLabelStyle}" />
+          <TextBox Style="{StaticResource FormTextBoxStyle}" Width="120" HorizontalAlignment="Left"
+                   IsEnabled="{Binding PuedeEditar}"
+                   ToolTip="Pasado ese tiempo sin teclado ni ratón, se pide la contraseña para seguir. 0 = nunca."
+                   Text="{Binding MinutosInactividad, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Text="Vale para todas las PCs. En cajas compartidas evita que el siguiente use la sesión del anterior."
+                     FontSize="{StaticResource FsCaption}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
 
           <Button Content="Guardar" Style="{StaticResource PrimaryButtonStyle}" Margin="0,16,0,0" HorizontalAlignment="Left" Command="{Binding GuardarCommand}" />
 
@@ -152,6 +176,230 @@
     </WrapPanel>
     </ScrollViewer>
 
+    <!-- Talonarios de contingencia: sin uno activo no se registra ninguna factura en papel -->
+    <Grid Grid.Row="2" Margin="0,24,0,0" DataContext="{Binding Contingencia}"
+          Visibility="{Binding DataContext.MostrarContingencia, RelativeSource={RelativeSource AncestorType=UserControl},
+                               Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Button Content="Nuevo talonario" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding AgregarCommand}" />
+            <Button Content="Editar" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding EditarCommand}" />
+          </StackPanel>
+          <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}"
+                     Text="Los rangos de números de control de los formatos de contingencia que autorizó la imprenta. Cuando el emisor fiscal falla, solo se acepta un número de un talonario activo, y cada uno una sola vez." />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+        <Grid>
+          <DataGrid x:Name="TablaRangos" Style="{StaticResource DataGridStyle}" controls:DobleClicFila.Comando="{Binding AbrirCommand}"
+                    ItemsSource="{Binding ItemsView}" SelectedItem="{Binding SelectedItem}">
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Números de control" Binding="{Binding RangoTexto}" Width="24*" MinWidth="160" />
+              <controls:ColumnaTexto Header="Imprenta" Binding="{Binding Imprenta}" Width="24*" MinWidth="140" />
+              <controls:ColumnaTexto Header="Autorización" Binding="{Binding Autorizacion}" Width="18*" MinWidth="110" />
+              <controls:ColumnaTexto Header="Uso" Binding="{Binding UsoTexto}" Width="22*" MinWidth="150" />
+              <controls:ColumnaTexto Header="Estado" Binding="{Binding EstadoTexto}" Width="90" />
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <controls:EmptyState Icono="{x:Static controls:Iconos.Usuarios}"
+                               Titulo="No hay talonarios cargados"
+                               Detalle="Sin uno activo no se puede registrar ninguna factura en contingencia. Cargue el rango que figura en sus formatos."
+                               Visibility="{Binding HasItems, ElementName=TablaRangos, Converter={StaticResource SinItemsAVis}}" />
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- Respaldos: historial y respaldo manual -->
+    <Grid Grid.Row="2" Margin="0,24,0,0" DataContext="{Binding Respaldos}"
+          Visibility="{Binding DataContext.MostrarRespaldos, RelativeSource={RelativeSource AncestorType=UserControl},
+                               Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Button Content="Respaldar ahora" Style="{StaticResource PrimaryButtonStyle}"
+                    ToolTip="Copia de SQL Server (.bak, verificada) y exportación portable (.zip)"
+                    Command="{Binding RespaldarCommand}" />
+            <Button Content="Abrir carpeta" Style="{StaticResource SecondaryButtonStyle}"
+                    Command="{Binding AbrirCarpetaCommand}" />
+          </StackPanel>
+          <TextBlock Text="{Binding Estado}" Margin="0,8,0,0" TextWrapping="Wrap"
+                     FontSize="{StaticResource FsBody}" Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
+                     FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}"
+                     Text="{Binding CarpetaLocal, StringFormat='Se respalda solo una vez al día, al primer inicio de sesión de cualquier PC, y se conservan los 14 más recientes. La exportación portable queda en {0}; el .bak, en la carpeta de respaldos del servidor de SQL (con LocalDB, en la misma carpeta).'}" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+        <Grid>
+          <DataGrid x:Name="TablaRespaldos" Style="{StaticResource DataGridStyle}" IsReadOnly="True"
+                    ItemsSource="{Binding Historial}">
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="14*" MinWidth="120" />
+              <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoTexto}" Width="14*" MinWidth="120" />
+              <controls:ColumnaTexto Header="Origen" Binding="{Binding OrigenTexto}" Width="10*" MinWidth="90" />
+              <controls:ColumnaTexto Header="Estado" Binding="{Binding EstadoTexto}" Width="14*" MinWidth="120" />
+              <controls:ColumnaNumero Header="Tamaño" Binding="{Binding TamanoTexto}" Width="9*" MinWidth="80" />
+              <controls:ColumnaTexto Header="Archivo o error" Binding="{Binding DetalleTexto}" Width="39*" MinWidth="200" />
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <controls:EmptyState Icono="{x:Static controls:Iconos.Usuarios}"
+                               Titulo="Sin respaldos todavía"
+                               Detalle="Pulsa Respaldar ahora, o espera al primer inicio de sesión del día."
+                               Visibility="{Binding HasItems, ElementName=TablaRespaldos, Converter={StaticResource SinItemsAVis}}" />
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- Bitácora de auditoría: solo lectura, quién cambió qué -->
+    <Grid Grid.Row="2" Margin="0,24,0,0" DataContext="{Binding Bitacora}"
+          Visibility="{Binding DataContext.MostrarBitacora, RelativeSource={RelativeSource AncestorType=UserControl},
+                               Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+        <StackPanel>
+          <WrapPanel VerticalAlignment="Center">
+            <TextBlock Text="Desde" VerticalAlignment="Center" Margin="0,0,8,0"
+                       FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+            <DatePicker Width="140" VerticalAlignment="Center" Style="{StaticResource FormDatePickerStyle}"
+                        SelectedDate="{Binding Desde}" />
+            <TextBlock Text="Hasta" VerticalAlignment="Center" Margin="16,0,8,0"
+                       FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+            <DatePicker Width="140" VerticalAlignment="Center" Style="{StaticResource FormDatePickerStyle}"
+                        SelectedDate="{Binding Hasta}" />
+            <TextBlock Text="Tipo" VerticalAlignment="Center" Margin="16,0,8,0"
+                       FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+            <ComboBox Width="180" VerticalAlignment="Center" Style="{StaticResource FormComboBoxStyle}"
+                      ItemsSource="{Binding Entidades}" SelectedItem="{Binding Entidad}" />
+            <controls:SearchBox Width="240" Margin="16,0,12,0" VerticalAlignment="Center"
+                                ToolTip="Usuario, caja, equipo, texto del resumen o número de registro"
+                                Texto="{Binding Texto, Mode=TwoWay}" />
+            <Button Content="Buscar" Style="{StaticResource PrimaryButtonStyle}" VerticalAlignment="Center"
+                    Command="{Binding BuscarCommand}" />
+          </WrapPanel>
+          <TextBlock Text="{Binding Estado}" Margin="0,8,0,0" TextWrapping="Wrap"
+                     FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+        </StackPanel>
+      </Border>
+
+      <Grid Grid.Row="1">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="3*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="2*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" Padding="0">
+          <Grid>
+            <DataGrid x:Name="TablaBitacora" Style="{StaticResource DataGridStyle}" IsReadOnly="True"
+                      ItemsSource="{Binding Registros}" SelectedItem="{Binding Seleccionado}">
+              <DataGrid.Columns>
+                <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="18*" MinWidth="130" />
+                <controls:ColumnaTexto Header="Usuario" Binding="{Binding UsuarioNombre}" Width="18*" MinWidth="110" />
+                <controls:ColumnaTexto Header="Caja" Binding="{Binding CajaCodigo}" Width="9*" MinWidth="64" />
+                <controls:ColumnaTexto Header="Acción" Binding="{Binding AccionTexto}" Width="11*" MinWidth="84" />
+                <controls:ColumnaTexto Header="Resumen" Binding="{Binding Resumen}" Width="44*" MinWidth="200" />
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <controls:EmptyState Icono="{x:Static controls:Iconos.Usuarios}"
+                                 Titulo="Sin cambios registrados"
+                                 Detalle="Amplía el rango de fechas o cambia el filtro."
+                                 Visibility="{Binding HasItems, ElementName=TablaBitacora, Converter={StaticResource SinItemsAVis}}" />
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" Padding="0">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Margin="16,16,16,8">
+              <TextBlock Text="Detalle del cambio" Style="{StaticResource CardTitleStyle}" />
+              <TextBlock Text="{Binding Seleccionado.Equipo, StringFormat=Equipo: {0}}" Margin="0,4,0,0"
+                         FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}" />
+            </StackPanel>
+            <DataGrid Grid.Row="1" Style="{StaticResource DataGridStyle}" IsReadOnly="True"
+                      ItemsSource="{Binding Cambios}">
+              <DataGrid.Columns>
+                <controls:ColumnaTexto Header="Campo" Binding="{Binding Campo}" Width="30*" MinWidth="100" />
+                <controls:ColumnaTexto Header="Antes" Binding="{Binding Antes}" Width="35*" MinWidth="90" />
+                <controls:ColumnaTexto Header="Después" Binding="{Binding Despues}" Width="35*" MinWidth="90" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- Padrón de cajas: cada cajero queda atado a una (editor de usuario) -->
+    <Grid Grid.Row="2" Margin="0,24,0,0" DataContext="{Binding Cajas}"
+          Visibility="{Binding DataContext.MostrarCajas, RelativeSource={RelativeSource AncestorType=UserControl},
+                               Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource ToolbarStyle}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <WrapPanel Grid.Row="0" VerticalAlignment="Center">
+            <controls:SearchBox Width="280" Margin="0,0,12,0" VerticalAlignment="Center"
+                                Texto="{Binding TextoBusqueda, Mode=TwoWay}" />
+          </WrapPanel>
+
+          <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
+            <Button Content="Nueva" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding AgregarCommand}" />
+            <Button Content="Editar" Style="{StaticResource SecondaryButtonStyle}"
+                    Command="{Binding EditarCommand}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" MaxWidth="720" HorizontalAlignment="Left">
+        <Grid>
+          <DataGrid x:Name="TablaCajas" Style="{StaticResource DataGridStyle}" controls:DobleClicFila.Comando="{Binding AbrirCommand}"
+                    ItemsSource="{Binding ItemsView}"
+                    SelectedItem="{Binding SelectedItem}">
+            <DataGrid.Columns>
+              <controls:ColumnaTexto Header="Código" Binding="{Binding Codigo}" Width="16*" MinWidth="100" />
+              <controls:ColumnaTexto Header="Nombre" Binding="{Binding Nombre}" Width="40*" MinWidth="160" />
+              <controls:ColumnaTexto Header="Estado" Binding="{Binding EstadoTexto}" Width="90" />
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <controls:EmptyState Icono="{x:Static controls:Iconos.Usuarios}"
+                               Titulo="No hay cajas"
+                               Detalle="Crea una caja por cada puesto de venta (CAJA-01, CAJA-02…) y asígnala a sus cajeros."
+                               Visibility="{Binding HasItems, ElementName=TablaCajas, Converter={StaticResource SinItemsAVis}}" />
+        </Grid>
+      </Border>
+    </Grid>
+
     <!-- Usuarios y sus permisos: maestro-detalle, se ve a quien se esta editando todo el tiempo -->
     <Grid Grid.Row="2" Margin="0,24,0,0" Visibility="{Binding MostrarUsuarios, Converter={StaticResource BoolToVis}}">
       <Grid.ColumnDefinitions>
@@ -198,6 +446,7 @@
               <DataGrid.Columns>
                 <controls:ColumnaTexto Header="Usuario" Binding="{Binding NombreUsuario}" Width="30*" MinWidth="160" />
                 <controls:ColumnaTexto Header="Rol" Binding="{Binding RolTexto}" Width="14*" MinWidth="100" />
+                <controls:ColumnaTexto Header="Caja" Binding="{Binding CajaTexto}" Width="12*" MinWidth="72" />
                 <controls:ColumnaTexto Header="Estado" Binding="{Binding EstadoTexto}" Width="90" />
               </DataGrid.Columns>
             </DataGrid>

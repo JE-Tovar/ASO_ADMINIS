@@ -20,5 +20,18 @@
       <TextBox Style="{StaticResource FormTextBoxStyle}"
                Text="{Binding NumeroControl, UpdateSourceTrigger=PropertyChanged}" />
     </controls:FormField>
+
+    <TextBlock Text="{Binding TalonarioTexto}" TextWrapping="Wrap" Margin="0,8,0,0" FontSize="{StaticResource FsCaption}">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding PocosQuedan}" Value="True">
+              <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
   </StackPanel>
 </UserControl>

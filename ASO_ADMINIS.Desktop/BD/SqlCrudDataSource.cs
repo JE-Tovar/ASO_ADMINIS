@@ -53,7 +53,7 @@ public abstract class SqlCrudDataSource<T, TId> : ICrudDataSource<T, TId>
     {
         using var context = new AsoAdminisDbContext();
         context.Set<T>().Update(item);
-        context.SaveChanges();
+        Guardar(context, item);
     }
 
     public virtual void Delete(TId id)
@@ -64,7 +64,24 @@ public abstract class SqlCrudDataSource<T, TId> : ICrudDataSource<T, TId>
             return;
 
         context.Set<T>().Remove(entidad);
-        context.SaveChanges();
+        Guardar(context, entidad);
+    }
+
+    /// <summary>
+    /// Guarda traduciendo el choque de concurrencia (la <c>Version</c> que traía el registro ya no
+    /// es la de la base: otro usuario lo cambió o lo borró) a un mensaje para la persona.
+    /// </summary>
+    protected static void Guardar(AsoAdminisDbContext context, T item)
+    {
+        try
+        {
+            context.SaveChanges();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            Registro.Advertencia(ex, "Conflicto de edición en {Entidad} #{Id}", typeof(T).Name, item.Id);
+            throw new ConflictoDeEdicionException(ex);
+        }
     }
 
     /// <summary>
@@ -117,18 +134,39 @@ public abstract class SqlAgregadoDataSource<T, TId> : SqlCrudDataSource<T, TId>
         return Incluir(context.Set<T>()).FirstOrDefault(PorId(id));
     }
 
-    public override void Update(T item)
+    /// <summary>
+    /// Son dos guardados (borrar los hijos viejos, escribir los nuevos), así que van en una sola
+    /// transacción: si el segundo choca, los hijos borrados vuelven.
+    /// </summary>
+    public override void Update(T item) => UnidadDeTrabajo.Ejecutar(null, () =>
     {
         using var context = new AsoAdminisDbContext();
-        var existente = Incluir(context.Set<T>()).First(PorId(item.Id));
+        var existente = Incluir(context.Set<T>()).FirstOrDefault(PorId(item.Id))
+            ?? throw new ConflictoDeEdicionException(new InvalidOperationException($"{typeof(T).Name} #{item.Id} ya no existe."));
+
+        // La versión contra la que se compara es la que traía lo editado, no la recién leída:
+        // si otro usuario guardó entre medio, esto tiene que chocar en vez de pisarlo. Se compara
+        // antes de tocar nada, y además queda como original para que el UPDATE lo exija.
+        if (item is IConVersion conVersion && existente is IConVersion enBase)
+        {
+            if (conVersion.Version is not null && enBase.Version is not null
+                && !conVersion.Version.AsSpan().SequenceEqual(enBase.Version))
+                throw new ConflictoDeEdicionException(new DbUpdateConcurrencyException("Versión distinta"));
+
+            context.Entry(existente).Property(nameof(IConVersion.Version)).OriginalValue = conVersion.Version ?? enBase.Version;
+        }
 
         context.RemoveRange(HijosDe(existente));
-        context.SaveChanges();
+        Guardar(context, item);
 
         context.Entry(existente).CurrentValues.SetValues(item);
         CopiarHijos(existente, item);
-        context.SaveChanges();
-    }
+        Guardar(context, item);
+
+        // La versión nueva vuelve a quien llamó, como hace EF con Update.
+        if (item is IConVersion devuelta && existente is IConVersion guardada)
+            devuelta.Version = guardada.Version;
+    });
 
     public override void Delete(TId id)
     {

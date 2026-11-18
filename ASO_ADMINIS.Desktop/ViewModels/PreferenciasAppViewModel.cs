@@ -17,7 +17,6 @@ public sealed class PreferenciasAppViewModel : ViewModelBase
     public PreferenciasAppViewModel()
     {
         _abrirEnUltimaSeccion = Ajustes.Actual.AbrirEnUltimaSeccion;
-        _cajaCodigo = Ajustes.Actual.CajaCodigo;
         _leerEtiquetas = Ajustes.Actual.LeerEtiquetasBalanza;
         _etiquetaPrefijo = Ajustes.Actual.EtiquetaPrefijo;
         _digitosProducto = Ajustes.Actual.EtiquetaDigitosProducto.ToString();
@@ -101,26 +100,32 @@ public sealed class PreferenciasAppViewModel : ViewModelBase
             Aviso.Mostrar();
     }
 
-    private string _cajaCodigo;
-
     /// <summary>
-    /// Caja o terminal de venta de esta máquina. Figura en cada documento fiscal emitido desde
-    /// aquí; sin ella Ventas no deja facturar. Se guarda al salir del campo.
+    /// La caja de la sesión, de solo lectura. Antes era un texto que se escribía por PC y lo podía
+    /// cambiar cualquiera; ahora la caja es del usuario (Administración · Usuarios).
     /// </summary>
-    public string CajaCodigo
-    {
-        get => _cajaCodigo;
-        set
-        {
-            var limpio = (value ?? string.Empty).Trim().ToUpperInvariant();
-            if (!SetProperty(ref _cajaCodigo, limpio))
-                return;
+    public string CajaTexto => SesionActual.Instancia.CajaActual is { } caja
+        ? caja.Etiqueta
+        : "Sin caja asignada";
 
-            Ajustes.Actual.CajaCodigo = limpio;
-            if (Ajustes.Guardar())
-                Aviso.Mostrar();
+    /// <summary>Dónde está el registro de errores de esta PC, para mandárselo a soporte.</summary>
+    public string CarpetaRegistros => Registro.Carpeta;
+
+    public System.Windows.Input.ICommand AbrirRegistrosCommand { get; } = new RelayCommand(() =>
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(Registro.Carpeta);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{Registro.Carpeta}\"")
+            {
+                UseShellExecute = true
+            });
         }
-    }
+        catch (Exception ex)
+        {
+            Registro.Advertencia(ex, "No se pudo abrir la carpeta de registros");
+        }
+    });
 
     public AvisoGuardado Aviso { get; } = new();
 

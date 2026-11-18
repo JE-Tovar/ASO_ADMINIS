@@ -7,8 +7,11 @@ namespace ASO_ADMINIS.Desktop.Models;
 /// Es tambien el ambito de aislamiento: cada fila de las entidades operativas le pertenece y
 /// nadie ve las de otra (ver <see cref="IDeOrganizacion"/>).
 /// </summary>
-public class Organizacion : IEntidad<int>
+public class Organizacion : IEntidad<int>, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     public int Id { get; set; }
 
     /// <summary>Codigo corto de uso interno, para etiquetar la instalacion (p. ej. "ADM").</summary>
@@ -16,6 +19,12 @@ public class Organizacion : IEntidad<int>
 
     public string Nombre { get; set; } = string.Empty;
     public bool Activa { get; set; } = true;
+
+    /// <summary>
+    /// Minutos sin usar la aplicación tras los que se pide la contraseña de nuevo. 0 lo apaga.
+    /// Importante en cajas compartidas: un cajero que se va no deja su sesión abierta al siguiente.
+    /// </summary>
+    public int MinutosInactividad { get; set; } = Services.PoliticaSeguridad.MinutosInactividadPorDefecto;
 
     // ---- Datos fiscales del emisor: figuran en cada documento fiscal ----
 

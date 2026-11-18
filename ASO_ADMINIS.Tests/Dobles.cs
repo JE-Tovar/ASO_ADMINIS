@@ -4,11 +4,65 @@ using ASO_ADMINIS.Desktop.Services.Fiscal;
 
 namespace ASO_ADMINIS.Tests;
 
+/// <summary>
+/// Antes de cualquier prueba: el diario fiscal va a una carpeta temporal, nunca al %AppData% real
+/// de la máquina (ahí quedarían "documentos emitidos" de prueba para conciliar a mano).
+/// </summary>
+internal static class InicioDePruebas
+{
+    [System.Runtime.CompilerServices.ModuleInitializer]
+    internal static void Iniciar() =>
+        DiarioFiscal.Carpeta = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "aso-pruebas", Guid.NewGuid().ToString("N"));
+}
+
+/// <summary>Una fuente cuyo contenido se puede fotografiar y devolver a la foto.</summary>
+internal interface IRestaurable
+{
+    object Foto();
+    void Restaurar(object foto);
+}
+
+/// <summary>
+/// Unidad de trabajo de prueba: si la operación lanza, devuelve las fuentes indicadas a como
+/// estaban, igual que haría el rollback de la transacción real. Así se prueba que un servicio
+/// mete sus escrituras en UNA unidad de trabajo, sin SQL Server.
+/// </summary>
+internal sealed class TransaccionEnMemoria(params IRestaurable[] fuentes) : IUnidadDeTrabajo
+{
+    public int Ejecuciones { get; private set; }
+
+    public T Ejecutar<T>(string? bloqueo, Func<T> accion)
+    {
+        Ejecuciones++;
+        var fotos = fuentes.Select(f => f.Foto()).ToList();
+        try
+        {
+            return accion();
+        }
+        catch
+        {
+            for (var i = 0; i < fuentes.Length; i++)
+                fuentes[i].Restaurar(fotos[i]);
+            throw;
+        }
+    }
+}
+
 /// <summary>Fuente de datos en memoria con Id autoincremental.</summary>
-internal class FuenteEnMemoria<T> : ICrudDataSource<T, int> where T : class, IEntidad<int>
+internal class FuenteEnMemoria<T> : ICrudDataSource<T, int>, IRestaurable where T : class, IEntidad<int>
 {
     protected readonly List<T> Filas = [];
     private int _siguienteId = 1;
+
+    public object Foto() => (Filas.ToList(), _siguienteId);
+
+    public void Restaurar(object foto)
+    {
+        var (filas, siguiente) = ((List<T>, int))foto;
+        Filas.Clear();
+        Filas.AddRange(filas);
+        _siguienteId = siguiente;
+    }
 
     public IEnumerable<T> GetAll() => Filas.ToList();
     public T? GetById(int id) => Filas.FirstOrDefault(f => f.Id == id);
@@ -21,7 +75,7 @@ internal class FuenteEnMemoria<T> : ICrudDataSource<T, int> where T : class, IEn
         return item;
     }
 
-    public void Update(T item)
+    public virtual void Update(T item)
     {
         var i = Filas.FindIndex(f => f.Id == item.Id);
         if (i < 0)
@@ -100,6 +154,58 @@ internal sealed class VentasEnMemoria : FuenteEnMemoria<Venta>, IVentaDataSource
     }
 }
 
+/// <summary>Turnos en memoria que imita el índice único filtrado: un solo turno abierto por caja.</summary>
+internal sealed class TurnosEnMemoria : FuenteEnMemoria<Turno>, ITurnoDataSource
+{
+    public override Turno Add(Turno item)
+    {
+        if (item.EstaAbierto && Filas.Any(t => t.CajaId == item.CajaId && t.EstaAbierto))
+            throw new InvalidOperationException($"Índice único: la caja {item.CajaId} ya tiene un turno abierto.");
+        return base.Add(item);
+    }
+
+    public Turno? AbiertoDe(int cajaId) => Filas.FirstOrDefault(t => t.CajaId == cajaId && t.EstaAbierto);
+}
+
+/// <summary>Usuarios en memoria, con el bloqueo por intentos como lo hace la fuente SQL.</summary>
+internal sealed class UsuariosEnMemoria : FuenteEnMemoria<Usuario>, IUsuarioDataSource
+{
+    public Usuario? BuscarPorNombreSinAmbito(string nombreUsuario) =>
+        Filas.FirstOrDefault(u => u.NombreUsuario == nombreUsuario)?.Clonar();
+
+    public IReadOnlyList<PermisoUsuario> AjustesDe(int usuarioId) => [];
+    public bool ExisteAlguno() => Filas.Count > 0;
+
+    public Usuario RegistrarIntentoFallido(int usuarioId, int limite, DateTime bloquearHasta)
+    {
+        var u = GetById(usuarioId)!;
+        u.IntentosFallidos++;
+        if (u.IntentosFallidos >= limite)
+        {
+            u.BloqueadoHasta = bloquearHasta;
+            u.IntentosFallidos = 0;
+        }
+        return u.Clonar();
+    }
+
+    public void ReiniciarIntentos(int usuarioId)
+    {
+        var u = GetById(usuarioId)!;
+        u.IntentosFallidos = 0;
+        u.BloqueadoHasta = null;
+    }
+
+    public ResultadoAutenticacion? LeerParaSesion(int usuarioId) =>
+        GetById(usuarioId) is { } u ? new ResultadoAutenticacion(u.Clonar(), []) : null;
+}
+
+/// <summary>Talonarios en memoria; los números usados salen de las ventas en memoria.</summary>
+internal sealed class RangosEnMemoria(VentasEnMemoria ventas) : FuenteEnMemoria<RangoContingencia>, IRangoContingenciaDataSource
+{
+    public IReadOnlyList<string> NumerosDeControlUsados() =>
+        [.. ventas.GetAll().Select(v => v.NumeroControl).Where(n => !string.IsNullOrWhiteSpace(n))];
+}
+
 internal sealed class ClientesEnMemoria : FuenteEnMemoria<Cliente>, IClienteDataSource;
 
 internal sealed class ArticulosEnMemoria : FuenteEnMemoria<Articulo>, IArticuloDataSource
@@ -120,7 +226,8 @@ internal sealed class SesionTotal : ISesionActual
 {
     public HashSet<string> Negados { get; } = [];
 
-    public Usuario? UsuarioActual { get; } = new() { Id = 1, NombreCompleto = "Pruebas" };
+    public Usuario? UsuarioActual { get; set; } = new() { Id = 1, NombreCompleto = "Pruebas" };
+    public Caja? CajaActual { get; set; } = new() { Id = 1, Codigo = "CAJA-01", Activa = true };
     public bool EstaAutenticado => true;
     public void IniciarSesion(Usuario usuario, IEnumerable<PermisoUsuario>? ajustes = null) { }
     public void CerrarSesion() { }
@@ -144,6 +251,7 @@ internal sealed class EmisorDePrueba : IEmisorFiscal
     }
 
     public void TransmitirContingencia(Venta documento, Organizacion emisor) { }
+    public EstadoEmisor ProbarConexion() => new(true, "Emisor de prueba");
     public ResumenFiscal ReporteX(string caja) => throw new NotSupportedException();
     public ResumenFiscal ReporteZ(string caja) => throw new NotSupportedException();
 }
@@ -168,12 +276,17 @@ internal static class Escenario
 
     public sealed record Montaje(VentasService Ventas, ArticulosEnMemoria Articulos,
                                  SalidasEnMemoria Salidas, EntradasEnMemoria Entradas,
-                                 ClientesEnMemoria ClientesFuente, ClientesService Clientes, SesionTotal Sesion);
+                                 ClientesEnMemoria ClientesFuente, ClientesService Clientes, SesionTotal Sesion,
+                                 TurnosEnMemoria TurnosFuente, TurnosService Turnos);
 
     public static VentasService Servicio(VentasEnMemoria ventas) => Montar(ventas).Ventas;
 
-    /// <summary>VentasService sobre un catálogo con un servicio y un bien con existencia.</summary>
-    public static Montaje Montar(VentasEnMemoria ventas)
+    /// <summary>
+    /// VentasService sobre un catálogo con un servicio y un bien con existencia, con la sesión en
+    /// CAJA-01 y su turno ya abierto (sin turno no se factura). Con <paramref name="abrirTurno"/>
+    /// en false, la caja queda sin turno.
+    /// </summary>
+    public static Montaje Montar(VentasEnMemoria ventas, bool abrirTurno = true, IEmisorFiscal? emisor = null)
     {
         var articulos = new ArticulosEnMemoria();
         var salidas = new SalidasEnMemoria();
@@ -199,12 +312,24 @@ internal static class Escenario
         var sesion = new SesionTotal();
         var fuenteClientes = new ClientesEnMemoria();
         var clientes = new ClientesService(fuenteClientes, sesion);
+        // Un talonario de contingencia autorizado: 00-000001 al 00-000500.
+        var rangos = new RangosEnMemoria(ventas);
+        rangos.Add(new RangoContingencia { Prefijo = "00-", Desde = 1, Hasta = 500, Digitos = 6, Imprenta = "Imprenta de prueba", Activo = true });
+
+        var fuenteTurnos = new TurnosEnMemoria();
+        var turnos = new TurnosService(fuenteTurnos, ventas, sesion);
+        if (abrirTurno)
+            turnos.Abrir(0m, 0m);
+
         var servicio = new VentasService(ventas, articulos, salidas, entradas,
                                          new InventarioService(articulos, entradas, salidas),
-                                         sesion, new EmisorDePrueba(),
-                                         organizacion: () => org, caja: () => "CAJA-01",
-                                         clientes: clientes);
-        return new Montaje(servicio, articulos, salidas, entradas, fuenteClientes, clientes, sesion);
+                                         sesion, emisor ?? new EmisorDePrueba(),
+                                         organizacion: () => org,
+                                         turno: turnos.TurnoParaFacturar,
+                                         clientes: clientes,
+                                         rangos: rangos);
+        return new Montaje(servicio, articulos, salidas, entradas, fuenteClientes, clientes, sesion,
+                           fuenteTurnos, turnos);
     }
 
     /// <summary>

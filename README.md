@@ -86,13 +86,13 @@ ASO_ADMINIS/
 | Reportes | Ventas · Gastos · Libro de ventas |
 
 Además hay **cuatro secciones fijas** según el rol: **Inicio**, **Peticiones**, **Administración**
-(usuarios y permisos, datos de la organización y tasa BCV) y **Configuración** (tema, escala,
-contraseña propia, caja de la máquina). Las preferencias se guardan en
+(usuarios y permisos, cajas de venta, datos de la organización y tasa BCV) y **Configuración**
+(tema, escala, contraseña propia). Las preferencias se guardan en
 `%AppData%\ASO Adminis\ajustes.json`, no en la base de datos.
 
 ## Roles
 
-Cuatro roles genéricos (Operador, Supervisor, Administrador de organización, Desarrollador), sin
+Cuatro roles genéricos (Cajero, Supervisor, Administrador de organización, Desarrollador), sin
 atar todavía a ningún puesto real — ver la tabla de "Roles y permisos" y "PROVISIONAL" en
 `CLAUDE.md`. **Una sola organización trabaja por instalación.**
 

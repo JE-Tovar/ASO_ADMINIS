@@ -9,6 +9,9 @@ namespace ASO_ADMINIS.Desktop.ViewModels;
 /// <summary>Un rol con su nombre legible: el combo no debe mostrar "AdministradorNucleo".</summary>
 public sealed record OpcionRol(Rol Valor, string Texto);
 
+/// <summary>Una caja del combo del editor, o "Sin caja" (<see cref="Id"/> nulo).</summary>
+public sealed record OpcionCaja(int? Id, string Texto);
+
 /// <summary>
 /// Alta y edición de un usuario del núcleo.
 ///
@@ -18,29 +21,70 @@ public sealed record OpcionRol(Rol Valor, string Texto);
 /// </summary>
 public sealed class UsuarioEditorViewModel : CrudEditorViewModelBase<Usuario>
 {
-    private const int LargoMinimoPassword = 8;
 
     private readonly Usuario _original;
 
-    public UsuarioEditorViewModel(Usuario original, ISesionActual? sesion = null)
+    public UsuarioEditorViewModel(Usuario original, ISesionActual? sesion = null, IEnumerable<Caja>? cajas = null)
     {
         _original = original;
         var actual = sesion ?? SesionActual.Instancia;
+        _esUnoMismo = original.Id != 0 && original.Id == actual.UsuarioActual?.Id;
 
         _nombreUsuario = original.NombreUsuario;
         _nombreCompleto = original.NombreCompleto;
-        var rolInicial = original.Id == 0 ? Rol.Operador : original.Rol;
+        var rolInicial = original.Id == 0 ? Rol.Cajero : original.Rol;
         _activo = original.Id == 0 || original.Activo;
 
         // Un administrador de organización no puede fabricar un Desarrollador: ese rol lo
         // puede todo, así que solo lo reparte quien ya lo tiene.
         Rol[] asignables = actual.Puede(Permisos.Usuarios.CrearDesarrollador)
-            ? [Rol.Operador, Rol.Supervisor, Rol.AdministradorOrganizacion, Rol.Desarrollador]
-            : [Rol.Operador, Rol.Supervisor, Rol.AdministradorOrganizacion];
+            ? [Rol.Cajero, Rol.Supervisor, Rol.AdministradorOrganizacion, Rol.Desarrollador]
+            : [Rol.Cajero, Rol.Supervisor, Rol.AdministradorOrganizacion];
 
         RolesDisponibles = [.. asignables.Select(r => new OpcionRol(r, Texto(r)))];
         _rolSeleccionado = RolesDisponibles.FirstOrDefault(o => o.Valor == rolInicial) ?? RolesDisponibles[0];
 
+        // Se ofrecen las activas, más la que ya tenía aunque se haya desactivado: si no, abrir el
+        // editor le quitaría la caja en silencio.
+        var lista = (cajas ?? [])
+            .Where(c => c.Activa || c.Id == original.CajaId)
+            .OrderBy(c => c.Codigo)
+            .Select(c => new OpcionCaja(c.Id, c.Activa ? c.Etiqueta : $"{c.Etiqueta} (inactiva)"));
+        CajasDisponibles = [new OpcionCaja(null, "Sin caja"), .. lista];
+        _cajaSeleccionada = CajasDisponibles.FirstOrDefault(o => o.Id == original.CajaId) ?? CajasDisponibles[0];
+    }
+
+    public IReadOnlyList<OpcionCaja> CajasDisponibles { get; }
+
+    private readonly bool _esUnoMismo;
+
+    /// <summary>"Bloqueada hasta las 10:42 por intentos fallidos", o vacío.</summary>
+    public string BloqueoTexto => _original.EstaBloqueado(DateTime.Now)
+        ? $"Cuenta bloqueada hasta las {_original.BloqueadoHasta:HH:mm} por intentos fallidos."
+        : string.Empty;
+
+    public bool EstaBloqueado => BloqueoTexto.Length > 0;
+
+    private bool _desbloquear;
+    public bool Desbloquear
+    {
+        get => _desbloquear;
+        set => SetProperty(ref _desbloquear, value);
+    }
+
+    /// <summary>
+    /// Si se pone la contraseña de OTRA persona, esa persona tiene que cambiarla al entrar: la
+    /// conoce también el administrador. La propia se cambia mejor en Configuración · Mi cuenta.
+    /// </summary>
+    public string AyudaPassword => _esUnoMismo
+        ? PoliticaSeguridad.DescripcionPassword
+        : $"{PoliticaSeguridad.DescripcionPassword} Al entrar, el usuario tendrá que cambiarla por una suya.";
+
+    private OpcionCaja _cajaSeleccionada;
+    public OpcionCaja CajaSeleccionada
+    {
+        get => _cajaSeleccionada;
+        set => SetProperty(ref _cajaSeleccionada, value);
     }
 
     public override string Titulo => EsNuevo ? "Nuevo usuario" : $"Usuario: {_original.NombreUsuario}";
@@ -79,10 +123,11 @@ public sealed class UsuarioEditorViewModel : CrudEditorViewModelBase<Usuario>
 #pragma warning disable CS8524
     private static string Texto(Rol rol) => rol switch
     {
-        Rol.Operador => "Operador",
+        Rol.OperadorRetirado => "Operador (retirado)",
         Rol.Supervisor => "Supervisor",
         Rol.AdministradorOrganizacion => "Administrador de organización",
-        Rol.Desarrollador => "Desarrollador"
+        Rol.Desarrollador => "Desarrollador",
+        Rol.Cajero => "Cajero"
     };
 #pragma warning restore CS8524
 
@@ -121,10 +166,16 @@ public sealed class UsuarioEditorViewModel : CrudEditorViewModelBase<Usuario>
             return false;
         }
 
-        var cambiaPassword = EsNuevo || !string.IsNullOrEmpty(PasswordNueva);
-        if (cambiaPassword && PasswordNueva.Length < LargoMinimoPassword)
+        if (RolSeleccionado.Valor == Rol.Cajero && CajaSeleccionada.Id is null)
         {
-            error = $"La contraseña debe tener al menos {LargoMinimoPassword} caracteres.";
+            error = "Un usuario Cajero necesita una caja asignada. Créala antes en Administración · Cajas si no existe.";
+            return false;
+        }
+
+        var cambiaPassword = EsNuevo || !string.IsNullOrEmpty(PasswordNueva);
+        if (cambiaPassword && PoliticaSeguridad.ErrorPassword(PasswordNueva, NombreUsuario) is { } errorPassword)
+        {
+            error = errorPassword;
             return false;
         }
 
@@ -139,12 +190,25 @@ public sealed class UsuarioEditorViewModel : CrudEditorViewModelBase<Usuario>
         resultado.NombreCompleto = NombreCompleto.Trim();
         resultado.Rol = RolSeleccionado.Valor;
         resultado.Activo = Activo;
+        resultado.CajaId = CajaSeleccionada.Id;
 
         if (!string.IsNullOrEmpty(PasswordNueva))
         {
             var (hash, salt) = Passwords.Crear(PasswordNueva);
             resultado.PasswordHash = hash;
             resultado.PasswordSalt = salt;
+            resultado.DebeCambiarPassword = !_esUnoMismo;
+
+            // Poner una contraseña nueva también levanta el bloqueo: es lo que se hace cuando
+            // alguien la olvidó a fuerza de probar.
+            resultado.IntentosFallidos = 0;
+            resultado.BloqueadoHasta = null;
+        }
+
+        if (Desbloquear)
+        {
+            resultado.IntentosFallidos = 0;
+            resultado.BloqueadoHasta = null;
         }
 
         return resultado;

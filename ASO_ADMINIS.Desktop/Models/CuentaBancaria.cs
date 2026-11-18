@@ -26,8 +26,11 @@ public enum TipoCuenta
 /// partir de <see cref="SaldoInicial"/> más los movimientos. Guardarlo aparte es la vía rápida
 /// para que un día no coincida con sus propios movimientos.
 /// </summary>
-public class CuentaBancaria : IEntidad<int>, IDeOrganizacion
+public class CuentaBancaria : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Nucleo (organizacion) duenno de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

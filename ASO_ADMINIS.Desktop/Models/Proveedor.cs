@@ -4,8 +4,11 @@ namespace ASO_ADMINIS.Desktop.Models;
 /// Proveedor del centro: repuestos, combustible, taller externo, servicios.
 /// Dato maestro; cruza zafras, no lleva <c>ZafraId</c>.
 /// </summary>
-public class Proveedor : IEntidad<int>, IDeOrganizacion
+public class Proveedor : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Nucleo (organizacion) duenno de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

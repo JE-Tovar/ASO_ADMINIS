@@ -32,6 +32,11 @@ public static class DataSourceFactory
     private static Services.Fiscal.IEmisorFiscal? _emisorFiscal;
     private static IRetencionIvaDataSource? _retencionesIva;
     private static ICierreZDataSource? _cierresZ;
+    private static ICajaDataSource? _cajas;
+    private static ITurnoDataSource? _turnos;
+    private static IBitacoraDataSource? _bitacora;
+    private static IRespaldoDataSource? _respaldos;
+    private static IRangoContingenciaDataSource? _rangosContingencia;
     private static IArticuloDataSource? _articulos;
     private static IEntradaInventarioDataSource? _entradasInventario;
     private static ISalidaInventarioDataSource? _salidasInventario;
@@ -82,6 +87,24 @@ public static class DataSourceFactory
 
     public static ICierreZDataSource CrearCierresZ() =>
         _cierresZ ??= new SqlCierreZDataSource();
+
+    public static ICajaDataSource CrearCajas() =>
+        _cajas ??= new SqlCajaDataSource();
+
+    public static ITurnoDataSource CrearTurnos() =>
+        _turnos ??= new SqlTurnoDataSource();
+
+    public static IBitacoraDataSource CrearBitacora() =>
+        _bitacora ??= new SqlBitacoraDataSource();
+
+    public static IRangoContingenciaDataSource CrearRangosContingencia() =>
+        _rangosContingencia ??= new SqlRangoContingenciaDataSource();
+
+    public static IRespaldoDataSource CrearRespaldos() =>
+        _respaldos ??= new SqlRespaldoDataSource();
+
+    public static RespaldoService CrearServicioRespaldos() =>
+        new(CrearRespaldos(), OpcionesRespaldo.DeConfiguracion());
 
     /// <summary>El emisor fiscal de esta instalación (ver Services/Fiscal/EmisoresFiscales.cs).</summary>
     public static Services.Fiscal.IEmisorFiscal CrearEmisorFiscal() =>

@@ -1,0 +1,41 @@
+<Window x:Class="ASO_ADMINIS.Desktop.Views.SesionBloqueadaView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+        mc:Ignorable="d"
+        Title="Sesión bloqueada — ASO Adminis"
+        Icon="pack://application:,,,/Assets/Logo/aso-adminis.ico"
+        Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource BackgroundBrush}"
+        FontFamily="{StaticResource AppFont}">
+
+  <Grid Margin="32">
+    <Border Style="{StaticResource SectionCardStyle}">
+      <StackPanel>
+        <TextBlock Text="Sesión bloqueada" FontSize="{StaticResource FsTitle}" FontWeight="{StaticResource FwBold}"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+        <TextBlock x:Name="Explicacion" TextWrapping="Wrap" Margin="0,6,0,0"
+                   FontSize="{StaticResource FsBody}" Foreground="{DynamicResource TextSecondaryBrush}" />
+
+        <controls:FormField Etiqueta="Contraseña" Requerido="True">
+          <PasswordBox x:Name="PasswordBox" Style="{StaticResource FormPasswordBoxStyle}" />
+        </controls:FormField>
+
+        <TextBlock x:Name="ErrorTexto" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"
+                   FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource DangerTextBrush}" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+          <Button Content="Cambiar de usuario" Style="{StaticResource SecondaryButtonStyle}"
+                  ToolTip="Cierra esta sesión y vuelve al inicio de sesión"
+                  Click="OnCambiarUsuario" />
+          <Button Content="Desbloquear" Style="{StaticResource PrimaryButtonStyle}" IsDefault="True" Click="OnDesbloquear" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

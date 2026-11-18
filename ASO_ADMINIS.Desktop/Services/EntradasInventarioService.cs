@@ -158,6 +158,10 @@ public sealed class EntradasInventarioService
         if (!_sesion.Puede(Permisos.EntradasInventario.Crear))
             throw new InvalidOperationException("No tienes permiso para registrar entradas de almacén.");
 
+        // Entrada, cuenta por pagar y (si es nuevo) el comercio: todo o nada, y con el
+        // correlativo bajo el candado de documentos.
+        return UnidadDeTrabajo.Ejecutar(UnidadDeTrabajo.Documentos, () =>
+        {
         // El comercio de una compra externa se resuelve antes de validar, porque la validación de
         // la cuenta por pagar necesita saber a qué proveedor se le carga. Solo se da de alta si
         // no existía, y en ese caso no puede haber todavía una factura repetida suya.
@@ -187,20 +191,10 @@ public sealed class EntradasInventarioService
             entrada.FacturaProveedorNumero = factura.NumeroDocumento;
         }
 
-        try
-        {
-            return _entradas.Add(entrada);
-        }
-        catch
-        {
-            // No hay una transacción que abarque las dos tablas: cada fuente de datos abre su
-            // propio contexto. Si la entrada no llegó a guardarse, se retira la factura recién
-            // creada para no dejar una deuda sin la mercancía que la justifica.
-            if (factura is not null)
-                _facturas.Delete(factura.Id);
-
-            throw;
-        }
+        // Si la entrada no llega a guardarse, la transacción se lleva también la factura: no
+        // queda una deuda sin la mercancía que la justifica.
+        return _entradas.Add(entrada);
+        });
     }
 
     /// <summary>
@@ -221,6 +215,9 @@ public sealed class EntradasInventarioService
         if (string.IsNullOrWhiteSpace(motivo))
             throw new InvalidOperationException("Indique el motivo de la anulación.");
 
+        // Bajo el candado: entre comprobar que no se despachó y anular no puede colarse una venta.
+        return UnidadDeTrabajo.Ejecutar(UnidadDeTrabajo.Documentos, () =>
+        {
         var existencias = _inventario.ExistenciasPorArticulo();
 
         // Por artículo y no por línea: un mismo artículo puede venir en dos presentaciones
@@ -253,6 +250,7 @@ public sealed class EntradasInventarioService
         copia.FechaAnulacion = DateTime.Now;
         _entradas.Update(copia);
         return copia;
+        });
     }
 
     // --- Piezas internas ---

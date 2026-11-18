@@ -19,8 +19,11 @@ public enum EstadoFacturaProveedor
 /// <summary>
 /// Factura de un proveedor: lo que la organización debe por lo que le compró.
 /// </summary>
-public class FacturaProveedor : IEntidad<int>, IDeOrganizacion
+public class FacturaProveedor : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Organizacion duenna de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

@@ -34,8 +34,11 @@ public enum EstadoGastoVario
 /// divisas), el servicio escribe su asiento con <see cref="OrigenMovimiento.GastoVario"/>; si
 /// <see cref="CuentaId"/> es nulo fue efectivo por fuera de las cuentas y Banco no se entera.
 /// </summary>
-public class GastoVario : IEntidad<int>, IDeOrganizacion
+public class GastoVario : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Estampada por <c>AsoAdminisDbContext</c>; ver <see cref="IDeOrganizacion"/>.</summary>
     public int OrganizacionId { get; set; }
 

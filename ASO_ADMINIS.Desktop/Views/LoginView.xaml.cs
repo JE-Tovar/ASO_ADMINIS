@@ -30,6 +30,19 @@ public partial class LoginView : Window
     {
         if (ViewModel.IntentarIniciarSesion(PasswordBox.Password))
         {
+            // Entró con una contraseña que puso un administrador: no pasa sin cambiarla.
+            if (SesionActual.Instancia.UsuarioActual is { DebeCambiarPassword: true })
+            {
+                var cambio = new CambioPasswordObligatorioView(PasswordBox.Password) { Owner = this };
+                if (cambio.ShowDialog() != true)
+                {
+                    SesionActual.Instancia.CerrarSesion();
+                    PasswordBox.Clear();
+                    PasswordBox.Focus();
+                    return;
+                }
+            }
+
             // Solo tras entrar de verdad: recordar un usuario que ni existe no ayudaria a nadie.
             if (Ajustes.Actual.RecordarUltimoUsuario)
             {

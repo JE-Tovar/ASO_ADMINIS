@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Threading;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ASO_ADMINIS.Desktop.Models;
@@ -22,6 +23,15 @@ public class AsoAdminisDbContext : DbContext
     public DbSet<Cliente> Clientes { get; set; }
     public DbSet<RetencionIvaRecibida> RetencionesIva { get; set; }
     public DbSet<CierreZ> CierresZ { get; set; }
+    public DbSet<Caja> Cajas { get; set; }
+    public DbSet<Turno> Turnos { get; set; }
+    public DbSet<RangoContingencia> RangosContingencia { get; set; }
+
+    // ---- Bitácora (solo se agrega) ----
+    public DbSet<RegistroAuditoria> RegistrosAuditoria { get; set; }
+
+    // ---- Historial de respaldos (de la base entera, sin organización) ----
+    public DbSet<RegistroRespaldo> Respaldos { get; set; }
 
     // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
     public DbSet<Proveedor> Proveedores { get; set; }
@@ -100,8 +110,12 @@ public class AsoAdminisDbContext : DbContext
             // a qué organización pertenece quien escribe, así que un nombre repetido sería ambiguo.
             entity.HasIndex(u => u.NombreUsuario).IsUnique();
 
+            entity.HasIndex(u => u.CajaId);
+            entity.HasOne<Caja>().WithMany().HasForeignKey(u => u.CajaId).OnDelete(DeleteBehavior.Restrict);
+
             entity.Ignore(u => u.RolTexto);
             entity.Ignore(u => u.EstadoTexto);
+            entity.Ignore(u => u.CajaTexto);
         });
 
         modelBuilder.Entity<PermisoUsuario>(entity =>
@@ -163,6 +177,7 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(v => v.NumeroFiscal).HasMaxLength(30);
             entity.Property(v => v.NumeroControl).HasMaxLength(30);
             entity.Property(v => v.SerialEmisor).HasMaxLength(40);
+            entity.Property(v => v.DocumentoRuta).HasMaxLength(500);
             entity.Property(v => v.TasaCambioUsada).HasColumnType("decimal(18,4)").IsRequired();
 
             foreach (var monto in new[]
@@ -186,6 +201,10 @@ public class AsoAdminisDbContext : DbContext
             entity.HasIndex(v => new { v.OrganizacionId, v.Numero }).IsUnique();
             entity.HasIndex(v => v.DocumentoAfectadoId);
             entity.HasIndex(v => new { v.OrganizacionId, v.Fecha });
+            entity.HasIndex(v => v.CajaId);
+            entity.HasIndex(v => v.TurnoId);
+            entity.HasOne<Caja>().WithMany().HasForeignKey(v => v.CajaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Turno>().WithMany().HasForeignKey(v => v.TurnoId).OnDelete(DeleteBehavior.Restrict);
 
             entity.OwnsMany(v => v.Lineas, linea =>
             {
@@ -278,6 +297,51 @@ public class AsoAdminisDbContext : DbContext
 
             entity.Ignore(r => r.FechaTexto);
             entity.Ignore(r => r.MontoTexto);
+        });
+
+        // ---- Cajas y turnos ----
+
+        modelBuilder.Entity<Caja>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Codigo).IsRequired().HasMaxLength(20);
+            entity.Property(c => c.Nombre).HasMaxLength(100);
+            entity.HasIndex(c => new { c.OrganizacionId, c.Codigo }).IsUnique();
+
+            entity.Ignore(c => c.Etiqueta);
+            entity.Ignore(c => c.EstadoTexto);
+        });
+
+        modelBuilder.Entity<Turno>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.CajaCodigo).HasMaxLength(20);
+            entity.Property(t => t.UsuarioNombre).HasMaxLength(150);
+            entity.Property(t => t.CerradoPorNombre).HasMaxLength(150);
+            entity.Property(t => t.Observaciones).HasMaxLength(500);
+            foreach (var monto in new[]
+                     {
+                         nameof(Turno.FondoBs), nameof(Turno.FondoDivisa), nameof(Turno.EsperadoBs),
+                         nameof(Turno.EsperadoDivisa), nameof(Turno.ContadoBs), nameof(Turno.ContadoDivisa)
+                     })
+                entity.Property(monto).HasColumnType("decimal(18,2)");
+
+            // A lo sumo un turno abierto por caja, aunque dos PCs lo abran a la vez: la
+            // comprobación de TurnosService.Abrir no basta contra esa carrera, el índice sí.
+            entity.HasIndex(t => t.CajaId)
+                  .IsUnique()
+                  .HasFilter($"[Estado] = {(int)EstadoTurno.Abierto}")
+                  .HasDatabaseName("IX_Turnos_CajaId_Abierto");
+            entity.HasIndex(t => new { t.OrganizacionId, t.Apertura });
+            entity.HasOne<Caja>().WithMany().HasForeignKey(t => t.CajaId).OnDelete(DeleteBehavior.Restrict);
+
+            foreach (var derivada in new[]
+                     {
+                         nameof(Turno.EstaAbierto), nameof(Turno.DiferenciaBs), nameof(Turno.DiferenciaDivisa),
+                         nameof(Turno.EstadoTexto), nameof(Turno.AperturaTexto), nameof(Turno.CierreTexto),
+                         nameof(Turno.FondoTexto), nameof(Turno.DiferenciaTexto), nameof(Turno.Cuadra)
+                     })
+                entity.Ignore(derivada);
         });
 
         modelBuilder.Entity<CierreZ>(entity =>
@@ -576,7 +640,78 @@ public class AsoAdminisDbContext : DbContext
             });
         });
 
+        modelBuilder.Entity<RangoContingencia>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.ToTable("RangosContingencia");
+            entity.Property(r => r.Prefijo).HasMaxLength(10);
+            entity.Property(r => r.Imprenta).IsRequired().HasMaxLength(200);
+            entity.Property(r => r.ImprentaRif).HasMaxLength(15);
+            entity.Property(r => r.Autorizacion).HasMaxLength(100);
+            entity.HasIndex(r => new { r.OrganizacionId, r.Prefijo, r.Desde }).IsUnique();
+
+            foreach (var derivada in new[]
+                     {
+                         nameof(RangoContingencia.Usados), nameof(RangoContingencia.Total), nameof(RangoContingencia.Quedan),
+                         nameof(RangoContingencia.RangoTexto), nameof(RangoContingencia.UsoTexto), nameof(RangoContingencia.EstadoTexto)
+                     })
+                entity.Ignore(derivada);
+        });
+
+        modelBuilder.Entity<RegistroAuditoria>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.ToTable("RegistrosAuditoria");
+            entity.Property(r => r.UsuarioNombre).HasMaxLength(150);
+            entity.Property(r => r.CajaCodigo).HasMaxLength(20);
+            entity.Property(r => r.Equipo).HasMaxLength(100);
+            entity.Property(r => r.Entidad).IsRequired().HasMaxLength(60);
+            entity.Property(r => r.EntidadId).HasMaxLength(40);
+            entity.Property(r => r.Resumen).HasMaxLength(400);
+            entity.Property(r => r.Detalle).HasColumnType("nvarchar(max)");
+            entity.HasIndex(r => new { r.OrganizacionId, r.Fecha });
+            entity.HasIndex(r => new { r.Entidad, r.EntidadId });
+
+            entity.Ignore(r => r.FechaTexto);
+            entity.Ignore(r => r.AccionTexto);
+            entity.Ignore(r => r.EntidadTexto);
+        });
+
+        modelBuilder.Entity<RegistroRespaldo>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.ToTable("Respaldos");
+            entity.Property(r => r.Archivo).HasMaxLength(500);
+            entity.Property(r => r.Equipo).HasMaxLength(100);
+            entity.Property(r => r.UsuarioNombre).HasMaxLength(150);
+            entity.Property(r => r.Error).HasMaxLength(2000);
+            entity.HasIndex(r => r.Fecha);
+
+            foreach (var derivada in new[]
+                     {
+                         nameof(RegistroRespaldo.FechaTexto), nameof(RegistroRespaldo.TipoTexto), nameof(RegistroRespaldo.OrigenTexto),
+                         nameof(RegistroRespaldo.EstadoTexto), nameof(RegistroRespaldo.TamanoTexto),
+                         nameof(RegistroRespaldo.DetalleTexto)
+                     })
+                entity.Ignore(derivada);
+        });
+
+        AplicarVersiones(modelBuilder);
         AplicarFiltroDeOrganizacion(modelBuilder);
+    }
+
+    /// <summary>
+    /// Concurrencia optimista: la <c>Version</c> de toda <see cref="IConVersion"/> es una columna
+    /// <c>rowversion</c>. Recorre el modelo, igual que el filtro de organización, para que una
+    /// entidad nueva quede protegida con solo implementar la interfaz.
+    /// </summary>
+    private static void AplicarVersiones(ModelBuilder modelBuilder)
+    {
+        foreach (var tipo in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(IConVersion).IsAssignableFrom(tipo.ClrType) && !tipo.IsOwned())
+                modelBuilder.Entity(tipo.ClrType).Property(nameof(IConVersion.Version)).IsRowVersion();
+        }
     }
 
     /// <summary>
@@ -623,10 +758,35 @@ public class AsoAdminisDbContext : DbContext
     {
         EstamparOrganizacion();
         ProtegerDocumentosFiscales();
+        ProtegerBitacora();
 
-        var filas = base.SaveChanges();
-        AnunciarSiEscribio(filas);
-        return filas;
+        var pendientes = CapturarAuditoria();
+        if (pendientes.Count == 0)
+        {
+            var sinBitacora = base.SaveChanges();
+            AnunciarSiEscribio(sinBitacora);
+            return sinBitacora;
+        }
+
+        // El cambio y su fila de bitácora, juntos: si no hay una transacción en curso (la de
+        // UnidadDeTrabajo, o una de EF), se abre una para los dos guardados.
+        var propia = Database.CurrentTransaction is null && System.Transactions.Transaction.Current is null
+            ? Database.BeginTransaction()
+            : null;
+        try
+        {
+            var filas = base.SaveChanges();
+            RegistrosAuditoria.AddRange(ConstruirAuditoria(pendientes));
+            base.SaveChanges();
+            propia?.Commit();
+
+            AnunciarSiEscribio(filas);
+            return filas;
+        }
+        finally
+        {
+            propia?.Dispose();
+        }
     }
 
     /// <summary>
@@ -639,11 +799,146 @@ public class AsoAdminisDbContext : DbContext
     {
         EstamparOrganizacion();
         ProtegerDocumentosFiscales();
+        ProtegerBitacora();
 
-        var filas = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        AnunciarSiEscribio(filas);
-        return filas;
+        var pendientes = CapturarAuditoria();
+        var propia = pendientes.Count > 0 && Database.CurrentTransaction is null && System.Transactions.Transaction.Current is null
+            ? await Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        try
+        {
+            var filas = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            if (pendientes.Count > 0)
+            {
+                RegistrosAuditoria.AddRange(ConstruirAuditoria(pendientes));
+                await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            }
+
+            if (propia is not null)
+                await propia.CommitAsync(cancellationToken);
+
+            AnunciarSiEscribio(filas);
+            return filas;
+        }
+        finally
+        {
+            if (propia is not null)
+                await propia.DisposeAsync();
+        }
     }
+
+    // ---------------------------------------------------------------- Bitácora
+
+    /// <summary>Un cambio visto antes de guardar; el alta se completa después (todavía no tiene Id).</summary>
+    private sealed record CambioPendiente(
+        EntityEntry Entrada,
+        AccionAuditoria Accion,
+        IReadOnlyDictionary<string, object?>? Antes,
+        bool ReemplazoRenglones);
+
+    /// <summary>
+    /// La bitácora no se toca: ni la aplicación ni nadie la modifica o la borra. La base tiene
+    /// además un trigger que lo impide por fuera (ver la migración IntegridadYBitacora).
+    /// </summary>
+    private void ProtegerBitacora()
+    {
+        if (ChangeTracker.Entries<RegistroAuditoria>().Any(e => e.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("La bitácora de auditoría no se puede modificar ni borrar.");
+    }
+
+    /// <summary>
+    /// Qué se va a escribir, con cómo estaba antes. Va ANTES de guardar porque después las
+    /// entradas ya no dicen qué eran. En una modificación los valores anteriores se leen de la
+    /// base: las fuentes guardan entidades desprendidas (<c>Update</c>), que no traen originales.
+    /// Los renglones (tipos owned) no se anotan uno por uno: se marca que cambiaron en su documento.
+    /// </summary>
+    private List<CambioPendiente> CapturarAuditoria()
+    {
+        var entradas = ChangeTracker.Entries().ToList();
+        var renglonesNuevos = entradas.Any(e => e.Metadata.IsOwned() && e.State == EntityState.Added);
+
+        var pendientes = new List<CambioPendiente>();
+        foreach (var e in entradas)
+        {
+            // El historial de respaldos ya es un registro en sí: anotarlo en la bitácora sería duplicarlo.
+            if (e.Metadata.IsOwned() || e.Entity is RegistroAuditoria or RegistroRespaldo)
+                continue;
+
+            switch (e.State)
+            {
+                case EntityState.Added:
+                    pendientes.Add(new CambioPendiente(e, AccionAuditoria.Alta, null, false));
+                    break;
+
+                case EntityState.Modified:
+                    // Sin ámbito (el login) el filtro de organización puede ocultar la fila a
+                    // GetDatabaseValues; ahí sirven los originales, porque esas escrituras
+                    // cargan la entidad rastreada.
+                    var enBase = e.GetDatabaseValues() ?? e.OriginalValues;
+                    pendientes.Add(new CambioPendiente(e, AccionAuditoria.Modificacion, Valores(enBase), renglonesNuevos));
+                    break;
+
+                case EntityState.Deleted:
+                    pendientes.Add(new CambioPendiente(e, AccionAuditoria.Baja, Valores(e.OriginalValues), false));
+                    break;
+            }
+        }
+
+        return pendientes;
+    }
+
+    private List<RegistroAuditoria> ConstruirAuditoria(List<CambioPendiente> pendientes)
+    {
+        var sesion = SesionActual.Instancia;
+        var ahora = DateTime.Now;
+        var registros = new List<RegistroAuditoria>();
+
+        foreach (var p in pendientes)
+        {
+            var despues = p.Accion == AccionAuditoria.Baja ? null : Valores(p.Entrada.CurrentValues);
+            var cambios = Auditoria.Diferencias(p.Antes, despues).ToList();
+            if (p.ReemplazoRenglones)
+                cambios.Add(new CambioDeCampo("Renglones", string.Empty, "reemplazados"));
+
+            // Un Update sin cambios reales (guardar sin tocar nada) no ensucia la bitácora.
+            if (p.Accion == AccionAuditoria.Modificacion && cambios.Count == 0)
+                continue;
+
+            var entidad = p.Entrada.Metadata.ClrType.Name;
+            var id = Auditoria.Texto(p.Entrada.Metadata.FindPrimaryKey() is { } clave
+                ? p.Entrada.Property(clave.Properties[0].Name).CurrentValue
+                : null);
+
+            var organizacion = p.Entrada.Entity switch
+            {
+                IDeOrganizacion d when d.OrganizacionId != 0 => d.OrganizacionId,
+                Organizacion o => o.Id,
+                _ => _organizacionId ?? 0
+            };
+            if (organizacion == 0)
+                continue;   // sin organización la fila sería invisible para siempre
+
+            registros.Add(new RegistroAuditoria
+            {
+                OrganizacionId = organizacion,
+                Fecha = ahora,
+                UsuarioId = sesion.UsuarioActual?.Id,
+                UsuarioNombre = sesion.UsuarioActual?.NombreCompleto ?? "(sistema)",
+                CajaCodigo = sesion.CajaActual?.Codigo ?? string.Empty,
+                Equipo = Environment.MachineName,
+                Entidad = entidad,
+                EntidadId = id,
+                Accion = p.Accion,
+                Resumen = Auditoria.Resumen(p.Accion, entidad, id, cambios),
+                Detalle = Auditoria.Serializar(cambios)
+            });
+        }
+
+        return registros;
+    }
+
+    private static Dictionary<string, object?> Valores(PropertyValues valores) =>
+        valores.Properties.ToDictionary(p => p.Name, p => valores[p]);
 
     /// <summary>
     /// Avisa de la escritura para que la pantalla abierta se recargue sola (ver

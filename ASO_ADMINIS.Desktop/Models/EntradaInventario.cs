@@ -39,8 +39,11 @@ public enum EstadoEntrada
 /// es un <see cref="TipoEntrada.Ajuste"/>. El enlace al documento generado se guarda como un
 /// <c>int</c> suelto sin clave foránea real, igual que <see cref="MovimientoBanco.OrigenId"/>.
 /// </summary>
-public class EntradaInventario : IEntidad<int>, IDeOrganizacion
+public class EntradaInventario : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Organizacion duenna de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

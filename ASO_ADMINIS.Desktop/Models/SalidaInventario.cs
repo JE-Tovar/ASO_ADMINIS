@@ -46,8 +46,11 @@ public enum EstadoSalida
 /// diferencia de <see cref="EntradaInventario"/>, una salida no le debe nada a nadie, así que
 /// anularla solo devuelve la existencia.
 /// </summary>
-public class SalidaInventario : IEntidad<int>, IDeOrganizacion
+public class SalidaInventario : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Organizacion duenna de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

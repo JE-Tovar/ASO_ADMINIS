@@ -7,8 +7,11 @@ namespace ASO_ADMINIS.Desktop.Models;
 /// Se guarda con fecha (no solo "la tasa actual") pensando en que el futuro módulo de Ventas
 /// necesitará la tasa exacta del día de cada venta, no la de hoy recalculada después.
 /// </summary>
-public class TasaCambio : IEntidad<int>, IDeOrganizacion
+public class TasaCambio : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     /// <summary>Organizacion duenna de la fila; lo estampa AsoAdminisDbContext.SaveChanges.</summary>
     public int OrganizacionId { get; set; }
 

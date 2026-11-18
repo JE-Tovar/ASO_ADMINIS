@@ -282,6 +282,10 @@ public sealed class BancoService
             ? $"Transferencia {origen.Nombre} → {destino.Nombre}"
             : concepto.Trim();
 
+        // Los dos movimientos y su enlace, todo o nada: media transferencia saca dinero de una
+        // cuenta sin meterlo en la otra.
+        return UnidadDeTrabajo.Ejecutar(null, () =>
+        {
         var salida = _movimientos.Add(new MovimientoBanco
         {
             CuentaId = origen.Id,
@@ -321,6 +325,7 @@ public sealed class BancoService
         _movimientos.Update(salida);
 
         return (salida, entrada);
+        });
     }
 
     // --- Transiciones ---
@@ -380,16 +385,20 @@ public sealed class BancoService
         if (string.IsNullOrWhiteSpace(motivo))
             throw new InvalidOperationException("Indique el motivo de la anulación.");
 
-        var copia = AnularUno(movimiento, motivo);
-
-        if (movimiento.ContraparteId is { } contraparteId
-            && _movimientos.GetById(contraparteId) is { } contraparte
-            && contraparte.Estado != EstadoMovimientoBanco.Anulado)
+        // El movimiento y su contraparte (transferencia), juntos.
+        return UnidadDeTrabajo.Ejecutar(null, () =>
         {
-            AnularUno(contraparte, motivo);
-        }
+            var copia = AnularUno(movimiento, motivo);
 
-        return copia;
+            if (movimiento.ContraparteId is { } contraparteId
+                && _movimientos.GetById(contraparteId) is { } contraparte
+                && contraparte.Estado != EstadoMovimientoBanco.Anulado)
+            {
+                AnularUno(contraparte, motivo);
+            }
+
+            return copia;
+        });
     }
 
     private MovimientoBanco AnularUno(MovimientoBanco movimiento, string motivo)

@@ -85,9 +85,15 @@ public sealed class CierreService(IVentaDataSource ventas,
         CierreZ cierre;
         try
         {
-            cierre = cierres.Add(nuevo);
-            if (incluidos.Count > 0)
-                ventas.EstamparZ([.. incluidos.Select(v => v.Id)], z.NumeroZ);
+            // El Z y su estampado en los documentos, juntos: un Z guardado sin estampar dejaría
+            // esas ventas fuera del libro consolidado.
+            cierre = UnidadDeTrabajo.Ejecutar(null, () =>
+            {
+                var guardado = cierres.Add(nuevo);
+                if (incluidos.Count > 0)
+                    ventas.EstamparZ([.. incluidos.Select(v => v.Id)], z.NumeroZ);
+                return guardado;
+            });
         }
         catch (Exception ex)
         {

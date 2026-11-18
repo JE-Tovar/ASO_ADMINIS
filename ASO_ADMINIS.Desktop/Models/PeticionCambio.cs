@@ -19,8 +19,11 @@ public enum EstadoPeticion
 /// dato; y de paso el aprobador acaba siendo distinto del solicitante, que es la segregacion
 /// de funciones que pide el disenno de autorizacion.
 /// </summary>
-public class PeticionCambio : IEntidad<int>, IDeOrganizacion
+public class PeticionCambio : IEntidad<int>, IDeOrganizacion, IConVersion
 {
+    /// <summary>Concurrencia optimista (rowversion): la pone SQL Server en cada escritura.</summary>
+    public byte[]? Version { get; set; }
+
     public int Id { get; set; }
     public int OrganizacionId { get; set; }
 

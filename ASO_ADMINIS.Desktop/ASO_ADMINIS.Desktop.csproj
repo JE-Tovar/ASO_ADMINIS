@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -25,11 +25,20 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- Variables ASO_* sobre la configuracion: las pruebas de integracion apuntan asi a una
+         base temporal sin tocar appsettings.local.json. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
 
     <!-- Reportes · Ventas y Gastos: gráficos de barras y torta. Primera librería de terceros
          del proyecto fuera de EF Core - pura administrada, sin binarios nativos. -->
     <PackageReference Include="OxyPlot.Wpf" Version="2.2.0" />
+    <!-- Comprobante no fiscal en PDF (Services/ComprobantePdf.cs). Licencia MIT; .NET puro. Las
+         fuentes de Windows se le pasan con FuentesWindows (PDFsharp 6 no las busca solo). -->
+    <PackageReference Include="PDFsharp-MigraDoc" Version="6.1.1" />
+    <!-- Registro tecnico a archivo por PC (Services/Registro.cs): errores, arranque, login. -->
+    <PackageReference Include="Serilog" Version="4.1.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <!-- Instalador + actualizaciones automaticas desde GitHub Releases (Program.cs,
          Services/Actualizaciones.cs). Ver README "Publicar una version". -->
     <PackageReference Include="Velopack" Version="1.2.0" />
@@ -59,6 +68,11 @@
   <ItemGroup>
     <Resource Include="Assets\Logo\aso-adminis.ico" />
     <None Remove="Assets\Logo\generar_icono.py" />
+  </ItemGroup>
+
+  <!-- Las pruebas de integracion fijan el ambito de organizacion (Ambito.Fijar es internal). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ASO_ADMINIS.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -13,7 +13,6 @@ namespace ASO_ADMINIS.Desktop.ViewModels;
 /// </summary>
 public sealed class PrimerArranqueViewModel : ViewModelBase
 {
-    private const int LargoMinimoPassword = 8;
 
     private readonly IOrganizacionDataSource _organizaciones;
     private readonly IUsuarioDataSource _usuarios;
@@ -160,9 +159,9 @@ public sealed class PrimerArranqueViewModel : ViewModelBase
             return false;
         }
 
-        if (password.Length < LargoMinimoPassword)
+        if (PoliticaSeguridad.ErrorPassword(password, NombreUsuario) is { } errorPassword)
         {
-            MensajeError = $"La contraseña debe tener al menos {LargoMinimoPassword} caracteres.";
+            MensajeError = errorPassword;
             return false;
         }
 

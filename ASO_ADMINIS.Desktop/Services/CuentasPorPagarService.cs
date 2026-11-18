@@ -118,13 +118,18 @@ public sealed class CuentasPorPagarService
         if (!_sesion.Puede(Permisos.Finanzas.Pagar))
             throw new InvalidOperationException("No tienes permiso para pagar facturas de proveedor.");
 
-        _banco.RegistrarPagoProveedor(factura, asiento, usuarioId);
+        // Asiento y factura pagada, juntos: un pago sin su movimiento de banco (o al revés)
+        // descuadra el saldo de la cuenta.
+        return UnidadDeTrabajo.Ejecutar(null, () =>
+        {
+            _banco.RegistrarPagoProveedor(factura, asiento, usuarioId);
 
-        var copia = factura.Clonar();
-        copia.Estado = EstadoFacturaProveedor.Pagada;
-        copia.FechaPago = DateTime.Today;
-        _facturas.Update(copia);
-        return copia;
+            var copia = factura.Clonar();
+            copia.Estado = EstadoFacturaProveedor.Pagada;
+            copia.FechaPago = DateTime.Today;
+            _facturas.Update(copia);
+            return copia;
+        });
     }
 
     public FacturaProveedor Anular(FacturaProveedor factura, string motivo)

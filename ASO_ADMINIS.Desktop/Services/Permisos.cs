@@ -126,6 +126,35 @@ public static class Permisos
 
         /// <summary>Registrar comprobantes de retención de IVA de clientes agentes de retención.</summary>
         public const string Retenciones = "Ventas.Retenciones";
+
+        /// <summary>
+        /// Ver los documentos, el resumen diario y los turnos de TODAS las cajas. Sin él (el
+        /// Cajero) solo se ve lo de la caja propia.
+        /// </summary>
+        public const string VerTodasLasCajas = "Ventas.VerTodasLasCajas";
+    }
+
+    /// <summary>
+    /// Turnos de caja: abrirlo con un fondo y cerrarlo con el arqueo. Para facturar hace falta
+    /// un turno abierto propio (ver <c>TurnosService</c>).
+    /// </summary>
+    public static class Turnos
+    {
+        public const string Abrir = "Turnos.Abrir";
+        public const string Cerrar = "Turnos.Cerrar";
+
+        /// <summary>Cerrar el turno de OTRO cajero (se fue sin cerrarlo). Supervisión.</summary>
+        public const string CerrarAjeno = "Turnos.CerrarAjeno";
+    }
+
+    /// <summary>
+    /// Padrón de cajas (Administración · Cajas). No hay "Eliminar": una caja con historia se
+    /// desactiva, porque ventas, turnos y cierres Z la referencian.
+    /// </summary>
+    public static class Cajas
+    {
+        public const string Crear = "Cajas.Crear";
+        public const string Editar = "Cajas.Editar";
     }
 
     /// <summary>
@@ -158,6 +187,34 @@ public static class Permisos
     public static class Organizacion
     {
         public const string Editar = "Organizacion.Editar";
+    }
+
+    /// <summary>
+    /// La bitácora de auditoría (Administración · Bitácora): quién cambió qué. Solo lectura; por
+    /// defecto solo la ve el administrador, que recibe todos los permisos.
+    /// </summary>
+    /// <summary>
+    /// Talonarios de formatos de contingencia (Administración · Contingencia): registrar los
+    /// rangos que autorizó la imprenta. No hay "Eliminar": un rango con uso se desactiva.
+    /// </summary>
+    public static class RangosContingencia
+    {
+        public const string Crear = "RangosContingencia.Crear";
+        public const string Editar = "RangosContingencia.Editar";
+    }
+
+    public static class Bitacora
+    {
+        public const string Ver = "Bitacora.Ver";
+    }
+
+    /// <summary>
+    /// Administración · Respaldos: ver el historial y respaldar a mano. El automático del inicio
+    /// de sesión no pide permiso (lo dispara cualquier usuario, sin que se entere).
+    /// </summary>
+    public static class Respaldos
+    {
+        public const string Ejecutar = "Respaldos.Ejecutar";
     }
 
     public static class Usuarios

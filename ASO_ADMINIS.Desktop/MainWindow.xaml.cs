@@ -24,11 +24,13 @@ public partial class MainWindow : Window
 
         AplicarEscala();
         Ajustes.Cambiaron += AplicarEscala;
+        CambiosDeDatos.Ocurrieron += MostrarCaja;
         Closed += OnCerrada;
 
         Navegar(SeccionDeArranque(), null);
 
         MostrarCabecera();
+        IniciarGuardia();
     }
 
     /// <summary>
@@ -43,6 +45,8 @@ public partial class MainWindow : Window
     private void OnCerrada(object? sender, EventArgs e)
     {
         Ajustes.Cambiaron -= AplicarEscala;
+        CambiosDeDatos.Ocurrieron -= MostrarCaja;
+        DetenerGuardia();
         DesconectarPantallaActual();
 
         if (Ajustes.Actual.AbrirEnUltimaSeccion)
@@ -85,10 +89,53 @@ public partial class MainWindow : Window
             OrganizacionActualLabel.Text = organizacion.Etiqueta;
             OrganizacionChip.Visibility = Visibility.Visible;
         }
+
+        MostrarCaja();
     }
 
-    private void OnCerrarSesion(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// "CAJA-01 · Turno desde 08:12" o "CAJA-01 · Sin turno". Se repinta con cada escritura
+    /// (abrir o cerrar un turno es una), así que no hace falta que Cierre avise a la ventana.
+    /// Quien no tiene caja no ve el chip.
+    /// </summary>
+    private void MostrarCaja()
     {
+        if (SesionActual.Instancia.CajaActual is not { } caja)
+        {
+            CajaChip.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        Models.Turno? turno = null;
+        try
+        {
+            turno = DataSourceFactory.CrearTurnos().AbiertoDe(caja.Id);
+        }
+        catch (Exception ex)
+        {
+            // La cabecera es informativa: si la base no responde, el fallo real sale al facturar.
+            Registro.Advertencia(ex, "No se pudo leer el turno de la caja para la cabecera");
+        }
+
+        var propio = turno is not null && turno.UsuarioId == SesionActual.Instancia.UsuarioActual?.Id;
+        CajaActualLabel.Text = turno is null
+            ? $"{caja.Codigo} · Sin turno"
+            : propio
+                ? $"{caja.Codigo} · Turno desde {turno.Apertura:HH:mm}"
+                : $"{caja.Codigo} · Turno de {turno.UsuarioNombre}";
+        CajaChip.Tag = propio ? "ConTurno" : "SinTurno";
+        CajaChip.ToolTip = propio
+            ? "Tu caja y tu turno abierto. El arqueo se hace en Ventas · Cierre del día."
+            : "Para facturar abre tu turno en Ventas · Cierre del día.";
+        CajaChip.Visibility = Visibility.Visible;
+    }
+
+    private void OnCerrarSesion(object sender, RoutedEventArgs e) => CerrarSesionYVolverAlLogin();
+
+    private void CerrarSesionYVolverAlLogin()
+    {
+        DetenerGuardia();
+        Registro.Info("Cierre de sesión");
         SesionActual.Instancia.CerrarSesion();
 
         var login = new LoginView();

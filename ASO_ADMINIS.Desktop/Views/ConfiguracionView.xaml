@@ -219,10 +219,17 @@
                      Text="Si está apagado, la aplicación siempre abre en Inicio." />
 
           <TextBlock Text="Caja de venta" Style="{StaticResource TituloTarjetaStyle}" Margin="0,20,0,0" />
-          <TextBox Style="{StaticResource FormTextBoxStyle}" Margin="0,8,0,0" MaxLength="20"
-                   Text="{Binding CajaCodigo, UpdateSourceTrigger=LostFocus}" />
+          <TextBlock Text="{Binding CajaTexto}" Margin="0,8,0,0" FontSize="{StaticResource FsSubtitle}"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
           <TextBlock Style="{StaticResource AyudaAjusteStyle}"
-                     Text="Código de la caja o terminal de esta máquina (p. ej. CAJA-01). Figura en cada factura; sin él no se puede facturar desde aquí." />
+                     Text="La caja va con tu usuario, no con esta PC: entres donde entres, facturas en ella. La asigna el administrador en Administración · Usuarios." />
+
+          <TextBlock Text="Registro de errores" Style="{StaticResource TituloTarjetaStyle}" Margin="0,20,0,0" />
+          <Button Content="Abrir carpeta de registros" Style="{StaticResource SecondaryButtonStyle}"
+                  HorizontalAlignment="Left" Margin="0,8,0,0"
+                  Command="{Binding AbrirRegistrosCommand}" />
+          <TextBlock Style="{StaticResource AyudaAjusteStyle}"
+                     Text="{Binding CarpetaRegistros, StringFormat='Un archivo por día en {0}. Si algo falla, envíale a soporte el del día.'}" />
 
           <TextBlock Text="Etiquetas de balanza" Style="{StaticResource TituloTarjetaStyle}" Margin="0,20,0,0" />
           <CheckBox Style="{StaticResource ToggleSwitchStyle}"
