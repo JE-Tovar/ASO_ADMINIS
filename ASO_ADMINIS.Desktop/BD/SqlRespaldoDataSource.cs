@@ -228,10 +228,37 @@ EXEC sp_executesql @sql, N'@ruta nvarchar(4000)', @ruta = @ruta;", ruta);
         }
 
         if (resultado.Value is int r && r >= 0)
-            return conexion;   // el candado vive mientras la conexión esté abierta
+            return new CandadoDeSesion(conexion, "ASO:Respaldo");
 
         conexion.Dispose();
         return null;
+    }
+
+    /// <summary>
+    /// Suelta el candado y después cierra. Cerrar a secas no basta: la conexión vuelve al pool con
+    /// la sesión viva y el candado puesto, y otra caja que respalde en esos minutos lo vería
+    /// tomado y se saltaría su respaldo.
+    /// </summary>
+    private sealed class CandadoDeSesion(SqlConnection conexion, string recurso) : IDisposable
+    {
+        public void Dispose()
+        {
+            try
+            {
+                using var comando = new SqlCommand(
+                    "EXEC sp_releaseapplock @Resource = @recurso, @LockOwner = 'Session';", conexion);
+                comando.Parameters.AddWithValue("@recurso", recurso);
+                comando.ExecuteNonQuery();
+            }
+            catch (SqlException)
+            {
+                // Conexión rota: SqlClient la descarta, la sesión muere y el candado se suelta solo.
+            }
+            finally
+            {
+                conexion.Dispose();
+            }
+        }
     }
 
     // ---------------------------------------------------------------- Apoyo

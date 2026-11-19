@@ -269,6 +269,24 @@ public sealed class IntegracionSqlTests(BaseTemporal bd) : IDisposable
     // ---------------------------------------------------------------- Respaldos
 
     [FactSql]
+    public void Soltar_el_candado_de_respaldo_lo_libera_para_las_otras_cajas()
+    {
+        var fuente = new SqlRespaldoDataSource();
+        using (var candado = fuente.TomarCandadoDeRespaldo())
+            Assert.NotNull(candado);
+
+        // Otra caja: otra conexión, sin pool compartido con esta. Con la conexión devuelta al pool
+        // y el candado sin soltar, lo vería tomado.
+        var cadena = Environment.GetEnvironmentVariable("ASO_ConnectionStrings__AsoAdminisDb") + "Pooling=false;";
+        using var otra = new Microsoft.Data.SqlClient.SqlConnection(cadena);
+        otra.Open();
+        using var comando = new Microsoft.Data.SqlClient.SqlCommand(
+            "DECLARE @r int; EXEC @r = sp_getapplock @Resource = N'ASO:Respaldo', @LockMode = 'Exclusive', " +
+            "@LockOwner = 'Session', @LockTimeout = 0; SELECT @r;", otra);
+        Assert.True((int)comando.ExecuteScalar()! >= 0);
+    }
+
+    [FactSql]
     public void El_respaldo_nativo_se_puede_restaurar_en_otra_base()
     {
         var carpeta = Path.Combine(Path.GetTempPath(), "aso-pruebas", Guid.NewGuid().ToString("N"));

@@ -95,24 +95,16 @@ public partial class App : Application
 
     /// <summary>
     /// Pone la base de datos al día con las migraciones del código, y la crea entera si no
-    /// existía (primer arranque en una máquina nueva).
-    ///
-    /// Se consulta primero si hay algo pendiente en vez de llamar a <c>Migrate</c> a secas: en
-    /// el caso normal —base ya al día— eso evita el bloqueo que <c>Migrate</c> toma para
-    /// serializar migraciones, que es lo que haría que abrir dos instancias a la vez se
-    /// esperasen entre sí sin motivo.
+    /// existía (primer arranque en una máquina nueva). Dos instancias a la vez no chocan: ver
+    /// <see cref="Esquema"/>.
     /// </summary>
     private static bool ActualizarEsquema()
     {
         try
         {
-            using var db = new AsoAdminisDbContext();
-            var pendientes = db.Database.GetPendingMigrations().ToList();
-            if (pendientes.Count > 0)
-            {
-                Registro.Info("Aplicando migraciones: {Migraciones}", string.Join(", ", pendientes));
-                db.Database.Migrate();
-            }
+            var aplicadas = Esquema.Actualizar();
+            if (aplicadas.Count > 0)
+                Registro.Info("Migraciones aplicadas: {Migraciones}", string.Join(", ", aplicadas));
 
             return true;
         }

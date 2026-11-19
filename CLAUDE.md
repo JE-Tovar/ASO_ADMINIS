@@ -504,6 +504,12 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
   su `Up` está reordenado a mano para pasar el precio de cada modelo a su artículo y repuntar
   `Ventas.ModeloId` → `ArticuloId` antes de borrar `Marcas`/`Modelos`. Si se edita una
   migración generada, revisar el script con `dotnet ef migrations script`.
+- **Al abrir, `BD/Esquema.Actualizar` aplica lo pendiente con un candado** (`sp_getapplock`
+  'ASO:Migraciones' de sesión, espera 3 min): EF Core 8 no serializa `Migrate` (eso es de EF 9), y
+  con la 0.5.0 dos instancias abiertas a la vez chocaron ("Column name 'CajaId' … specified more
+  than once"). **Un candado de sesión se suelta con `sp_releaseapplock`, nunca solo cerrando**: la
+  conexión vuelve al pool con la sesión viva y el candado sigue puesto (minutos). Lo prueba
+  `EsquemaSqlTests` (cuatro cajas a la vez sobre una base de la 0.4.0).
 - **La cadena de conexión vive solo en `appsettings.local.json`** (por máquina, en `.gitignore`);
   la de `appsettings.json` (clave `ConnectionStrings:AsoAdminisDb`) apunta a LocalDB con un
   `.mdf` en `App_Data`.

@@ -58,13 +58,21 @@ public class AsoAdminisDbContext : DbContext
 
     public AsoAdminisDbContext() => _organizacionId = Ambito.OrganizacionId;
 
+    /// <summary>
+    /// Contra otra base que la configurada. Solo para <see cref="Esquema"/> y sus pruebas, que
+    /// necesitan varias bases a la vez y <c>AppConfig</c> lee la cadena una sola vez.
+    /// </summary>
+    internal AsoAdminisDbContext(string cadenaConexion) : this() => _cadenaConexion = cadenaConexion;
+
+    private readonly string? _cadenaConexion;
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
         {
             // La cadena de conexión vive en appsettings.json / appsettings.local.json,
             // no en el código. Cada máquina configura la suya sin tocar el repo.
-            optionsBuilder.UseSqlServer(AppConfig.ConnectionString);
+            optionsBuilder.UseSqlServer(_cadenaConexion ?? AppConfig.ConnectionString);
         }
     }
 
