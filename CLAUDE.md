@@ -78,7 +78,7 @@ Server Express): `INSTALACION.md`.
   de un documento, dentro del servicio de dominio (`CuentasPorPagarService`, `BancoService`
   exigen `ISesionActual` por constructor). El CRUD genérico (`CrudViewModelBase`) todavía escribe
   directo contra el `IDataSource` sin repetir la comprobación — hueco puntual heredado, ver
-  "Próximo paso sugerido".
+  "Lista maestra de pendientes", apartado P1.
 
 ## Estructura de módulos
 
@@ -548,7 +548,7 @@ Las entidades de dominio persisten en **SQL Server vía EF Core Migrations**.
 **Una instalación atiende a una sola organización.** Ningún formulario pregunta a qué
 organización pertenece algo: se estampa la de la organización instalada. **No hay ningún nivel
 intermedio** — si el negocio real necesita varias plantas o líneas bajo la misma organización,
-ese nivel hay que diseñarlo cuando se conozca la necesidad real (ver PROVISIONAL más abajo).
+ese nivel hay que diseñarlo cuando se conozca la necesidad real (ver la lista maestra más abajo).
 
 - **`Models/IDeOrganizacion.cs`** marca las entidades sujetas al ámbito.
 - **`BD/DbContext.cs` hace todo el trabajo, en dos sitios:**
@@ -815,159 +815,164 @@ cambiar contraseña) y **Aplicación** (hoy solo "abrir en la última sección";
 propio porque no decide nada del negocio). Las preferencias NO van a la base de datos: viven en
 `%AppData%\ASO Adminis\ajustes.json` (`Models/AjustesApp.cs` + `Configuration/AjustesStoreJson.cs`).
 
-## PROVISIONAL — decisiones pendientes, marcadas a propósito
+## Lista maestra de pendientes (actualizada 2026-11-26)
 
-El sistema es genérico a propósito (sirve a cualquier comercio). Lo siguiente son placeholders
-deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto; no son bugs:
+Esta sección reúne las brechas fiscales, las mejoras generales y las decisiones de negocio antes
+repartidas entre «PROVISIONAL», «Próximo paso sugerido» y el plan empresarial. Las prioridades son:
+**P0**, impide declarar emisión fiscal real; **P1**, conviene resolverlo antes de ampliar la operación;
+**P2**, evolución técnica o personalización. No todos los puntos son obligaciones del SENIAT.
 
-1. **Marca**: la paleta ámbar/azul sigue siendo placeholder (el logo de caja registradora ya
-   existe) — ver "Marca" arriba.
-2. **Roles genéricos**: `Cajero` / `Supervisor` / `AdministradorOrganizacion` / `Desarrollador`
-   no están atados a ningún puesto real. Ajustar los nombres y los conjuntos base en
-   `Models/Rol.cs` / `Services/MatrizPermisos.cs` en cuanto el negocio real esté definido — son
-   *el único* rediseño pendiente, porque los cuatro roles conservan intacto el mecanismo
-   (ordinal append-only, permisos por deltas, revocar gana).
-3. **Jerarquía física**: hoy es "una organización, sin nivel intermedio". Si el negocio real
-   tiene varias plantas o líneas de producción bajo la misma organización, diseñar ese nivel
-   cuando se conozca la necesidad real — no está prefigurado en el modelo de datos actual.
-4. **Nombre de la empresa / razón social**: el `.csproj` usa "ASO Adminis" como placeholder en
-   `Product`/`Company`, a falta de la razón social real del cliente.
-5. **Ventas fiscal, pendientes**:
-   - **Emisor real:** solo existe el emisor **simulado** (sin valor fiscal). Depende de lo que
-     tenga cada cliente (máquina fiscal como HKA o imprenta digital), y hace falta su manual o
-     API y un equipo o ambiente de pruebas. La base común ya está: ver "Cómo escribir un conector
-     fiscal".
-   - **Crédito:** ya hay venta a crédito y CxC. Queda bloqueado el cobro posterior en divisas de
-     contribuyentes especiales hasta definir el IGTF; no hay cuotas, intereses ni mora.
-   - **IGTF en notas:** las notas de crédito no revierten IGTF.
-   - **Por confirmar con el contador:** los porcentajes de IVA, el criterio del IGTF y las
-     columnas exactas del libro de ventas.
-   - **Documento para el cliente:** ya hay impresión y PDF de una copia claramente marcada como
-     NO FISCAL. El documento fiscal válido lo imprime la máquina o lo devuelve la imprenta digital;
-     falta recibirlo, conservarlo y entregarlo mediante el conector real. El simulador solo escribe
-     un `.txt` en `%AppData%`.
-   - **Providencia SNAT/2026/00093:** revisión registrada en la sección siguiente. El texto completo
-     consultado es una reproducción; antes de cerrar el conector hay que cotejarlo con la Gaceta
-     Oficial 43.484 y los manuales técnicos que publique el SENIAT.
-   - **RIF:** solo se valida el dígito verificador, no que exista. No hay API oficial del SENIAT.
-     Si se retoma, la opción barata es un botón "Consultar en SENIAT" en la ficha del cliente
-     más una marca de "verificado por / fecha". También falta admitir pasaporte y revisar la letra
-     C para los RIF que la utilicen.
-6. **`Solicitables` vacío**: no hay ninguna petición de cambio configurada todavía — ver
-   "Peticiones de cambio" arriba. Los dos candidatos naturales ya existen:
-   `EntradasInventario.Anular` y `SalidasInventario.Anular`, que hoy un Cajero simplemente no
-   ve.
-7. **Datos de la organización**: ya se editan razón social, RIF, dirección, teléfono, condición de
-   contribuyente especial y alícuotas. Falta modelar la condición frente al IVA (ordinario, formal o
-   no sujeto) cuando se conozca la del negocio, porque cambia las leyendas obligatorias.
+### Alcance y fuentes de la revisión fiscal
 
-## Revisión SENIAT y faltantes diferidos (2026-11-26)
-
-Revisión estática; no certifica cumplimiento legal. Fuentes consultadas:
+Es una revisión técnica estática, no una certificación legal. Fuentes consultadas:
 [PA SNAT/2011/00071](https://tributos.ivecofi.net/informacion/legislacion/providencias/pa-2011-71),
 [PA SNAT/2024/000102](https://tributos.ivecofi.net/informacion/legislacion/providencias/pa-2024-102)
 y [reproducción de la PA SNAT/2026/00093](https://ecomunik2.com/biblioteca-tributaria/snat-2026-00093).
-La 00093 se publicó en la Gaceta 43.484 del 21/10/2026 y entra en vigencia el **19/04/2027**;
-hasta el 18/04/2027 siguen la 00071, 0141 y 000102. La PA SNAT/2026/00084 eliminó la homologación
-de proveedores de software de la 000121, no las obligaciones de emisión ni la autorización de los
-medios. Validar el diseño definitivo con contador/asesor tributario y con el proveedor fiscal.
+La 00093 se publicó en la [Gaceta Oficial 43.484](https://www.grantthornton.com.ve/globalassets/1.-member-firms/venezuela/2026/gaceta-43.484.pdf)
+del 21/10/2026 y entra en vigencia el **19/04/2027**; hasta el 18/04/2027 siguen la 00071, 0141 y
+000102. Antes de cerrar el conector hay que cotejar la reproducción con la Gaceta y los manuales
+técnicos vigentes. La PA SNAT/2026/00084 eliminó la homologación de proveedores de software de la
+000121, no las obligaciones de emisión ni la autorización de los medios. El diseño definitivo debe
+validarse con contador/asesor tributario y proveedor fiscal, según el medio y la condición del negocio.
 
-### Consumidor final
+**Esta lista no es un inventario exhaustivo de todas las obligaciones del SENIAT.** Para completar la
+revisión fiscal quedan también estos trabajos diferidos:
 
-- El alta anónima se deshabilitó para facturas nuevas en el commit `7dea9b2` (13/11/2026);
-  `VentasService.ValidarCliente` ahora exige identificación, nombre y dirección. El botón actual es
-  "Limpiar", no un atajo para vender sin datos.
-- `Venta.EsConsumidorFinal`, los textos y la consolidación por Z se conservan para documentos
-  históricos. El comentario de `Models/Cliente.cs` que todavía describe ventas sin cliente está
-  desactualizado.
-- La 00071, art. 13.7, y la 00093, art. 8.6, permiten omitir el RIF de una persona natural que no
-  usa la factura tributariamente, pero exigen nombre y cédula o pasaporte. La 000102, art. 7.7,
-  exige además domicilio fiscal en factura digital. En máquina fiscal, los datos del comprador son
-  necesarios para crédito fiscal/desembolso; no extender esa excepción a todos los medios.
-- Si se recupera el atajo, llamarlo **"Persona natural sin RIF"**, pedir nombre y cédula/pasaporte,
-  y decidir la dirección según el medio vigente. Separar la condición comercial de consumidor final
-  de `string.IsNullOrWhiteSpace(ClienteRif)`: hoy una persona identificada con cédula no se considera
-  consumidor final ni se consolida por Z.
+- [ ] **Definir el perfil fiscal y operativo del negocio:** medio de emisión, condición frente al IVA,
+  condición de contribuyente especial y agente de retención, monedas, actividades y tipos de operaciones.
+- [ ] **Revisar toda la normativa que resulte aplicable:** completar la PA 0141, leyes y reglamentos de
+  IVA/ISLR, IGTF, regímenes de retención, reformas, demás providencias vigentes y reglas sectoriales.
+  Las fuentes de esta sección solo cubren las providencias principales examinadas hasta ahora.
+- [ ] **Contrastar la PA 00093 con la Gaceta Oficial y los manuales técnicos definitivos:** el análisis
+  actual parte de una reproducción y no sustituye ese cotejo.
+- [ ] **Revisar obligaciones fuera de la factura:** declaraciones y pagos, libro de compras, comprobantes
+  de retención, demás deberes formales y calendarios fiscales. Decidir expresamente cuáles se gestionarán
+  fuera de la aplicación y cuáles se implementarán; hoy no todos pertenecen a su alcance.
+- [ ] **Ejecutar una validación integral con el medio fiscal real:** autorizaciones, documento entregado,
+  errores de comunicación, contingencias, X/Z y conservación. Las pruebas del simulador no cubren estos extremos.
+- [ ] **Levantar una matriz de cumplimiento con contador y proveedor fiscal:** una fila por requisito y los
+  estados «aplica», «implementado», «probado» y «validado», con fuente normativa y fecha de revisión.
+  Hasta cerrarla, esta lista maestra es un plan técnico, no un certificado de cumplimiento.
 
-### Brechas fiscales para resolver con el conector real
+### Consumidor final: conclusión y pendiente acotado
 
-1. **Medio válido:** `EmisoresFiscales` solo crea `EmisorFiscalSimulado`, con `EsFiscal = false`.
-   Sus números, controles, documentos y X/Z no tienen valor fiscal.
-2. **Datos digitales:** `ResultadoFiscal` solo devuelve número, control, serial, fecha y ruta. Hay
-   que contemplar rango de controles asignados, fecha de asignación, razón social/RIF de la imprenta,
-   providencia y fecha de autorización, mención de la providencia aplicable, PDF fiscal y consulta /
-   resguardo. La hora fiscal debe llevar segundos; que el simulador o la copia no fiscal usen `HH:mm`
-   no valida ese formato.
-3. **Notas:** la nota solo guarda Id, número y fecha de la factura afectada. La 00071, arts. 23-24,
-   exige monto y, según el medio, serial/control original; la 00093, art. 12, exigirá siempre fecha,
-   número correlativo, control y monto. Agregar snapshots o un contrato equivalente que llegue al
-   emisor. Desde la 00093 la nota debe salir por el **mismo medio** de la factura: hoy se usa el
-   emisor configurado al momento de la nota, sin enrutar según el documento original.
-4. **Contingencia:** solo se registran facturas en papel, no NC/ND. Existe talonario y transmisión
-   manual, pero falta el expediente completo: la 000102 exige registro, resguardo y notificaciones;
-   la 00093, art. 7, exigirá registrar todo y remitirlo al día siguiente en PDF a la imprenta digital
-   o por la API del SENIAT. Prever alerta de plazo, relación descargable y constancia de notificación.
-5. **Condición IVA:** modelar las leyendas de formal/no sujeto y, desde la 00093, "Contribuyentes
-   Formales del IVA" en las operaciones exentas/exoneradas que correspondan.
-6. **Resguardo histórico:** la venta no guarda snapshot del emisor; la copia no fiscal usa la
-   organización actual. `DocumentoRuta` puede ser una ruta local de la caja. Conservar el original
-   fiscal inalterable y asegurar acceso, respaldo y retención según el medio; una copia regenerada no
-   lo sustituye.
-7. **Operación diaria:** X/Z, inalterabilidad, talonarios y libro de ventas ya tienen base, pero no
-   certifican cumplimiento sin equipo/proveedor real. Confirmar con contador columnas del libro,
-   tratamiento de notas y retenciones, alícuotas e IGTF. Las guías, series, descuentos, operaciones
-   por cuenta de terceros, exportaciones y reglas sectoriales se implementan solo si aplican al
-   negocio; cuando haya descuentos/cargos, el documento debe describirlos y valorarlos.
+- **Borrar el alta completamente anónima no deja una brecha legal evidente.** Desde el commit
+  `7dea9b2` (13/11/2026), `VentasService.ValidarCliente` exige identificación, nombre y dirección
+  para toda factura nueva. El botón «Limpiar» solo borra el formulario; no vende sin datos.
+- La 00071, art. 13.7, la 000102, art. 7.7, y la futura 00093, art. 8.6, permiten omitir el RIF de
+  una persona natural que no usa la factura tributariamente, pero exigen al menos cédula o pasaporte
+  y nombre; la factura digital bajo la 000102 también exige domicilio fiscal. En máquina fiscal, los
+  datos del comprador son necesarios para crédito fiscal/desembolso (00071, art. 14, y 00093, art. 10).
+- **No restaurar un botón «Consumidor final» sin datos.** Si el negocio quiere un atajo, llamarlo
+  **«Persona natural sin RIF»**, exigir nombre y cédula/pasaporte y aplicar la dirección según el medio.
+- Separar la condición comercial de consumidor final de `string.IsNullOrWhiteSpace(ClienteRif)`: hoy
+  `Venta.EsConsumidorFinal` no reconoce como tal a una persona identificada solo con cédula. La
+  consolidación por Z y el snapshot anónimo se conservan únicamente para documentos históricos.
 
-### Mejoras generales diferidas (no todas son obligaciones SENIAT)
+### P0 · Antes de declarar que la aplicación emite documentos fiscalmente válidos
 
-- **Devolución de dinero:** una NC reingresa inventario y ajusta CxC, pero no genera por sí sola un
-  egreso de caja/banco si la venta ya estaba cobrada. Definir reembolso, permiso, turno y arqueo.
-- **Compras/CxP:** el pago de proveedor es solo total. La factura de compra no guarda desglose de
-  base/IVA ni control fiscal. Faltan pagos parciales, notas del proveedor y, si se quiere cubrir todo
-  el ciclo, libro de compras y comprobantes propios de retención cuando la organización sea agente.
-- **ISLR:** registrar retenciones de clientes sobre servicios; no tocan la factura ni el libro de
-  ventas. Revisar también los supuestos de IVA distintos de 75/100 y más de un comprobante por
-  factura antes de generalizar el modelo actual.
-- **Crédito:** cuotas, intereses, mora, límites, recordatorios/antigüedad y aplicación del saldo a
-  favor son mejoras comerciales, no requisitos universales. El esquema actual en Bs con referencia
-  US$ a tasa de emisión y recibos administrativos posteriores es coherente con lo revisado.
-- **Autorización:** llevar las escrituras CRUD detrás de servicios que repitan el permiso; hoy la
-  base genérica limita los comandos pero llama directo al `IDataSource`.
-- **Documentación auxiliar:** actualizar README y guías cuando se agreguen cotizaciones, pedidos,
-  guías o contabilidad; no son necesarios para todo comercio ni se deben presentar como mandato legal.
+- [ ] **Elegir el medio y construir el conector real.** `EmisoresFiscales` solo crea
+  `EmisorFiscalSimulado`, con `EsFiscal = false`; sus números, controles, TXT/PDF y reportes X/Z no
+  tienen valor fiscal. Hacen falta el manual/API y un equipo o ambiente de pruebas de la máquina
+  fiscal o imprenta digital elegida. Reutilizar la base descrita en «Cómo escribir un conector fiscal».
+- [ ] **Completar el contrato y los datos del documento.** `ResultadoFiscal` solo devuelve número,
+  control, serial, fecha y ruta. Incorporar, según el medio, rango de controles y fecha de asignación,
+  razón social/RIF de la imprenta, providencia y fecha de autorización, y mención de la providencia
+  aplicable. La hora fiscal debe incluir segundos: el `HH:mm` del simulador o de la copia no basta.
+- [ ] **Recibir, entregar, consultar y resguardar el original fiscal.** Hoy solo hay una copia marcada
+  NO FISCAL y un `.txt` del simulador en `%AppData%`. La venta no conserva snapshot del emisor, la
+  copia usa la organización actual y `DocumentoRuta` puede ser local a una caja. Guardar el original
+  inalterable con acceso, respaldo y retención según el medio (diez años en el régimen digital de la
+  000102); una copia regenerada no lo sustituye.
+- [ ] **Completar notas de crédito/débito.** La referencia actual solo guarda Id, número y fecha de la
+  factura. Agregar monto y control/serial original según el medio (00071, arts. 23-24); la 00093,
+  arts. 12-13, exigirá fecha, número correlativo, control y monto y que la nota salga por el **mismo
+  medio** de la factura. Hoy se usa el emisor configurado al emitir la nota, sin enrutar por el original.
+- [ ] **Cerrar el expediente de contingencia.** Solo se registran facturas en papel, no NC/ND. Hay
+  talonario y transmisión manual, pero faltan registro y resguardo completos, notificaciones, relación
+  descargable, constancia y alerta de plazo. La 00093, art. 7, exigirá registrar todos los documentos
+  y remitirlos al día siguiente en PDF a la imprenta digital o mediante la API del SENIAT.
+- [ ] **Modelar la condición frente al IVA.** La organización ya tiene datos fiscales, condición de
+  contribuyente especial y alícuotas, pero no la condición ordinario/formal/no sujeto ni las leyendas
+  correspondientes. Desde la 00093 incluir «Contribuyentes Formales del IVA» en los casos exentos o
+  exonerados que correspondan.
+- [ ] **Resolver IGTF en reversos y crédito.** Las NC no revierten IGTF. Para contribuyentes especiales,
+  los cobros CxC posteriores en divisas permanecen bloqueados hasta definir y validar su tratamiento.
+- [ ] **Validar la operación completa con el proveedor y el contador.** X/Z, inalterabilidad, talonarios
+  y libro de ventas tienen base, pero no certifican cumplimiento sin el medio real. Confirmar columnas
+  del libro, notas, retenciones, alícuotas e IGTF. El modelo actual registra retenciones de IVA recibidas
+  del 75/100 % y una por factura; revisar otros supuestos y varios comprobantes antes de generalizarlo.
 
-## Próximo paso sugerido
+### P1 · Funcionalidad, datos y seguridad
 
-1. **Conector del emisor fiscal real** (máquina fiscal o imprenta digital) en cuanto el cliente
-   elija equipo o proveedor; hasta entonces todo se emite con el simulador, sin valor fiscal.
-2. **Decidir los roles reales** del negocio y reemplazar los cuatro genéricos.
-3. **Elegir el color de marca real** y actualizar lo descrito en "Marca" (y regenerar el `.ico`).
-4. **Llevar la comprobación de permisos a los servicios de dominio** de cada módulo nuevo desde
-   el principio (no repetir el hueco que tiene hoy el CRUD genérico).
+- [ ] **Identificación de clientes:** admitir pasaporte y revisar la letra C para los RIF que la usen.
+  `Rif.cs` acepta actualmente RIF V/E/J/P/G y cédulas V/E, y solo valida el dígito verificador, no la
+  existencia del contribuyente. No asumir que existe una API pública oficial de consulta; si se agrega
+  verificación, guardar quién la hizo y cuándo.
+- [ ] **Devolución de dinero:** una NC reingresa inventario y ajusta CxC, pero no genera un egreso de
+  caja/banco cuando la venta ya estaba cobrada. Definir reembolso, permiso, turno y efecto en el arqueo.
+- [ ] **Compras y CxP:** los pagos a proveedores solo pueden ser totales. Faltan pagos parciales, notas
+  del proveedor y desglose de base/IVA y control fiscal en compras. Si se cubre todo el ciclo y la
+  organización es agente, agregar libro de compras y comprobantes propios de retención de IVA/ISLR.
+- [ ] **ISLR recibido:** registrar retenciones de clientes sobre servicios; no modifican la factura ni
+  el libro de ventas.
+- [ ] **Crédito:** cuotas, intereses, mora, límites, recordatorios/antigüedad y aplicación del saldo a
+  favor son mejoras comerciales, no requisitos universales. El esquema en Bs con referencia US$ a tasa
+  de emisión y recibos administrativos posteriores se mantiene.
+- [ ] **Banco multimoneda:** `BancoService.DisponibleTotal()` suma saldos de monedas distintas sin
+  convertir y las transferencias entre monedas están bloqueadas. Definir moneda de consolidación y tasa
+  antes de usar ese total con cuentas en Bs y US$.
+- [ ] **Autorización en servicios:** las escrituras del CRUD genérico llaman directamente a
+  `IDataSource`; `CanExecute` limita la UI, pero el servicio no revalida el permiso. Llevar esas
+  escrituras detrás de servicios de dominio y repetir allí la autorización; aplicarlo también a módulos nuevos.
+- [ ] **Peticiones de cambio:** `MatrizPermisos.Solicitables` está vacío. Decidir si se habilitan los
+  candidatos existentes `EntradasInventario.Anular` y `SalidasInventario.Anular`.
+- [ ] **Versiones y migraciones:** impedir que una caja vieja abra una base más nueva, comparando la
+  última migración aplicada con la conocida por el código. Ejecutar la migración como paso controlado,
+  con respaldo previo y solo desde el servidor o con permiso; no automáticamente en la primera caja que abra.
+- [ ] **Restauración y continuidad:** falta el importador/restaurador del `.zip` portable de respaldos.
+  Mantener copias externas y probar restauraciones reales; la exportación por sí sola no demuestra recuperación.
+- [ ] **Pruebas manuales:** en una instalación real recorrer Cajas, Mi turno, Bitácora, Respaldos y
+  bloqueo por inactividad, más el ciclo de crédito: factura con/sin anticipo, abonos parciales y totales,
+  anulación de cobros, notas y retenciones. Las pruebas automatizadas no sustituyen este recorrido.
 
-### Plan empresarial: pasos pendientes (anotado 2026-11-18)
+### P2 · Arquitectura, entrega y personalización
 
-Hechos: cajas/cajeros/turnos, paso 3 (transacciones, concurrencia, FK nuevas), paso 4 (seguridad
-de cuentas), paso 6 (registro y bitácora) y paso 7 (respaldos). Quedan, en el orden sugerido:
+- [ ] **Async y escalabilidad de UI:** pasar fuentes de datos y servicios a async, agregar indicadores
+  de carga y paginar listas grandes. Es preparación para la API, no una exigencia fiscal.
+- [ ] **API + PostgreSQL** (juntos, ya decidido): servidor ASP.NET Core entre cajas y base e
+  implementaciones `Http…DataSource` de las interfaces de `Services/`. En PostgreSQL: migración inicial
+  nueva; `rowversion` → `xmin`; `sp_getapplock` → `pg_advisory_xact_lock` (`UnidadDeTrabajoSql`,
+  `SqlRespaldoDataSource`); índices filtrados → parciales; trigger de bitácora en PL/pgSQL; importador
+  del `.zip` portable. **Decisión abierta:** servidor central administrado por nosotros o uno por cliente.
+- [ ] **CI:** GitHub Actions para compilar y ejecutar `dotnet test`, incluido `ASO_PRUEBAS_SQL=1` contra
+  LocalDB del runner de Windows, en cada push; publicar la versión con Velopack.
+- [ ] **Distribución:** instalación MSI por equipo, configuración central y canales piloto/producción.
+  Firmar el ejecutable para reducir avisos y verificar origen; es una mejora de distribución, no SENIAT.
+- [ ] **Marca y razón social reales:** sustituir «ASO Adminis» en `Product`/`Company` y la paleta
+  placeholder siguiendo «Marca»; recalcular contrastes y regenerar el `.ico` si cambian los colores.
+- [ ] **Roles reales:** ajustar nombres y conjuntos base de `Cajero`, `Supervisor`,
+  `AdministradorOrganizacion` y `Desarrollador` en `Models/Rol.cs` / `Services/MatrizPermisos.cs`,
+  conservando el mecanismo ordinal append-only, permisos por deltas y prevalencia de revocar.
+- [ ] **Jerarquía física, solo si aplica:** hoy hay una organización sin nivel intermedio. Diseñar plantas
+  o líneas únicamente si el negocio las tiene; el modelo actual no las prefigura.
 
-1. **Paso 5 · Versiones y migraciones.** Que una caja con versión vieja no abra contra una base
-   más nueva (comparar la última migración aplicada con la que conoce el código y pedir
-   actualizar). Sacar la migración del arranque de "la primera caja que abre": paso controlado,
-   con respaldo previo (`RespaldoService`) y, en red, solo desde el servidor o con un permiso.
-   Más adelante: instalación por equipo (MSI), configuración central y canales piloto/producción.
-2. **Paso 8 · CI.** GitHub Actions: compilar, `dotnet test` (también con `ASO_PRUEBAS_SQL=1`
-   contra LocalDB del runner de Windows) en cada push, y publicar la versión con Velopack.
-3. **Paso 2 · Async.** Pasar fuentes de datos y servicios a async, con indicador de carga y
-   paginación en las listas grandes. Prepara el terreno de la API.
-4. **Paso 1 · API + PostgreSQL** (juntos, decidido). Servidor ASP.NET Core entre las cajas y la
-   base; implementaciones `Http…DataSource` de las interfaces de `Services/`. Al pasar a
-   PostgreSQL: migración inicial nueva; `rowversion` → `xmin`; `sp_getapplock` →
-   `pg_advisory_xact_lock` (`UnidadDeTrabajoSql`, `SqlRespaldoDataSource`); índice filtrado →
-   parcial; trigger de la bitácora en PL/pgSQL; importador del `.zip` portable de respaldos.
-   **Decisión pendiente del negocio:** ¿servidor administrado por nosotros para todas las
-   organizaciones, o uno por cliente?
-5. **Pruebas manuales:** en una instalación real, recorrer Cajas, Mi turno, Bitácora, Respaldos y
-   bloqueo por inactividad, además del ciclo de crédito: factura con o sin anticipo, abonos parciales
-   y totales, anulación de cobros, notas y retenciones. Las pruebas automatizadas no sustituyen este
-   recorrido de las pantallas.
+### Módulos y reglas condicionados al negocio
+
+No son faltantes universales ni deben presentarse como mandato legal sin confirmar su aplicación:
+
+- Cotizaciones, pedidos, guías de despacho y contabilidad.
+- Series, operaciones por cuenta de terceros, exportaciones y reglas sectoriales.
+- Descuentos/cargos: si se incorporan, el documento debe describirlos y valorarlos.
+- Balanza: etiquetas con precio en lugar de peso y conexión USB/serie, si el comercio la utiliza.
+- Actualizar README y guías al incorporar cualquiera de estos módulos.
+
+### Orden recomendado
+
+1. Elegir el medio fiscal y cerrar todos los **P0** con pruebas del proveedor y validación del contador.
+2. Resolver autorización en servicios, migraciones, restauración, Banco multimoneda y las brechas **P1**
+   que efectivamente use el negocio; completar el recorrido manual.
+3. Preparar la entrada en vigencia de la 00093 antes del **19/04/2027**, sin esperar a esa fecha para
+   adaptar notas, contingencia, resguardo y leyendas.
+4. Continuar con async, API/PostgreSQL, CI y distribución; personalizar marca, roles y módulos opcionales
+   cuando estén definidos los datos reales del negocio.
