@@ -208,6 +208,31 @@ internal sealed class RangosEnMemoria(VentasEnMemoria ventas) : FuenteEnMemoria<
 
 internal sealed class ClientesEnMemoria : FuenteEnMemoria<Cliente>, IClienteDataSource;
 
+internal sealed class CuentasPorCobrarEnMemoria : FuenteEnMemoria<CuentaPorCobrar>, ICuentaPorCobrarDataSource
+{
+    public CuentaPorCobrar? GetByVenta(int ventaId) => Filas.SingleOrDefault(c => c.VentaId == ventaId);
+}
+
+internal sealed class CobrosClientesEnMemoria : FuenteEnMemoria<CobroCliente>, ICobroClienteDataSource
+{
+    public IEnumerable<CobroCliente> GetByCuenta(int cuentaPorCobrarId) =>
+        GetAll().Where(c => c.CuentaPorCobrarId == cuentaPorCobrarId).OrderBy(c => c.Fecha).ThenBy(c => c.Id);
+    public IEnumerable<CobroCliente> GetByTurno(int turnoId) => GetAll().Where(c => c.TurnoId == turnoId);
+}
+
+internal sealed class MovimientosCuentaPorCobrarEnMemoria : FuenteEnMemoria<MovimientoCuentaPorCobrar>, IMovimientoCuentaPorCobrarDataSource
+{
+    public bool Fallar { get; set; }
+    public override MovimientoCuentaPorCobrar Add(MovimientoCuentaPorCobrar item) =>
+        Fallar ? throw new InvalidOperationException("Fallo al guardar el movimiento (simulado).") : base.Add(item);
+
+    public IEnumerable<MovimientoCuentaPorCobrar> GetByCuenta(int cuentaPorCobrarId) =>
+        GetAll().Where(m => m.CuentaPorCobrarId == cuentaPorCobrarId).OrderBy(m => m.Fecha).ThenBy(m => m.Id);
+}
+
+internal sealed class OrganizacionesEnMemoria : FuenteEnMemoria<Organizacion>, IOrganizacionDataSource;
+internal sealed class RetencionesEnMemoria : FuenteEnMemoria<RetencionIvaRecibida>, IRetencionIvaDataSource;
+
 internal sealed class ArticulosEnMemoria : FuenteEnMemoria<Articulo>, IArticuloDataSource
 {
     public IEnumerable<Articulo> GetActivos() => GetAll();
@@ -277,7 +302,16 @@ internal static class Escenario
     public sealed record Montaje(VentasService Ventas, ArticulosEnMemoria Articulos,
                                  SalidasEnMemoria Salidas, EntradasEnMemoria Entradas,
                                  ClientesEnMemoria ClientesFuente, ClientesService Clientes, SesionTotal Sesion,
-                                 TurnosEnMemoria TurnosFuente, TurnosService Turnos);
+                                 TurnosEnMemoria TurnosFuente, TurnosService Turnos,
+                                 CuentasPorCobrarEnMemoria CuentasPorCobrarFuente,
+                                 CobrosClientesEnMemoria CobrosFuente,
+                                 MovimientosCuentaPorCobrarEnMemoria MovimientosCxcFuente,
+                                 CuentasEnMemoria CuentasBancariasFuente,
+                                 MovimientosEnMemoria MovimientosBancoFuente,
+                                 TasasEnMemoria TasasFuente,
+                                 CuentasPorCobrarService CuentasPorCobrar,
+                                 BancoService Banco,
+                                 Organizacion OrganizacionActual);
 
     public static VentasService Servicio(VentasEnMemoria ventas) => Montar(ventas).Ventas;
 
@@ -310,6 +344,7 @@ internal static class Escenario
 
         var org = Organizacion();
         var sesion = new SesionTotal();
+        sesion.UsuarioActual!.OrganizacionId = org.Id;
         var fuenteClientes = new ClientesEnMemoria();
         var clientes = new ClientesService(fuenteClientes, sesion);
         // Un talonario de contingencia autorizado: 00-000001 al 00-000500.
@@ -317,7 +352,19 @@ internal static class Escenario
         rangos.Add(new RangoContingencia { Prefijo = "00-", Desde = 1, Hasta = 500, Digitos = 6, Imprenta = "Imprenta de prueba", Activo = true });
 
         var fuenteTurnos = new TurnosEnMemoria();
-        var turnos = new TurnosService(fuenteTurnos, ventas, sesion);
+        var fuenteCuentas = new CuentasPorCobrarEnMemoria();
+        var fuenteCobros = new CobrosClientesEnMemoria();
+        var fuenteMovimientosCxc = new MovimientosCuentaPorCobrarEnMemoria();
+        var fuenteCuentasBancarias = new CuentasEnMemoria();
+        var fuenteMovimientosBanco = new MovimientosEnMemoria();
+        var fuenteTasas = new TasasEnMemoria();
+        fuenteTasas.Add(new TasaCambio { Fecha = DateTime.Today, Valor = 40m });
+        var fuenteOrganizaciones = new OrganizacionesEnMemoria();
+        fuenteOrganizaciones.Add(org);
+        var banco = new BancoService(fuenteMovimientosBanco, fuenteCuentasBancarias, sesion);
+        var cuentasPorCobrar = new CuentasPorCobrarService(fuenteCuentas, fuenteCobros, fuenteMovimientosCxc,
+            banco, fuenteCuentasBancarias, fuenteTurnos, fuenteTasas, fuenteOrganizaciones, sesion);
+        var turnos = new TurnosService(fuenteTurnos, ventas, sesion, fuenteCobros);
         if (abrirTurno)
             turnos.Abrir(0m, 0m);
 
@@ -327,9 +374,12 @@ internal static class Escenario
                                          organizacion: () => org,
                                          turno: turnos.TurnoParaFacturar,
                                          clientes: clientes,
-                                         rangos: rangos);
+                                         rangos: rangos,
+                                         cuentasPorCobrar: cuentasPorCobrar);
         return new Montaje(servicio, articulos, salidas, entradas, fuenteClientes, clientes, sesion,
-                           fuenteTurnos, turnos);
+                           fuenteTurnos, turnos, fuenteCuentas, fuenteCobros, fuenteMovimientosCxc,
+                           fuenteCuentasBancarias, fuenteMovimientosBanco, fuenteTasas,
+                           cuentasPorCobrar, banco, org);
     }
 
     /// <summary>

@@ -123,6 +123,10 @@ public static class MatrizPermisos
             Permisos.Ver("Reportes.Gastos"),
 
             Permisos.Ventas.NotaCredito,
+            Permisos.Ventas.VenderACredito,
+            Permisos.CuentasPorCobrar.Cobrar,
+            Permisos.CuentasPorCobrar.AnularCobro,
+            Permisos.Ver("Finanzas.CuentasPorCobrar"),
             Permisos.Ventas.NotaDebito,
             Permisos.Ventas.Contingencia,
             Permisos.Ventas.CierreZ,

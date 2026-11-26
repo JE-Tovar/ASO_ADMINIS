@@ -16,11 +16,13 @@ namespace ASO_ADMINIS.Desktop.Services;
 ///   <item>Cerrar el turno de otro exige <see cref="Permisos.Turnos.CerrarAjeno"/>.</item>
 /// </list>
 ///
-/// Lo esperado es: el fondo + el efectivo cobrado en las facturas vigentes del turno − el vuelto
-/// (que se da en bolívares). Las notas de crédito no llevan pagos en el modelo, así que no
-/// restan: un reintegro en efectivo se anota en las observaciones del cierre.
+/// Lo esperado es: el fondo + el efectivo cobrado en las facturas vigentes del turno + los
+/// recibos de cuentas por cobrar vigentes de ESTE turno − el vuelto (que se da en bolívares).
+/// Las notas de crédito no llevan pagos en el modelo, así que no restan: un reintegro en efectivo
+/// se anota en las observaciones del cierre.
 /// </summary>
-public sealed class TurnosService(ITurnoDataSource turnos, IVentaDataSource ventas, ISesionActual sesion)
+public sealed class TurnosService(ITurnoDataSource turnos, IVentaDataSource ventas, ISesionActual sesion,
+                                  ICobroClienteDataSource? cobros = null)
 {
     /// <summary>El turno abierto de la caja de la sesión, sea de quien sea.</summary>
     public Turno? TurnoAbierto() =>
@@ -86,18 +88,21 @@ public sealed class TurnosService(ITurnoDataSource turnos, IVentaDataSource vent
         }
     }
 
-    /// <summary>Lo que debería haber en la gaveta: fondo + efectivo cobrado − vuelto, en Bs y en divisas.</summary>
+    /// <summary>Lo que debería haber en la gaveta: fondo + efectivo de facturas y cobranzas − vuelto.</summary>
     public (decimal Bs, decimal Divisa) Esperado(Turno turno)
     {
         var facturas = ventas.GetAll()
             .Where(v => v.TurnoId == turno.Id && v.Vigente && v.Tipo == TipoDocumentoVenta.Factura)
             .ToList();
 
+        var cobranzas = cobros?.GetByTurno(turno.Id).Where(c => c.Vigente).ToList() ?? [];
         var bs = turno.FondoBs
                  + facturas.SelectMany(v => v.Pagos).Where(p => p.Metodo == MetodoPago.EfectivoBs).Sum(p => p.MontoBs)
+                 + cobranzas.Where(c => c.Metodo == MetodoPago.EfectivoBs).Sum(c => c.MontoBs)
                  - facturas.Sum(v => v.Vuelto);
         var divisa = turno.FondoDivisa
-                     + facturas.SelectMany(v => v.Pagos).Where(p => p.Metodo == MetodoPago.EfectivoDivisa).Sum(p => p.MontoDivisa);
+                     + facturas.SelectMany(v => v.Pagos).Where(p => p.Metodo == MetodoPago.EfectivoDivisa).Sum(p => p.MontoDivisa)
+                     + cobranzas.Where(c => c.Metodo == MetodoPago.EfectivoDivisa).Sum(c => c.MontoDivisa);
 
         return (bs, divisa);
     }

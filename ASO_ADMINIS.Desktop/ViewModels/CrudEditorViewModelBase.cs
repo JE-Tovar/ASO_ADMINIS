@@ -95,6 +95,9 @@ public abstract class CrudEditorViewModelBase : ViewModelBase
 
     /// <summary>Valida los campos editables. Si devuelve <c>false</c>, <paramref name="error"/> se muestra al usuario.</summary>
     protected abstract bool Validar(out string? error);
+
+    /// <summary>Cierra la ventana desde una acción propia de una ficha o editor.</summary>
+    protected void Cerrar(bool resultado) => SolicitarCierre?.Invoke(this, resultado);
 }
 
 /// <summary>

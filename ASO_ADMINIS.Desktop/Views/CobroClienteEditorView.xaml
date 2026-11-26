@@ -1,0 +1,51 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.CobroClienteEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d" d:DesignWidth="520">
+  <StackPanel>
+    <TextBlock Text="{Binding Descripcion}" TextWrapping="Wrap"
+               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12" />
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <controls:FormField Grid.Column="0" Etiqueta="Fecha del cobro">
+        <DatePicker Style="{StaticResource FormDatePickerStyle}" SelectedDate="{Binding Fecha}" />
+      </controls:FormField>
+      <controls:FormField Grid.Column="2" Etiqueta="Método">
+        <ComboBox Style="{StaticResource FormComboBoxStyle}" ItemsSource="{Binding Metodos}"
+                  DisplayMemberPath="Texto" SelectedItem="{Binding MetodoSeleccionado}" />
+      </controls:FormField>
+    </Grid>
+    <controls:FormField Etiqueta="{Binding MonedaTexto}" Ayuda="{Binding EquivalenteTexto}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox Style="{StaticResource FormTextBoxStyle}" TextAlignment="Right"
+                 Text="{Binding Monto, UpdateSourceTrigger=PropertyChanged}" />
+        <Button Grid.Column="1" Content="Cobrar todo" Margin="8,0,0,0"
+                Style="{StaticResource SecondaryButtonStyle}" Command="{Binding CobrarTodoCommand}" />
+      </Grid>
+    </controls:FormField>
+    <TextBlock Text="{Binding AvisoIgtf}" TextWrapping="Wrap" Margin="0,0,0,8"
+               Foreground="{DynamicResource WarningTextBrush}" />
+    <controls:FormField Etiqueta="Cuenta bancaria de destino"
+                        Visibility="{Binding RequiereBanco, Converter={StaticResource BoolToVis}}">
+      <ComboBox Style="{StaticResource FormComboBoxStyle}" ItemsSource="{Binding Cuentas}"
+                DisplayMemberPath="NombreConMoneda" SelectedItem="{Binding CuentaSeleccionada}" />
+    </controls:FormField>
+    <controls:FormField Etiqueta="Referencia" Ayuda="Nº de operación, depósito o últimos dígitos; opcional en efectivo.">
+      <TextBox Style="{StaticResource FormTextBoxStyle}" MaxLength="60"
+               Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged}" />
+    </controls:FormField>
+    <TextBlock TextWrapping="Wrap" FontSize="{StaticResource FsCaption}" Foreground="{DynamicResource TextMutedBrush}"
+               Text="Se emitirá un recibo administrativo REC. La factura y sus pagos originales no se modifican; el efectivo entra al turno abierto actual." />
+  </StackPanel>
+</UserControl>

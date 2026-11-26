@@ -56,6 +56,12 @@ public static class Permisos
     /// piden permiso propio — ya lo guarda <see cref="Finanzas.Pagar"/>, y exigir otro más
     /// dejaría pagar la factura sin que el dinero apareciera en el libro.
     /// </summary>
+    public static class CuentasPorCobrar
+    {
+        public const string Cobrar = "CuentasPorCobrar.Cobrar";
+        public const string AnularCobro = "CuentasPorCobrar.AnularCobro";
+    }
+
     public static class Banco
     {
         public const string Crear = "Banco.Crear";
@@ -114,6 +120,9 @@ public static class Permisos
     {
         /// <summary>Emitir facturas.</summary>
         public const string Crear = "Ventas.Crear";
+
+        /// <summary>Emitir una factura cuyo saldo queda pendiente de cobro.</summary>
+        public const string VenderACredito = "Ventas.VenderACredito";
 
         public const string NotaCredito = "Ventas.NotaCredito";
         public const string NotaDebito = "Ventas.NotaDebito";

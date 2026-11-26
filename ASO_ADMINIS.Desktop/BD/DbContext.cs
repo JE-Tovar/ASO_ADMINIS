@@ -36,6 +36,9 @@ public class AsoAdminisDbContext : DbContext
     // ---- Plantilla de ejemplo: Finanzas · Cuentas por Pagar y Banco ----
     public DbSet<Proveedor> Proveedores { get; set; }
     public DbSet<FacturaProveedor> FacturasProveedor { get; set; }
+    public DbSet<CuentaPorCobrar> CuentasPorCobrar { get; set; }
+    public DbSet<CobroCliente> CobrosCliente { get; set; }
+    public DbSet<MovimientoCuentaPorCobrar> MovimientosCuentaPorCobrar { get; set; }
     public DbSet<CuentaBancaria> CuentasBancarias { get; set; }
     public DbSet<MovimientoBanco> MovimientosBanco { get; set; }
     public DbSet<GastoVario> GastosVarios { get; set; }
@@ -187,6 +190,7 @@ public class AsoAdminisDbContext : DbContext
             entity.Property(v => v.SerialEmisor).HasMaxLength(40);
             entity.Property(v => v.DocumentoRuta).HasMaxLength(500);
             entity.Property(v => v.TasaCambioUsada).HasColumnType("decimal(18,4)").IsRequired();
+            entity.Property(v => v.FechaVencimientoCredito);
 
             foreach (var monto in new[]
                      {
@@ -423,6 +427,73 @@ public class AsoAdminisDbContext : DbContext
                 linea.Ignore(x => x.PrecioUnitarioTexto);
                 linea.Ignore(x => x.SubtotalTexto);
             });
+        });
+
+        modelBuilder.Entity<CuentaPorCobrar>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.NumeroFactura).IsRequired().HasMaxLength(30);
+            entity.Property(c => c.ClienteRif).HasMaxLength(15);
+            entity.Property(c => c.ClienteNombre).IsRequired().HasMaxLength(200);
+            entity.Property(c => c.TasaCambioEmision).HasColumnType("decimal(18,4)");
+            foreach (var monto in new[]
+                     {
+                         nameof(CuentaPorCobrar.TotalFacturaBs), nameof(CuentaPorCobrar.PagoInicialBs),
+                         nameof(CuentaPorCobrar.SaldoBs)
+                     })
+                entity.Property(monto).HasColumnType("decimal(18,2)");
+
+            entity.HasIndex(c => new { c.OrganizacionId, c.VentaId }).IsUnique();
+            entity.HasIndex(c => new { c.OrganizacionId, c.FechaVencimiento });
+
+            foreach (var derivada in new[]
+                     {
+                         nameof(CuentaPorCobrar.SaldoUsdReferencia), nameof(CuentaPorCobrar.EstaVencida),
+                         nameof(CuentaPorCobrar.DiasParaVencer), nameof(CuentaPorCobrar.EstadoTexto),
+                         nameof(CuentaPorCobrar.ClienteTexto), nameof(CuentaPorCobrar.EmisionTexto),
+                         nameof(CuentaPorCobrar.VencimientoTexto), nameof(CuentaPorCobrar.TotalTexto),
+                         nameof(CuentaPorCobrar.SaldoTexto), nameof(CuentaPorCobrar.SaldoUsdTexto),
+                         nameof(CuentaPorCobrar.PlazoTexto)
+                     })
+                entity.Ignore(derivada);
+        });
+
+        modelBuilder.Entity<CobroCliente>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Numero).IsRequired().HasMaxLength(20);
+            entity.Property(c => c.MontoBs).HasColumnType("decimal(18,2)");
+            entity.Property(c => c.MontoDivisa).HasColumnType("decimal(18,2)");
+            entity.Property(c => c.TasaCambio).HasColumnType("decimal(18,4)");
+            entity.Property(c => c.Referencia).HasMaxLength(60);
+            entity.Property(c => c.CuentaBancariaNombre).HasMaxLength(120);
+            entity.Property(c => c.MotivoAnulacion).HasMaxLength(500);
+            entity.HasIndex(c => new { c.OrganizacionId, c.Numero }).IsUnique();
+            entity.HasIndex(c => c.CuentaPorCobrarId);
+            entity.HasIndex(c => c.TurnoId);
+
+            foreach (var derivada in new[]
+                     {
+                         nameof(CobroCliente.Vigente), nameof(CobroCliente.EsDivisa), nameof(CobroCliente.EsEfectivo),
+                         nameof(CobroCliente.MetodoTexto), nameof(CobroCliente.FechaTexto),
+                         nameof(CobroCliente.MontoTexto), nameof(CobroCliente.MontoDivisaTexto),
+                         nameof(CobroCliente.EstadoTexto)
+                     })
+                entity.Ignore(derivada);
+        });
+
+        modelBuilder.Entity<MovimientoCuentaPorCobrar>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.DocumentoOrigen).HasMaxLength(60);
+            entity.Property(m => m.Descripcion).HasMaxLength(300);
+            entity.Property(m => m.MontoBs).HasColumnType("decimal(18,2)");
+            entity.HasIndex(m => new { m.CuentaPorCobrarId, m.Fecha });
+            entity.HasIndex(m => m.DocumentoVentaId);
+            entity.Ignore(m => m.EfectoBs);
+            entity.Ignore(m => m.TipoTexto);
+            entity.Ignore(m => m.FechaTexto);
+            entity.Ignore(m => m.MontoTexto);
         });
 
         modelBuilder.Entity<CuentaBancaria>(entity =>

@@ -263,6 +263,21 @@
     <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <StackPanel>
 
+        <!-- Condición comercial: el crédito deja el saldo en Cuentas por Cobrar. -->
+        <Border Style="{StaticResource SectionCardStyle}" Margin="0,0,0,16">
+          <StackPanel>
+            <TextBlock Text="Condición de la venta" Style="{StaticResource EncabezadoTarjeta}" Margin="0,0,0,8" />
+            <ComboBox Style="{StaticResource FormComboBoxStyle}"
+                      ItemsSource="{Binding Condiciones}" DisplayMemberPath="Texto"
+                      SelectedItem="{Binding CondicionSeleccionada}" />
+            <controls:FormField Etiqueta="Vencimiento del crédito" Margin="0,12,0,0"
+                                Ayuda="Elija la fecha límite acordada con el cliente."
+                                Visibility="{Binding EsCredito, Converter={StaticResource BoolToVis}}">
+              <DatePicker Style="{StaticResource FormDatePickerStyle}" SelectedDate="{Binding FechaVencimiento}" />
+            </controls:FormField>
+          </StackPanel>
+        </Border>
+
         <!-- Total y estado del cobro -->
         <Border Style="{StaticResource SectionCardStyle}" Margin="0,0,0,16">
           <StackPanel>
@@ -328,7 +343,7 @@
         <!-- Pagos: una mini-tarjeta por pago (la grilla de cinco columnas no cabía en el panel). -->
         <Border Style="{StaticResource SectionCardStyle}">
           <StackPanel>
-            <TextBlock Text="Pagos" Style="{StaticResource EncabezadoTarjeta}" Margin="0,0,0,8" />
+            <TextBlock Text="{Binding TituloPagos}" Style="{StaticResource EncabezadoTarjeta}" Margin="0,0,0,8" />
 
             <ItemsControl ItemsSource="{Binding Pagos}">
               <ItemsControl.ItemTemplate>

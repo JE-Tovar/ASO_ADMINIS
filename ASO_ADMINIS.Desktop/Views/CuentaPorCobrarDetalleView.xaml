@@ -1,0 +1,74 @@
+<UserControl x:Class="ASO_ADMINIS.Desktop.Views.CuentaPorCobrarDetalleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:ASO_ADMINIS.Desktop.Controls"
+             mc:Ignorable="d" d:DesignWidth="900">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <StackPanel Orientation="Horizontal">
+        <Border DataContext="{Binding Documento}" Style="{StaticResource ChipEstadoCuentaPorCobrarStyle}">
+          <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource FsCaption}" />
+        </Border>
+        <TextBlock Text="{Binding Documento.PlazoTexto}" Margin="12,0,0,0" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+      <UniformGrid Columns="4" Margin="0,12,0,0">
+        <controls:Dato Etiqueta="Cliente" Valor="{Binding Documento.ClienteTexto}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Factura" Valor="{Binding Documento.NumeroFactura}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Emisión" Valor="{Binding Documento.EmisionTexto}" Margin="0,0,16,0" />
+        <controls:Dato Etiqueta="Vencimiento" Valor="{Binding Documento.VencimientoTexto}" />
+      </UniformGrid>
+      <UniformGrid Columns="5" Margin="0,8,0,0">
+        <controls:Dato Etiqueta="Total factura Bs" Valor="{Binding Documento.TotalTexto}" Margin="0,0,12,0" />
+        <controls:Dato Etiqueta="Pago inicial Bs" Valor="{Binding PagoInicialTexto}" Margin="0,0,12,0" />
+        <controls:Dato Etiqueta="Saldo Bs" Valor="{Binding Documento.SaldoTexto}" Margin="0,0,12,0" />
+        <controls:Dato Etiqueta="Equivalente US$" Valor="{Binding Documento.SaldoUsdTexto}" Margin="0,0,12,0" />
+        <controls:Dato Etiqueta="Tasa" Valor="{Binding TasaTexto}" />
+      </UniformGrid>
+
+      <TextBlock Text="Movimientos" Style="{StaticResource CardTitleStyle}" Margin="0,20,0,8" />
+      <Border Style="{StaticResource SectionCardStyle}" Padding="0">
+        <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Movimientos}"
+                  IsReadOnly="True" MaxHeight="250">
+          <DataGrid.Columns>
+            <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="12*" />
+            <controls:ColumnaTexto Header="Tipo" Binding="{Binding TipoTexto}" Width="20*" />
+            <controls:ColumnaTexto Header="Documento" Binding="{Binding DocumentoOrigen}" Width="18*" />
+            <controls:ColumnaTexto Header="Descripción" Binding="{Binding Descripcion}" Width="34*" />
+            <controls:ColumnaNumero Header="Efecto Bs" Binding="{Binding MontoTexto}" Width="16*" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+
+      <DockPanel Margin="0,20,0,8">
+        <TextBlock Text="Recibos" Style="{StaticResource CardTitleStyle}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Content="Imprimir recibo" Style="{StaticResource SecondaryButtonStyle}"
+                  Command="{Binding ImprimirReciboCommand}" />
+          <Button Content="Anular cobro" Style="{StaticResource SecondaryButtonStyle}"
+                  Foreground="{DynamicResource DangerTextBrush}" Command="{Binding AnularCobroCommand}" />
+        </StackPanel>
+      </DockPanel>
+      <Border Style="{StaticResource SectionCardStyle}" Padding="0"
+              Visibility="{Binding TieneRecibos, Converter={StaticResource BoolToVis}}">
+        <DataGrid Style="{StaticResource DataGridStyle}" ItemsSource="{Binding Recibos}"
+                  SelectedItem="{Binding ReciboSeleccionado}" IsReadOnly="True" MaxHeight="250">
+          <DataGrid.Columns>
+            <controls:ColumnaTexto Header="Recibo" Binding="{Binding Numero}" Width="16*" />
+            <controls:ColumnaTexto Header="Fecha" Binding="{Binding FechaTexto}" Width="13*" />
+            <controls:ColumnaTexto Header="Método" Binding="{Binding MetodoTexto}" Width="18*" />
+            <controls:ColumnaNumero Header="Monto Bs" Binding="{Binding MontoTexto}" Width="15*" />
+            <controls:ColumnaNumero Header="US$" Binding="{Binding MontoDivisaTexto}" Width="12*" />
+            <controls:ColumnaTexto Header="Referencia" Binding="{Binding Referencia}" Width="16*" />
+            <controls:ColumnaTexto Header="Estado" Binding="{Binding EstadoTexto}" Width="10*" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+      <TextBlock Text="Esta factura todavía no tiene recibos posteriores."
+                 Foreground="{DynamicResource TextMutedBrush}"
+                 Visibility="{Binding NoTieneRecibos, Converter={StaticResource BoolToVis}}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -190,6 +190,8 @@ public sealed class ModuloDashboardViewModel : ViewModelBase, IRecargable
 
         var porPagar = pagar.TotalPorPagar();
         var vencido = pagar.TotalVencido();
+        var cobrar = DataSourceFactory.CrearServicioCuentasPorCobrar();
+        var porCobrar = cobrar.TotalPorCobrar();
         var disponible = banco.DisponibleTotal();
 
         return
@@ -199,6 +201,7 @@ public sealed class ModuloDashboardViewModel : ViewModelBase, IRecargable
             new Indicador("Disponible", $"{disponible:N2}", "en las cuentas de la organización",
                 disponible <= 0 ? EstadoIndicador.Atencion : EstadoIndicador.Normal),
             new Indicador("Por pagar", $"{porPagar:N2}", "deuda con proveedores"),
+            new Indicador("Por cobrar", $"{porCobrar:N2}", "saldos de clientes en Bs"),
             new Indicador("Vencido", $"{vencido:N2}", "pagos fuera de plazo",
                 vencido > 0 ? EstadoIndicador.Critico : EstadoIndicador.Normal)
         ];

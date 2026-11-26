@@ -80,8 +80,8 @@ ASO_ADMINIS/
 
 | Módulo | Submódulos |
 |---|---|
-| Ventas | Registro de ventas (factura, nota de crédito y débito, contingencia) · Clientes · Cierre del día (X/Z) |
-| Finanzas | Cuentas por Pagar · Gastos varios · Banco · Proveedores |
+| Ventas | Registro de ventas (factura, nota de crédito y débito, contingencia y crédito) · Servicios · Clientes · Cierre del día (X/Z) |
+| Finanzas | Cuentas por Pagar · Cuentas por Cobrar · Gastos varios · Banco · Proveedores |
 | Inventario | Almacén · Entradas · Salidas |
 | Reportes | Ventas · Gastos · Libro de ventas |
 

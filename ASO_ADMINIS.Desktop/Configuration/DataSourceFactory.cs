@@ -18,6 +18,9 @@ public static class DataSourceFactory
 {
     private static IProveedorDataSource? _proveedores;
     private static IFacturaProveedorDataSource? _facturasProveedor;
+    private static ICuentaPorCobrarDataSource? _cuentasPorCobrar;
+    private static ICobroClienteDataSource? _cobrosCliente;
+    private static IMovimientoCuentaPorCobrarDataSource? _movimientosCuentaPorCobrar;
     private static ICuentaBancariaDataSource? _cuentasBancarias;
     private static IMovimientoBancoDataSource? _movimientosBanco;
     private static IGastoVarioDataSource? _gastosVarios;
@@ -48,6 +51,15 @@ public static class DataSourceFactory
 
     public static IFacturaProveedorDataSource CrearFacturasProveedor() =>
         _facturasProveedor ??= new SqlFacturaProveedorDataSource();
+
+    public static ICuentaPorCobrarDataSource CrearCuentasPorCobrar() =>
+        _cuentasPorCobrar ??= new SqlCuentaPorCobrarDataSource();
+
+    public static ICobroClienteDataSource CrearCobrosCliente() =>
+        _cobrosCliente ??= new SqlCobroClienteDataSource();
+
+    public static IMovimientoCuentaPorCobrarDataSource CrearMovimientosCuentaPorCobrar() =>
+        _movimientosCuentaPorCobrar ??= new SqlMovimientoCuentaPorCobrarDataSource();
 
     public static ICuentaBancariaDataSource CrearCuentasBancarias() =>
         _cuentasBancarias ??= new SqlCuentaBancariaDataSource();
@@ -105,6 +117,15 @@ public static class DataSourceFactory
 
     public static RespaldoService CrearServicioRespaldos() =>
         new(CrearRespaldos(), OpcionesRespaldo.DeConfiguracion());
+
+    public static CuentasPorCobrarService CrearServicioCuentasPorCobrar()
+    {
+        var sesion = SesionActual.Instancia;
+        var banco = new BancoService(CrearMovimientosBanco(), CrearCuentasBancarias(), sesion);
+        return new CuentasPorCobrarService(CrearCuentasPorCobrar(), CrearCobrosCliente(),
+            CrearMovimientosCuentaPorCobrar(), banco, CrearCuentasBancarias(), CrearTurnos(),
+            CrearTasasCambio(), CrearOrganizaciones(), sesion);
+    }
 
     /// <summary>El emisor fiscal de esta instalación (ver Services/Fiscal/EmisoresFiscales.cs).</summary>
     public static Services.Fiscal.IEmisorFiscal CrearEmisorFiscal() =>

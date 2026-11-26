@@ -47,7 +47,8 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
         _dialogos = dialogos;
         _sesionActual = sesion;
         _clientes = DataSourceFactory.CrearClientes();
-        _retenciones = new RetencionesService(DataSourceFactory.CrearRetencionesIva(), sesion);
+        var cuentasPorCobrar = DataSourceFactory.CrearServicioCuentasPorCobrar();
+        _retenciones = new RetencionesService(DataSourceFactory.CrearRetencionesIva(), sesion, cuentasPorCobrar);
 
         var articulos = DataSourceFactory.CrearArticulos();
         _inventario = new InventarioService(articulos,
@@ -55,13 +56,15 @@ public sealed class VentasViewModel : PantallaCrudViewModel<Venta, int>
                                             DataSourceFactory.CrearSalidasInventario());
 
         _servicioClientes = new ClientesService(_clientes, sesion);
-        var turnos = new TurnosService(DataSourceFactory.CrearTurnos(), ventas, sesion);
+        var turnos = new TurnosService(DataSourceFactory.CrearTurnos(), ventas, sesion,
+                                       DataSourceFactory.CrearCobrosCliente());
         _servicio = new VentasService(ventas, articulos, DataSourceFactory.CrearSalidasInventario(),
                                       DataSourceFactory.CrearEntradasInventario(), _inventario, sesion,
                                       DataSourceFactory.CrearEmisorFiscal(),
                                       turno: turnos.TurnoParaFacturar,
                                       clientes: _servicioClientes,
-                                      rangos: DataSourceFactory.CrearRangosContingencia());
+                                      rangos: DataSourceFactory.CrearRangosContingencia(),
+                                      cuentasPorCobrar: cuentasPorCobrar);
 
         _tasaCambio = new TasaCambioService(
             DataSourceFactory.CrearTasasCambio(), DataSourceFactory.CrearProveedorTasaCambio());

@@ -49,11 +49,11 @@ Es escritorio, no web (no hay dev server / puerto). `dotnet run` dentro de
 Pruebas: `dotnet test ASO_ADMINIS.slnx` (proyecto `ASO_ADMINIS.Tests`, xUnit). Usan fuentes de datos
 y emisor en memoria (`Dobles.cs`), así que no tocan SQL Server ni `%AppData%` (el diario fiscal va
 a una carpeta temporal: `InicioDePruebas`); cubren `Rif`, `CalculoFiscal`, la numeración de
-`VentasService`, cajas y turnos, y la bitácora. **Integración con SQL** (`IntegracionSqlTests`):
+`VentasService`, ventas a crédito y cuentas por cobrar, cajas y turnos, y la bitácora. **Integración con SQL** (`IntegracionSqlTests`):
 solo con `ASO_PRUEBAS_SQL=1` (PowerShell: `$env:ASO_PRUEBAS_SQL=1; dotnet test ASO_ADMINIS.slnx`);
 crean una base LocalDB temporal con todas las migraciones y la borran al terminar. Prueban
-rollback, candado, dos cajas vendiendo la última unidad, conflicto de edición, bitácora y su
-trigger. Sin la variable salen como omitidas. Ojo: si la compilación falla, no correr con
+rollback, candado, dos cajas vendiendo la última unidad, venta a crédito con cobro bancario e
+índices de CxC, conflicto de edición, bitácora y su trigger. Sin la variable salen como omitidas. Ojo: si la compilación falla, no correr con
 `--no-build` (correrían binarios viejos).
 
 Instalación en otra PC: instalador y actualizaciones automáticas con **Velopack** (`Program.cs`,
@@ -83,7 +83,7 @@ Server Express): `INSTALACION.md`.
 ## Estructura de módulos
 
 Hoy hay **cuatro módulos de negocio**: **Ventas** (Registro de ventas, Servicios, Clientes y
-Cierre del día), **Finanzas** (Cuentas por Pagar, Gastos varios, Banco y Proveedores), **Inventario** (Almacén, Entradas y
+Cierre del día), **Finanzas** (Cuentas por Pagar, Cuentas por Cobrar, Gastos varios, Banco y Proveedores), **Inventario** (Almacén, Entradas y
 Salidas) y **Reportes** (Ventas, Gastos y Libro de ventas, de solo lectura), más **cuatro módulos fijados** sin
 submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Administración**
 (usuarios con sus permisos, y los datos de la propia organización) y **Configuración**
@@ -120,7 +120,7 @@ submódulos: **Inicio**, **Peticiones** (bandeja de solicitudes de cambio), **Ad
     - **Fichas:** `ViewModels/DetalleViewModels.cs` (`DetalleViewModelBase<T>`: botón
       "Cerrar", sin Cancelar, Esc cierra) y `Views/<X>DetalleView.xaml`, en la misma
       `CrudEditorWindow`. Hoy: venta (factura y notas), entrada, salida, gasto vario y factura
-      de proveedor pagada o anulada. Los datos opcionales van con `controls:Dato`, que se oculta
+      de proveedor pagada o anulada, y cuenta por cobrar con su estado de cuenta y recibos. Los datos opcionales van con `controls:Dato`, que se oculta
       si el valor está vacío.
     - **En Reportes** (2026-11-15), que no son CRUD, cada pantalla tiene su `Seleccionada` y
       su `AbrirCommand`. Reportes · Ventas abre la ficha de la venta. Reportes · Gastos abre la
@@ -364,6 +364,29 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
     renglón, los totales por alícuota, el IGTF, el total y el vuelto.
   - **Del emisor:** `NumeroFiscal`, `NumeroControl`, `SerialEmisor` y `NumeroZ`.
   - **Moneda:** los montos van en **Bs**; el US$ es solo referencia.
+- **Venta a crédito y Finanzas · Cuentas por Cobrar** (`Models/CuentaPorCobrar.cs`,
+  `Services/CuentasPorCobrarService.cs`): `Venta.CondicionPago` distingue Contado/Credito; no se
+  reutiliza `MetodoPago.Credito`, que significa tarjeta. El crédito exige el permiso
+  `Ventas.VenderACredito`, cliente persistido y vencimiento elegido al emitir. Puede llevar pagos
+  iniciales: la deuda inicial es total − anticipos.
+  - **Factura inalterable:** sus renglones y `Venta.Pagos` no cambian después. Cada abono posterior
+    crea un recibo `REC-000001` y un `MovimientoCuentaPorCobrar`; no es un documento fiscal del
+    SENIAT. Las cuentas nacen de facturas a crédito: no hay alta, edición ni borrado manual.
+  - **Moneda:** total, anticipos, abonos y saldo se mantienen en **Bs**. `SaldoUsdReferencia` usa
+    siempre `TasaCambioEmision`, no la tasa del cobro. Un recibo en divisa guarda además US$ y la
+    tasa BCV usada para convertirlo.
+  - **Cobranzas:** parciales o totales, sin sobrepago. Efectivo exige turno abierto propio y entra
+    en su arqueo; los métodos bancarios crean una entrada en Banco por recibo. Anular exige motivo,
+    revierte saldo y asiento, y se bloquea si el turno está cerrado o el asiento conciliado.
+  - **Ajustes:** notas de crédito/débito y retenciones de IVA mueven el saldo en la misma
+    transacción de su documento. Una nota posterior al cobro total puede dejar `SaldoAFavor`; no
+    hay cuotas, intereses, mora ni límites automáticos.
+  - **IGTF temporal:** para contribuyente especial se bloquean los cobros posteriores en divisas
+    hasta acordar su tratamiento con el contador/proveedor fiscal. Los anticipos en divisas de la
+    factura conservan el cálculo de IGTF ya existente.
+  - **UI y permisos:** filtros, totales, vencimiento derivado, estado de cuenta, recibos y
+    comprobante no fiscal en `CuentasPorCobrarViewModel` y sus vistas. Supervisor puede vender a
+    crédito, cobrar y anular; Cajero no recibe esos permisos.
 - **Cálculo** en `Services/CalculoFiscal.cs`, puro.
   - **Renglones:** se redondea cada uno a 2 decimales (precio Bs = US$ × tasa; monto; IVA).
   - **Bases e IVA:** son la suma de sus renglones.
@@ -424,7 +447,8 @@ digitales** y las **máquinas fiscales** con autorización previa. El papel qued
   cliente agente de retención, del 75 % o el 100 % del IVA.
   - **Comprobante:** número de 14 dígitos; una retención por factura; el comprobante no se
     repite.
-  - **Por qué es una fila aparte:** la factura es inalterable.
+  - **Por qué es una fila aparte:** la factura es inalterable. Si tiene CxC con saldo, la
+    retención lo reduce sin crear recibo, caja ni asiento bancario; no puede exceder ese saldo.
 - **Cierre del día** (Ventas · Cierre, `CierreService`):
   - **Resumen diario:** por alícuota y medio de pago, neto de notas de crédito. Existe siempre.
   - **Con máquina fiscal:** hay reporte X y **Cierre Z** (`Ventas.CierreZ`). El Z se guarda en
@@ -549,7 +573,7 @@ cada uno con un conjunto base en
 
 | Rol | Alcance |
 |---|---|
-| **Supervisor** | La oficina y su supervisión: emite facturas y mantiene clientes y servicios; proveedores y facturas de compra; catálogo de artículos, entradas y salidas de almacén; más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; registrar pagos (dispara el asiento en Banco) y gastos varios, administrar cuentas bancarias, anular documentos de almacén, eliminar, resolver peticiones de su dominio y cerrar el turno de otro cajero |
+| **Supervisor** | La oficina y su supervisión: emite facturas y mantiene clientes y servicios; proveedores y facturas de compra; catálogo de artículos, entradas y salidas de almacén; más notas de crédito/débito, contingencia, cierre Z, retenciones de IVA y libro de ventas; vender a crédito, registrar y anular cobros de clientes, registrar pagos (dispara el asiento en Banco) y gastos varios, administrar cuentas bancarias, anular documentos de almacén, eliminar, resolver peticiones de su dominio y cerrar el turno de otro cajero |
 | **AdministradorOrganizacion** | Todo dentro de la organización, salvo crear usuarios Desarrollador |
 | **Desarrollador** | Todos los permisos, y es el único que reparte su propio rol |
 | **Cajero** | Solo vender en SU caja y dentro de su turno: Registro de ventas, Clientes y Cierre del día (abrir/cerrar su turno). No ve Finanzas, Inventario, Reportes, Peticiones ni las ventas de otras cajas. Obligatorio tener caja asignada |
@@ -584,7 +608,7 @@ no había diferencia entre una cuenta de caja y una de oficina. Ahora:
 - **`Models/Turno.cs` + `Services/TurnosService.cs`**: se abre con fondo (Bs y US$) y se cierra con
   arqueo. **Un solo turno abierto por caja**, respaldado por el índice único filtrado
   `IX_Turnos_CajaId_Abierto`. Esperado = fondo + `EfectivoBs`/`EfectivoDivisa` de las facturas
-  vigentes del turno − `Vuelto` (en Bs). Las notas de crédito no llevan pagos, así que un
+  vigentes del turno − `Vuelto` (en Bs) + cobros de clientes en efectivo vigentes del turno. Las notas de crédito no llevan pagos, así que un
   reintegro en efectivo se anota en las observaciones. Si el arqueo no cuadra, el editor exige
   observaciones. Cerrar el turno de otro exige `Turnos.CerrarAjeno`, que **solo tienen Supervisor,
   Administrador y Desarrollador**: está en `MatrizPermisos.SoloSupervision`, así que
@@ -813,27 +837,105 @@ deliberados, fáciles de revisar y cambiar al adoptarlo para un cliente concreto
      tenga cada cliente (máquina fiscal como HKA o imprenta digital), y hace falta su manual o
      API y un equipo o ambiente de pruebas. La base común ya está: ver "Cómo escribir un conector
      fiscal".
-   - **Crédito:** no hay cuentas por cobrar ni venta a crédito.
+   - **Crédito:** ya hay venta a crédito y CxC. Queda bloqueado el cobro posterior en divisas de
+     contribuyentes especiales hasta definir el IGTF; no hay cuotas, intereses ni mora.
    - **IGTF en notas:** las notas de crédito no revierten IGTF.
    - **Por confirmar con el contador:** los porcentajes de IVA, el criterio del IGTF y las
      columnas exactas del libro de ventas.
-   - **Documento para el cliente:** el simulador solo escribe un `.txt` en `%AppData%`; no hay
-     factura imprimible ni PDF para entregar. Con máquina fiscal la imprime la máquina; con
-     imprenta digital, normalmente el proveedor devuelve el PDF. Se resuelve junto con el
-     conector real.
-   - **Providencia SNAT/2026/00093** (vigente desde abril de 2027): solo se conoce por notas de
-     prensa. Hay que revisar su texto completo en la Gaceta 43.484 por si exige algo más en el
-     documento.
+   - **Documento para el cliente:** ya hay impresión y PDF de una copia claramente marcada como
+     NO FISCAL. El documento fiscal válido lo imprime la máquina o lo devuelve la imprenta digital;
+     falta recibirlo, conservarlo y entregarlo mediante el conector real. El simulador solo escribe
+     un `.txt` en `%AppData%`.
+   - **Providencia SNAT/2026/00093:** revisión registrada en la sección siguiente. El texto completo
+     consultado es una reproducción; antes de cerrar el conector hay que cotejarlo con la Gaceta
+     Oficial 43.484 y los manuales técnicos que publique el SENIAT.
    - **RIF:** solo se valida el dígito verificador, no que exista. No hay API oficial del SENIAT.
      Si se retoma, la opción barata es un botón "Consultar en SENIAT" en la ficha del cliente
-     más una marca de "verificado por / fecha".
+     más una marca de "verificado por / fecha". También falta admitir pasaporte y revisar la letra
+     C para los RIF que la utilicen.
 6. **`Solicitables` vacío**: no hay ninguna petición de cambio configurada todavía — ver
    "Peticiones de cambio" arriba. Los dos candidatos naturales ya existen:
    `EntradasInventario.Anular` y `SalidasInventario.Anular`, que hoy un Cajero simplemente no
    ve.
-7. **Pantalla de datos de la organización**: `Administración · Organización` solo pide nombre y
-   código; si el negocio real necesita más datos de la organización (dirección, RIF, etc.),
-   agregarlos ahí.
+7. **Datos de la organización**: ya se editan razón social, RIF, dirección, teléfono, condición de
+   contribuyente especial y alícuotas. Falta modelar la condición frente al IVA (ordinario, formal o
+   no sujeto) cuando se conozca la del negocio, porque cambia las leyendas obligatorias.
+
+## Revisión SENIAT y faltantes diferidos (2026-11-26)
+
+Revisión estática; no certifica cumplimiento legal. Fuentes consultadas:
+[PA SNAT/2011/00071](https://tributos.ivecofi.net/informacion/legislacion/providencias/pa-2011-71),
+[PA SNAT/2024/000102](https://tributos.ivecofi.net/informacion/legislacion/providencias/pa-2024-102)
+y [reproducción de la PA SNAT/2026/00093](https://ecomunik2.com/biblioteca-tributaria/snat-2026-00093).
+La 00093 se publicó en la Gaceta 43.484 del 21/10/2026 y entra en vigencia el **19/04/2027**;
+hasta el 18/04/2027 siguen la 00071, 0141 y 000102. La PA SNAT/2026/00084 eliminó la homologación
+de proveedores de software de la 000121, no las obligaciones de emisión ni la autorización de los
+medios. Validar el diseño definitivo con contador/asesor tributario y con el proveedor fiscal.
+
+### Consumidor final
+
+- El alta anónima se deshabilitó para facturas nuevas en el commit `7dea9b2` (13/11/2026);
+  `VentasService.ValidarCliente` ahora exige identificación, nombre y dirección. El botón actual es
+  "Limpiar", no un atajo para vender sin datos.
+- `Venta.EsConsumidorFinal`, los textos y la consolidación por Z se conservan para documentos
+  históricos. El comentario de `Models/Cliente.cs` que todavía describe ventas sin cliente está
+  desactualizado.
+- La 00071, art. 13.7, y la 00093, art. 8.6, permiten omitir el RIF de una persona natural que no
+  usa la factura tributariamente, pero exigen nombre y cédula o pasaporte. La 000102, art. 7.7,
+  exige además domicilio fiscal en factura digital. En máquina fiscal, los datos del comprador son
+  necesarios para crédito fiscal/desembolso; no extender esa excepción a todos los medios.
+- Si se recupera el atajo, llamarlo **"Persona natural sin RIF"**, pedir nombre y cédula/pasaporte,
+  y decidir la dirección según el medio vigente. Separar la condición comercial de consumidor final
+  de `string.IsNullOrWhiteSpace(ClienteRif)`: hoy una persona identificada con cédula no se considera
+  consumidor final ni se consolida por Z.
+
+### Brechas fiscales para resolver con el conector real
+
+1. **Medio válido:** `EmisoresFiscales` solo crea `EmisorFiscalSimulado`, con `EsFiscal = false`.
+   Sus números, controles, documentos y X/Z no tienen valor fiscal.
+2. **Datos digitales:** `ResultadoFiscal` solo devuelve número, control, serial, fecha y ruta. Hay
+   que contemplar rango de controles asignados, fecha de asignación, razón social/RIF de la imprenta,
+   providencia y fecha de autorización, mención de la providencia aplicable, PDF fiscal y consulta /
+   resguardo. La hora fiscal debe llevar segundos; que el simulador o la copia no fiscal usen `HH:mm`
+   no valida ese formato.
+3. **Notas:** la nota solo guarda Id, número y fecha de la factura afectada. La 00071, arts. 23-24,
+   exige monto y, según el medio, serial/control original; la 00093, art. 12, exigirá siempre fecha,
+   número correlativo, control y monto. Agregar snapshots o un contrato equivalente que llegue al
+   emisor. Desde la 00093 la nota debe salir por el **mismo medio** de la factura: hoy se usa el
+   emisor configurado al momento de la nota, sin enrutar según el documento original.
+4. **Contingencia:** solo se registran facturas en papel, no NC/ND. Existe talonario y transmisión
+   manual, pero falta el expediente completo: la 000102 exige registro, resguardo y notificaciones;
+   la 00093, art. 7, exigirá registrar todo y remitirlo al día siguiente en PDF a la imprenta digital
+   o por la API del SENIAT. Prever alerta de plazo, relación descargable y constancia de notificación.
+5. **Condición IVA:** modelar las leyendas de formal/no sujeto y, desde la 00093, "Contribuyentes
+   Formales del IVA" en las operaciones exentas/exoneradas que correspondan.
+6. **Resguardo histórico:** la venta no guarda snapshot del emisor; la copia no fiscal usa la
+   organización actual. `DocumentoRuta` puede ser una ruta local de la caja. Conservar el original
+   fiscal inalterable y asegurar acceso, respaldo y retención según el medio; una copia regenerada no
+   lo sustituye.
+7. **Operación diaria:** X/Z, inalterabilidad, talonarios y libro de ventas ya tienen base, pero no
+   certifican cumplimiento sin equipo/proveedor real. Confirmar con contador columnas del libro,
+   tratamiento de notas y retenciones, alícuotas e IGTF. Las guías, series, descuentos, operaciones
+   por cuenta de terceros, exportaciones y reglas sectoriales se implementan solo si aplican al
+   negocio; cuando haya descuentos/cargos, el documento debe describirlos y valorarlos.
+
+### Mejoras generales diferidas (no todas son obligaciones SENIAT)
+
+- **Devolución de dinero:** una NC reingresa inventario y ajusta CxC, pero no genera por sí sola un
+  egreso de caja/banco si la venta ya estaba cobrada. Definir reembolso, permiso, turno y arqueo.
+- **Compras/CxP:** el pago de proveedor es solo total. La factura de compra no guarda desglose de
+  base/IVA ni control fiscal. Faltan pagos parciales, notas del proveedor y, si se quiere cubrir todo
+  el ciclo, libro de compras y comprobantes propios de retención cuando la organización sea agente.
+- **ISLR:** registrar retenciones de clientes sobre servicios; no tocan la factura ni el libro de
+  ventas. Revisar también los supuestos de IVA distintos de 75/100 y más de un comprobante por
+  factura antes de generalizar el modelo actual.
+- **Crédito:** cuotas, intereses, mora, límites, recordatorios/antigüedad y aplicación del saldo a
+  favor son mejoras comerciales, no requisitos universales. El esquema actual en Bs con referencia
+  US$ a tasa de emisión y recibos administrativos posteriores es coherente con lo revisado.
+- **Autorización:** llevar las escrituras CRUD detrás de servicios que repitan el permiso; hoy la
+  base genérica limita los comandos pero llama directo al `IDataSource`.
+- **Documentación auxiliar:** actualizar README y guías cuando se agreguen cotizaciones, pedidos,
+  guías o contabilidad; no son necesarios para todo comercio ni se deben presentar como mandato legal.
 
 ## Próximo paso sugerido
 
@@ -865,5 +967,7 @@ de cuentas), paso 6 (registro y bitácora) y paso 7 (respaldos). Quedan, en el o
    parcial; trigger de la bitácora en PL/pgSQL; importador del `.zip` portable de respaldos.
    **Decisión pendiente del negocio:** ¿servidor administrado por nosotros para todas las
    organizaciones, o uno por cliente?
-5. **Pendiente menor:** commit y versión 0.5.0 de todo lo anterior (antes de lo demás), y probar a
-   mano las pantallas nuevas (Cajas, Mi turno, Bitácora, Respaldos, bloqueo por inactividad).
+5. **Pruebas manuales:** en una instalación real, recorrer Cajas, Mi turno, Bitácora, Respaldos y
+   bloqueo por inactividad, además del ciclo de crédito: factura con o sin anticipo, abonos parciales
+   y totales, anulación de cobros, notas y retenciones. Las pruebas automatizadas no sustituyen este
+   recorrido de las pantallas.

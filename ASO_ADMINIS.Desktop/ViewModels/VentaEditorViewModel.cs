@@ -38,6 +38,10 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
 
         Articulos = articulos;
         _clientes = clientes;
+        Condiciones = servicio.PuedeVenderACredito
+            ? [new OpcionCondicion(CondicionVenta.Contado, "Contado"), new OpcionCondicion(CondicionVenta.Credito, "Crédito")]
+            : [new OpcionCondicion(CondicionVenta.Contado, "Contado")];
+        _condicionSeleccionada = Condiciones[0];
 
         ElegirClienteCommand = new RelayCommand<Cliente>(c => { if (c is not null) UsarCliente(c); });
         ConfirmarClienteCommand = new RelayCommand(ConfirmarCliente);
@@ -75,6 +79,33 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     public string EmisorTexto => _servicio.Emisor.EsFiscal
         ? $"Se emitirá por: {_servicio.Emisor.Nombre}"
         : $"Se emitirá por: {_servicio.Emisor.Nombre} — SIN VALOR FISCAL";
+
+    public sealed record OpcionCondicion(CondicionVenta Valor, string Texto);
+    public IReadOnlyList<OpcionCondicion> Condiciones { get; }
+
+    private OpcionCondicion _condicionSeleccionada = new(CondicionVenta.Contado, "Contado");
+    public OpcionCondicion CondicionSeleccionada
+    {
+        get => _condicionSeleccionada;
+        set
+        {
+            if (!SetProperty(ref _condicionSeleccionada, value))
+                return;
+            OnPropertyChanged(nameof(EsCredito));
+            OnPropertyChanged(nameof(TituloPagos));
+            Recalcular();
+        }
+    }
+
+    public bool EsCredito => CondicionSeleccionada.Valor == CondicionVenta.Credito;
+    public string TituloPagos => EsCredito ? "Pagos iniciales (opcionales)" : "Pagos";
+
+    private DateTime _fechaVencimiento = DateTime.Today.AddDays(30);
+    public DateTime FechaVencimiento
+    {
+        get => _fechaVencimiento;
+        set => SetProperty(ref _fechaVencimiento, value);
+    }
 
     // ---------------------------------------------------------------- Cliente
     //
@@ -454,6 +485,8 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
         get
         {
             var pendiente = CalculoFiscal.Pendiente(_calculado);
+            if (EsCredito && pendiente > 0.005m)
+                return $"Por cobrar: Bs. {pendiente:N2}";
             return pendiente switch
             {
                 > 0.005m => $"Falta: Bs. {pendiente:N2}",
@@ -469,6 +502,8 @@ public sealed class VentaEditorViewModel : CrudEditorViewModelBase<Venta>
     {
         var venta = _original.Clonar();
         venta.Tipo = TipoDocumentoVenta.Factura;
+        venta.CondicionPago = CondicionSeleccionada.Valor;
+        venta.FechaVencimientoCredito = EsCredito ? FechaVencimiento.Date : null;
         venta.TasaCambioUsada = _tasa;
         // El servicio lo confirma (o lo da de alta) al emitir.
         venta.ClienteId = _clienteCargado?.Id;

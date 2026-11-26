@@ -184,6 +184,36 @@ public sealed class BancoService
                    datos,
                    usuarioId);
 
+    /// <summary>Entrada bancaria de un recibo de cobranza. El recibo ya tiene Id al llamarlo.</summary>
+    public MovimientoBanco RegistrarCobroCliente(CobroCliente cobro, CuentaPorCobrar cuenta, int usuarioId)
+    {
+        if (cobro.Id == 0 || cobro.CuentaBancariaId is not { } cuentaId)
+            throw new InvalidOperationException("El cobro bancario necesita su recibo y una cuenta de destino.");
+
+        return Asentar(TipoMovimientoBanco.Entrada,
+                       cobro.EsDivisa ? cobro.MontoDivisa : cobro.MontoBs,
+                       $"Cobro {cobro.Numero} — factura {cuenta.NumeroFactura} — {cuenta.ClienteNombre}",
+                       CategoriaMovimiento.CobroCliente,
+                       OrigenMovimiento.CobroCliente,
+                       cobro.Id,
+                       new AsientoBanco(cuentaId, cobro.Fecha, cobro.Referencia),
+                       usuarioId);
+    }
+
+    /// <summary>Anula el asiento del recibo, salvo que ya haya sido conciliado con el banco.</summary>
+    public void AnularCobroCliente(CobroCliente cobro, string motivo)
+    {
+        var asientos = _movimientos.GetByOrigen(OrigenMovimiento.CobroCliente, cobro.Id)
+            .Where(m => m.Estado != EstadoMovimientoBanco.Anulado)
+            .ToList();
+        if (asientos.Any(m => m.Estado == EstadoMovimientoBanco.Conciliado))
+            throw new InvalidOperationException(
+                "El cobro ya está conciliado con el banco. Debe desconciliarse antes de anular el recibo.");
+
+        foreach (var asiento in asientos)
+            AnularUno(asiento, motivo);
+    }
+
     /// <summary>
     /// Anula los asientos vivos que nacieron de un documento cuando ese documento se anula.
     /// Composición, como <see cref="RegistrarGastoVario"/>: el permiso lo exigió el servicio del

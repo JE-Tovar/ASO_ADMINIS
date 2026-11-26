@@ -31,7 +31,8 @@ public sealed class CierreViewModel : PantallaViewModelBase
         _sesion = SesionActual.Instancia;
         _servicio = new CierreService(DataSourceFactory.CrearVentas(), DataSourceFactory.CrearCierresZ(),
                                       DataSourceFactory.CrearEmisorFiscal(), _sesion);
-        _turnos = new TurnosService(DataSourceFactory.CrearTurnos(), DataSourceFactory.CrearVentas(), _sesion);
+        _turnos = new TurnosService(DataSourceFactory.CrearTurnos(), DataSourceFactory.CrearVentas(), _sesion,
+                                    DataSourceFactory.CrearCobrosCliente());
 
         ReporteXCommand = new RelayCommand(ReporteX, () => TieneXZ);
         ProbarEmisorCommand = new RelayCommand(ProbarEmisor);

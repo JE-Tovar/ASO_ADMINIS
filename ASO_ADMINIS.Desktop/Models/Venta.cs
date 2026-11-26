@@ -70,6 +70,12 @@ public class Venta : IEntidad<int>, IDeOrganizacion
 
     public TipoDocumentoVenta Tipo { get; set; } = TipoDocumentoVenta.Factura;
 
+    /// <summary>Contado o crédito comercial; no confundir con el método tarjeta de crédito.</summary>
+    public CondicionVenta CondicionPago { get; set; } = CondicionVenta.Contado;
+
+    /// <summary>Fecha límite elegida al emitir una factura a crédito.</summary>
+    public DateTime? FechaVencimientoCredito { get; set; }
+
     /// <summary>Fecha y hora de emisión.</summary>
     public DateTime Fecha { get; set; }
 

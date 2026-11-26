@@ -370,6 +370,75 @@ public sealed class IntegracionSqlTests(BaseTemporal bd) : IDisposable
         Assert.DoesNotContain(db.RegistrosAuditoria.ToList(), r => r.Resumen == "borrado");
     }
 
+    [FactSql]
+    public void Una_venta_a_credito_guarda_su_cuenta_y_un_cobro_bancario()
+    {
+        var articulos = new SqlArticuloDataSource();
+        var salidas = new SqlSalidaInventarioDataSource();
+        var entradas = new SqlEntradaInventarioDataSource();
+        var sesion = new SesionTotal { CajaActual = bd.Caja };
+        sesion.UsuarioActual!.OrganizacionId = bd.Organizacion.Id;
+        var cuentasBancarias = new SqlCuentaBancariaDataSource();
+        var movimientosBanco = new SqlMovimientoBancoDataSource();
+        var banco = new BancoService(movimientosBanco, cuentasBancarias, sesion);
+        var cuentas = new SqlCuentaPorCobrarDataSource();
+        var cobros = new SqlCobroClienteDataSource();
+        var movimientos = new SqlMovimientoCuentaPorCobrarDataSource();
+        new SqlTasaCambioDataSource().Add(new TasaCambio { Fecha = DateTime.Today, Valor = 40m });
+        var servicioCobrar = new CuentasPorCobrarService(cuentas, cobros, movimientos, banco,
+            cuentasBancarias, new SqlTurnoDataSource(), new SqlTasaCambioDataSource(),
+            new SqlOrganizacionDataSource(), sesion);
+        var ventas = new VentasService(new SqlVentaDataSource(), articulos, salidas, entradas,
+            new InventarioService(articulos, entradas, salidas), sesion, new EmisorDePrueba(),
+            organizacion: () => bd.Organizacion, turno: () => bd.Turno,
+            clientes: new ClientesService(new SqlClienteDataSource(), sesion),
+            cuentasPorCobrar: servicioCobrar);
+        var servicio = articulos.Add(new Articulo
+        {
+            Codigo = $"S{Guid.NewGuid():N}"[..12], Descripcion = "Servicio a crédito", Tipo = TipoArticulo.Servicio,
+            PrecioVenta = 10m, Alicuota = TipoAlicuota.Exento, Activo = true
+        });
+        var borrador = FacturaDe(servicio.Id);
+        borrador.CondicionPago = CondicionVenta.Credito;
+        borrador.FechaVencimientoCredito = DateTime.Today.AddDays(30);
+        borrador.Pagos = [];
+
+        var factura = ventas.EmitirFactura(borrador, usuarioId: 1);
+        var cuenta = servicioCobrar.DeLaFactura(factura.Id)!;
+        var bancaria = cuentasBancarias.Add(new CuentaBancaria
+        {
+            Nombre = $"Cobranza {Guid.NewGuid():N}"[..30], Moneda = "Bs", Activa = true,
+            FechaApertura = DateTime.Today.AddDays(-1)
+        });
+        var recibo = servicioCobrar.RegistrarCobro(cuenta, new CobroCliente
+        {
+            Fecha = DateTime.Today, Metodo = MetodoPago.Transferencia, MontoBs = 150m,
+            CuentaBancariaId = bancaria.Id
+        }, usuarioId: 1);
+
+        Assert.Equal(400m, cuenta.TotalFacturaBs);
+        Assert.Equal(250m, cuentas.GetById(cuenta.Id)!.SaldoBs);
+        Assert.Equal(10m, cuenta.SaldoUsdReferencia);
+        Assert.Equal(recibo.Id, Assert.Single(cobros.GetByCuenta(cuenta.Id)).Id);
+        Assert.Equal(150m, Assert.Single(movimientosBanco.GetByOrigen(OrigenMovimiento.CobroCliente, recibo.Id)).Monto);
+        Assert.Equal([TipoMovimientoCuentaPorCobrar.Apertura, TipoMovimientoCuentaPorCobrar.Cobro],
+            movimientos.GetByCuenta(cuenta.Id).Select(m => m.Tipo).ToArray());
+
+        using var db = new AsoAdminisDbContext();
+        var indices = db.Database.SqlQueryRaw<IndiceUnico>(
+            "SELECT i.name AS Nombre, i.is_unique AS EsUnico FROM sys.indexes i " +
+            "WHERE i.object_id IN (OBJECT_ID(N'CuentasPorCobrar'), OBJECT_ID(N'CobrosCliente')) " +
+            "AND i.name IN (N'IX_CuentasPorCobrar_OrganizacionId_VentaId', N'IX_CobrosCliente_OrganizacionId_Numero')").ToList();
+        Assert.Equal(2, indices.Count);
+        Assert.All(indices, i => Assert.True(i.EsUnico));
+    }
+
+    private sealed class IndiceUnico
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public bool EsUnico { get; set; }
+    }
+
     // ---------------------------------------------------------------- Apoyo
 
     private VentasService ServicioDeVentas()

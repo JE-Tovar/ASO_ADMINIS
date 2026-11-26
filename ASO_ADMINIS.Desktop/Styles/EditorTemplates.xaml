@@ -70,6 +70,10 @@
     <views:AsientoBancoEditorView />
   </DataTemplate>
 
+  <DataTemplate DataType="{x:Type vm:CobroClienteEditorViewModel}">
+    <views:CobroClienteEditorView />
+  </DataTemplate>
+
   <DataTemplate DataType="{x:Type vm:MovimientoBancoEditorViewModel}">
     <views:MovimientoBancoEditorView />
   </DataTemplate>
@@ -120,6 +124,10 @@
 
   <DataTemplate DataType="{x:Type vm:FacturaProveedorDetalleViewModel}">
     <views:FacturaProveedorDetalleView />
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type vm:CuentaPorCobrarDetalleViewModel}">
+    <views:CuentaPorCobrarDetalleView />
   </DataTemplate>
 
   <!-- Armazón -->

@@ -7,7 +7,7 @@ namespace ASO_ADMINIS.Desktop.Services;
 /// Reglas del documento fiscal de venta: factura, nota de crédito y nota de débito.
 ///
 /// <b>Orden de cada emisión:</b> validar → emitir en el <see cref="IEmisorFiscal"/> → guardar →
-/// mover el almacén. El emisor va antes de guardar porque es la operación que puede rechazar
+/// mover el almacén y ajustar CxC cuando corresponda. El emisor va antes de guardar porque es la operación que puede rechazar
 /// (sin conexión, sin papel): si falla, no se guarda nada. Si lo que falla es el guardado
 /// DESPUÉS de emitir, el documento ya existe para el fisco: se anota en un diario local
 /// (%AppData%\ASO Adminis\diario-fiscal.jsonl) para conciliarlo a mano, y se avisa.
@@ -38,6 +38,7 @@ public sealed class VentasService
     private readonly Func<Turno?> _turno;
     private readonly ClientesService? _clientes;
     private readonly IRangoContingenciaDataSource? _rangos;
+    private readonly CuentasPorCobrarService? _cuentasPorCobrar;
 
     public VentasService(IVentaDataSource ventas,
                          IArticuloDataSource articulos,
@@ -50,7 +51,8 @@ public sealed class VentasService
                          Func<Caja?>? caja = null,
                          Func<Turno?>? turno = null,
                          ClientesService? clientes = null,
-                         IRangoContingenciaDataSource? rangos = null)
+                         IRangoContingenciaDataSource? rangos = null,
+                         CuentasPorCobrarService? cuentasPorCobrar = null)
     {
         _ventas = ventas;
         _articulos = articulos;
@@ -66,6 +68,7 @@ public sealed class VentasService
         _turno = turno ?? (() => null);
         _clientes = clientes;
         _rangos = rangos;
+        _cuentasPorCobrar = cuentasPorCobrar;
     }
 
     public IEmisorFiscal Emisor => _emisor;
@@ -74,6 +77,7 @@ public sealed class VentasService
         _organizacion() ?? throw new InvalidOperationException("No hay organización activa.");
 
     public bool PercibeIgtf => _organizacion()?.ContribuyenteEspecial == true;
+    public bool PuedeVenderACredito => _sesion.Puede(Permisos.Ventas.VenderACredito);
 
     // ---------------------------------------------------------------- Cálculo
 
@@ -229,7 +233,7 @@ public sealed class VentasService
             }
         }
 
-        if (factura.Pagos.Count == 0)
+        if (factura.CondicionPago == CondicionVenta.Contado && factura.Pagos.Count == 0)
         {
             error = "Indique cómo se pagó.";
             return false;
@@ -242,7 +246,30 @@ public sealed class VentasService
         }
 
         var pendiente = CalculoFiscal.Pendiente(factura);
-        if (pendiente > 0.005m)
+        if (factura.CondicionPago == CondicionVenta.Credito)
+        {
+            if (!_sesion.Puede(Permisos.Ventas.VenderACredito))
+            {
+                error = "No tienes permiso para vender a crédito.";
+                return false;
+            }
+            if (_cuentasPorCobrar is null)
+            {
+                error = "El módulo de cuentas por cobrar no está disponible.";
+                return false;
+            }
+            if (factura.FechaVencimientoCredito is not { } vencimiento || vencimiento.Date < factura.Fecha.Date)
+            {
+                error = "Indique el vencimiento del crédito; no puede ser anterior a la factura.";
+                return false;
+            }
+            if (pendiente < -0.005m)
+            {
+                error = "Una venta a crédito no admite sobrepagos.";
+                return false;
+            }
+        }
+        else if (pendiente > 0.005m)
         {
             error = $"Faltan Bs. {pendiente:N2} por cobrar.";
             return false;
@@ -315,7 +342,12 @@ public sealed class VentasService
                 throw new InvalidOperationException(error);
 
             RegistrarCliente(factura);
-            return EmitirYGuardar(factura, guardada => RegistrarSalida(guardada, usuarioId));
+            ExigirClientePersistidoParaCredito(factura);
+            return EmitirYGuardar(factura, guardada =>
+            {
+                RegistrarSalida(guardada, usuarioId);
+                _cuentasPorCobrar?.CrearDesdeFactura(guardada, usuarioId);
+            });
         });
     }
 
@@ -349,6 +381,7 @@ public sealed class VentasService
             throw new InvalidOperationException(error);
 
         RegistrarCliente(factura);
+        ExigirClientePersistidoParaCredito(factura);
         factura.NumeroFiscal = numeroDocumento.Trim();
         factura.NumeroControl = control;
         factura.SerialEmisor = "CONTINGENCIA";
@@ -360,6 +393,7 @@ public sealed class VentasService
 
         var guardada = _ventas.Add(factura);
         RegistrarSalida(guardada, usuarioId);
+        _cuentasPorCobrar?.CrearDesdeFactura(guardada, usuarioId);
         return guardada;
         });
     }
@@ -467,7 +501,11 @@ public sealed class VentasService
 
         CalculoFiscal.Totalizar(nota, Emisora, percibeIgtf: false);
 
-        return EmitirYGuardar(nota, guardada => RegistrarDevolucion(guardada, usuarioId));
+        return EmitirYGuardar(nota, guardada =>
+        {
+            RegistrarDevolucion(guardada, usuarioId);
+            _cuentasPorCobrar?.AjustarPorNota(guardada, usuarioId);
+        });
         });
     }
 
@@ -515,7 +553,8 @@ public sealed class VentasService
         })];
 
         CalculoFiscal.Totalizar(nota, org, percibeIgtf: false);
-        return EmisionAtomica(() => EmitirYGuardar(nota, null));
+        return EmisionAtomica(() => EmitirYGuardar(nota,
+            guardada => _cuentasPorCobrar?.AjustarPorNota(guardada, usuarioId)));
     }
 
     private void ValidarNota(Venta factura, string motivo)
@@ -607,7 +646,8 @@ public sealed class VentasService
     /// Da de alta al cliente (o pone al día su ficha) y enlaza la factura con él. Va después de
     /// validar y ANTES de emitir porque la factura es inalterable: el ClienteId tiene que estar
     /// puesto al guardarla. Si luego el emisor falla, el cliente queda en el padrón, que es
-    /// inocuo. Nunca impide facturar (ver <see cref="ClientesService.RegistrarDesdeFactura"/>).
+    /// inocuo. En contado un fallo del padrón no impide facturar; a crédito sí, porque la deuda
+    /// debe quedar enlazada a un cliente persistido.
     /// </summary>
     private void RegistrarCliente(Venta factura)
     {
@@ -618,11 +658,20 @@ public sealed class VentasService
         {
             factura.ClienteId = _clientes.RegistrarDesdeFactura(factura) ?? factura.ClienteId;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Un fallo del padrón (base ocupada, choque con otra caja) no detiene la venta: la
-            // factura lleva su snapshot del cliente igual.
+            if (factura.CondicionPago == CondicionVenta.Credito)
+                throw new InvalidOperationException(
+                    "No se pudo guardar el cliente en el padrón. La venta a crédito no se emitió.", ex);
+            // En contado la factura lleva su snapshot del cliente igual.
         }
+    }
+
+    private static void ExigirClientePersistidoParaCredito(Venta factura)
+    {
+        if (factura.CondicionPago == CondicionVenta.Credito && factura.ClienteId is null or 0)
+            throw new InvalidOperationException(
+                "La venta a crédito necesita un cliente registrado en el padrón; no se emitió la factura.");
     }
 
     /// <summary>

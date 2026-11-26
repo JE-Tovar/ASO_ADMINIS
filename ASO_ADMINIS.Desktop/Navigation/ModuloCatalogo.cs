@@ -77,11 +77,13 @@ public static class ModuloCatalogo
         new Modulo(
             "Finanzas",
             "Finanzas",
-            "Pagos a proveedores, gastos varios y libro de banco.",
+            "Pagos a proveedores, cobranzas de clientes, gastos varios y libro de banco.",
             Iconos.Finanzas,
             [
                 new Submodulo("Finanzas.CuentasPorPagar", "Cuentas por Pagar",
                     "Obligaciones con proveedores y su vencimiento.", Iconos.CuentasPorPagar),
+                new Submodulo("Finanzas.CuentasPorCobrar", "Cuentas por Cobrar",
+                    "Saldos de facturas a crédito, vencimientos, recibos y estado de cuenta.", Iconos.CuentasPorPagar),
                 new Submodulo("Finanzas.GastosVarios", "Gastos varios",
                     "Pagos que no son a proveedores: servicios, alquiler, fletes, limpieza…", Iconos.Finanzas),
                 new Submodulo("Finanzas.Banco", "Banco",

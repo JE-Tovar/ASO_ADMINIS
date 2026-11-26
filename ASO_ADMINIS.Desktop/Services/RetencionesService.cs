@@ -7,7 +7,8 @@ namespace ASO_ADMINIS.Desktop.Services;
 /// retención. La factura no se toca (es inalterable): el comprobante es una fila aparte que el
 /// libro de ventas cruza con ella.
 /// </summary>
-public sealed class RetencionesService(IRetencionIvaDataSource retenciones, ISesionActual sesion)
+public sealed class RetencionesService(IRetencionIvaDataSource retenciones, ISesionActual sesion,
+                                       CuentasPorCobrarService? cuentasPorCobrar = null)
 {
     public static readonly decimal[] PorcentajesValidos = [75m, 100m];
 
@@ -44,25 +45,30 @@ public sealed class RetencionesService(IRetencionIvaDataSource retenciones, ISes
         if (fecha.Date < factura.Fecha.Date)
             throw new InvalidOperationException("El comprobante no puede ser anterior a la factura.");
 
-        if (DeLaFactura(factura.Id) is not null)
-            throw new InvalidOperationException($"La factura {factura.NumeroFiscal} ya tiene su retención registrada.");
-
-        if (retenciones.GetAll().Any(r => r.ClienteRif == factura.ClienteRif && r.NumeroComprobante == numero))
-            throw new InvalidOperationException($"El comprobante {numero} de {factura.ClienteRif} ya está registrado.");
-
-        return retenciones.Add(new RetencionIvaRecibida
+        return UnidadDeTrabajo.Ejecutar(UnidadDeTrabajo.Documentos, () =>
         {
-            VentaId = factura.Id,
-            VentaNumeroFiscal = factura.NumeroFiscal,
-            ClienteRif = factura.ClienteRif,
-            ClienteNombre = factura.ClienteNombre,
-            NumeroComprobante = numero,
-            FechaComprobante = fecha.Date,
-            Porcentaje = porcentaje,
-            IvaFactura = factura.TotalIva,
-            MontoRetenido = Calcular(factura, porcentaje),
-            CreadoPorId = usuarioId,
-            FechaCreacion = DateTime.Now
+            if (DeLaFactura(factura.Id) is not null)
+                throw new InvalidOperationException($"La factura {factura.NumeroFiscal} ya tiene su retención registrada.");
+            if (retenciones.GetAll().Any(r => r.ClienteRif == factura.ClienteRif && r.NumeroComprobante == numero))
+                throw new InvalidOperationException($"El comprobante {numero} de {factura.ClienteRif} ya está registrado.");
+
+            var monto = Calcular(factura, porcentaje);
+            var guardada = retenciones.Add(new RetencionIvaRecibida
+            {
+                VentaId = factura.Id,
+                VentaNumeroFiscal = factura.NumeroFiscal,
+                ClienteRif = factura.ClienteRif,
+                ClienteNombre = factura.ClienteNombre,
+                NumeroComprobante = numero,
+                FechaComprobante = fecha.Date,
+                Porcentaje = porcentaje,
+                IvaFactura = factura.TotalIva,
+                MontoRetenido = monto,
+                CreadoPorId = usuarioId,
+                FechaCreacion = DateTime.Now
+            });
+            cuentasPorCobrar?.AplicarRetencion(factura.Id, numero, monto, fecha.Date, usuarioId);
+            return guardada;
         });
     }
 }

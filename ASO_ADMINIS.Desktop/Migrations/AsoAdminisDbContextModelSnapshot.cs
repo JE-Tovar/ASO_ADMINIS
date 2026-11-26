@@ -262,6 +262,98 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.ToTable("Clientes");
                 });
 
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.CobroCliente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AnuladoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CajaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CuentaBancariaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CuentaBancariaNombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("CuentaPorCobrarId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaAnulacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Metodo")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MontoBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoDivisa")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Referencia")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<decimal>("TasaCambio")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int?>("TurnoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VentaId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CuentaPorCobrarId");
+
+                    b.HasIndex("TurnoId");
+
+                    b.HasIndex("OrganizacionId", "Numero")
+                        .IsUnique();
+
+                    b.ToTable("CobrosCliente");
+                });
+
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.CuentaBancaria", b =>
                 {
                     b.Property<int>("Id")
@@ -318,6 +410,83 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("CuentasBancarias");
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.CuentaPorCobrar", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ClienteNombre")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ClienteRif")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<int>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaCobro")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaEmision")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaVencimiento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NumeroFactura")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PagoInicialBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("SaldoBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TasaCambioEmision")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalFacturaBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VentaId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizacionId", "FechaVencimiento");
+
+                    b.HasIndex("OrganizacionId", "VentaId")
+                        .IsUnique();
+
+                    b.ToTable("CuentasPorCobrar");
                 });
 
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.EntradaInventario", b =>
@@ -666,6 +835,60 @@ namespace ASO_ADMINIS.Desktop.Migrations
                     b.HasIndex("Origen", "OrigenId");
 
                     b.ToTable("MovimientosBanco");
+                });
+
+            modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.MovimientoCuentaPorCobrar", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CobroClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CuentaPorCobrarId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("DocumentoOrigen")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int?>("DocumentoVentaId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("MontoBs")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("OrganizacionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentoVentaId");
+
+                    b.HasIndex("CuentaPorCobrarId", "Fecha");
+
+                    b.ToTable("MovimientosCuentaPorCobrar");
                 });
 
             modelBuilder.Entity("ASO_ADMINIS.Desktop.Models.Organizacion", b =>
@@ -1462,6 +1685,9 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<int>("CondicionPago")
+                        .HasColumnType("int");
+
                     b.Property<int>("CreadoPorId")
                         .HasColumnType("int");
 
@@ -1500,6 +1726,9 @@ namespace ASO_ADMINIS.Desktop.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FechaTransmision")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaVencimientoCredito")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("Igtf")
